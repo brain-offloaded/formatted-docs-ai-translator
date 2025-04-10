@@ -1,90 +1,34 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { Box, Switch, FormControlLabel, TextField } from '@mui/material';
-import { BaseParseOptions, BaseParseOptionsProps } from './BaseParseOptions';
+import { BaseParseOptions, BaseParseOptionsProps, useParseOptions } from './BaseParseOptions';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
+import { TranslationType } from '../../contexts/TranslationContext';
 
 interface CsvFileParseOptionProps extends BaseParseOptionsProps<CsvParserOptionsDto> {}
 
 const CsvFileParseOption: React.FC<CsvFileParseOptionProps> = (props) => {
   const { isTranslating, onOptionsChange, initialOptions } = props;
-  const defaultDelimiter = initialOptions?.delimiter || ',';
-  const defaultReplaceDelimiter = initialOptions?.replaceDelimiter || ';';
-  const defaultSkipFirstLine = initialOptions?.skipFirstLine || false;
 
-  const [delimiter, setDelimiter] = useState(defaultDelimiter);
-  const [replaceDelimiter, setReplaceDelimiter] = useState(defaultReplaceDelimiter);
-  const [skipFirstLine, setSkipFirstLine] = useState(defaultSkipFirstLine);
-
-  // 내부 옵션 변경 핸들러
-  const handleInternalOptionsChange = useCallback(
-    (options: Partial<CsvParserOptionsDto>) => {
-      if (onOptionsChange && initialOptions) {
-        // 기존 옵션과 새 옵션 병합
-        onOptionsChange({
-          ...initialOptions,
-          ...options,
-        });
-      }
-    },
-    [onOptionsChange, initialOptions]
+  // useParseOptions 훅 사용
+  const { options, createFieldChangeHandler } = useParseOptions<CsvParserOptionsDto>(
+    initialOptions,
+    TranslationType.CsvFile,
+    onOptionsChange
   );
 
-  // 옵션 변경 핸들러
-  const handleDelimiterChange = useCallback(
-    (value: string) => {
-      setDelimiter(value);
-      handleInternalOptionsChange({ delimiter: value });
-    },
-    [handleInternalOptionsChange]
-  );
-
-  const handleReplaceDelimiterChange = useCallback(
-    (value: string) => {
-      setReplaceDelimiter(value);
-      handleInternalOptionsChange({ replaceDelimiter: value });
-    },
-    [handleInternalOptionsChange]
-  );
-
-  const handleSkipFirstLineChange = useCallback(
-    (value: boolean) => {
-      setSkipFirstLine(value);
-      handleInternalOptionsChange({ skipFirstLine: value });
-    },
-    [handleInternalOptionsChange]
-  );
-
-  // 초기 옵션 변경 감지
-  useEffect(() => {
-    if (initialOptions) {
-      if (initialOptions.delimiter !== undefined && initialOptions.delimiter !== delimiter) {
-        setDelimiter(initialOptions.delimiter);
-      }
-
-      if (
-        initialOptions.replaceDelimiter !== undefined &&
-        initialOptions.replaceDelimiter !== replaceDelimiter
-      ) {
-        setReplaceDelimiter(initialOptions.replaceDelimiter);
-      }
-
-      if (
-        initialOptions.skipFirstLine !== undefined &&
-        initialOptions.skipFirstLine !== skipFirstLine
-      ) {
-        setSkipFirstLine(initialOptions.skipFirstLine);
-      }
-    }
-  }, [initialOptions, delimiter, replaceDelimiter, skipFirstLine]);
+  // 각 필드에 대한 핸들러 생성
+  const handleDelimiterChange = createFieldChangeHandler('delimiter');
+  const handleReplaceDelimiterChange = createFieldChangeHandler('replaceDelimiter');
+  const handleSkipFirstLineChange = createFieldChangeHandler('skipFirstLine');
 
   return (
     <Box sx={{ mb: 2 }}>
-      <BaseParseOptions {...props} />
+      <BaseParseOptions {...props} translationType={TranslationType.CsvFile} />
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
         <TextField
           label="구분자"
-          value={delimiter}
+          value={options.delimiter}
           onChange={(e) => handleDelimiterChange(e.target.value)}
           disabled={isTranslating}
           size="small"
@@ -93,7 +37,7 @@ const CsvFileParseOption: React.FC<CsvFileParseOptionProps> = (props) => {
 
         <TextField
           label="대체 구분자"
-          value={replaceDelimiter}
+          value={options.replaceDelimiter}
           onChange={(e) => handleReplaceDelimiterChange(e.target.value)}
           disabled={isTranslating}
           size="small"
@@ -103,7 +47,7 @@ const CsvFileParseOption: React.FC<CsvFileParseOptionProps> = (props) => {
         <FormControlLabel
           control={
             <Switch
-              checked={skipFirstLine}
+              checked={options.skipFirstLine}
               onChange={(e) => handleSkipFirstLineChange(e.target.checked)}
               disabled={isTranslating}
             />
