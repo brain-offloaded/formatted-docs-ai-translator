@@ -4,16 +4,29 @@ import { BaseParseOptions, BaseParseOptionsProps } from './BaseParseOptions';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { ConfigStore } from '../../config/config-store';
 
-interface CsvFileParseOptionProps extends BaseParseOptionsProps {}
+interface CsvFileParseOptionProps extends BaseParseOptionsProps {
+  initialOptions?: CsvParserOptionsDto;
+}
 
 const CsvFileParseOption: React.FC<CsvFileParseOptionProps> = ({
   isTranslating,
   onOptionsChange,
+  initialOptions,
 }) => {
   const configStore = ConfigStore.getInstance();
-  const [delimiter, setDelimiter] = useState(',');
-  const [replaceDelimiter, setReplaceDelimiter] = useState(';');
-  const [skipFirstLine, setSkipFirstLine] = useState(false);
+  const [delimiter, setDelimiter] = useState(initialOptions?.delimiter || ',');
+  const [replaceDelimiter, setReplaceDelimiter] = useState(initialOptions?.replaceDelimiter || ';');
+  const [skipFirstLine, setSkipFirstLine] = useState(initialOptions?.skipFirstLine || false);
+
+  // 초기 옵션이 변경될 때 상태 업데이트
+  useEffect(() => {
+    if (initialOptions) {
+      if (initialOptions.delimiter) setDelimiter(initialOptions.delimiter);
+      if (initialOptions.replaceDelimiter) setReplaceDelimiter(initialOptions.replaceDelimiter);
+      if (initialOptions.skipFirstLine !== undefined)
+        setSkipFirstLine(initialOptions.skipFirstLine);
+    }
+  }, [initialOptions]);
 
   // 옵션 변경 시 부모 컴포넌트에 알림
   const updateOptions = useCallback(() => {
@@ -24,6 +37,7 @@ const CsvFileParseOption: React.FC<CsvFileParseOptionProps> = ({
         replaceDelimiter,
         skipFirstLine,
       };
+      console.log('CSV 옵션 업데이트:', options);
       onOptionsChange(options);
     }
   }, [configStore, delimiter, replaceDelimiter, skipFirstLine, onOptionsChange]);

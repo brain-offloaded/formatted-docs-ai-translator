@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Box, Typography, useTheme, TextField, Tooltip, IconButton } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
@@ -18,26 +18,14 @@ import { BaseParseRequestDto } from '@/nest/parser/dto/request/base-parse-reques
 import { BaseApplyRequestDto } from '@/nest/parser/dto/request/base-apply-request.dto';
 import { BaseParseResponseDto } from '@/nest/parser/dto/response/base-parse-response.dto';
 import { BaseApplyResponseDto } from '@/nest/parser/dto/response/base-apply-response.dto';
-
-/**
- * 입력 타입이 파일 기반인지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 파일 기반 입력인 경우 true, 아닌 경우 false
- */
-export const isFileInput = (translationType: TranslationType): boolean => {
-  return (
-    translationType === TranslationType.JsonFile || translationType === TranslationType.CsvFile
-  );
-};
-
-/**
- * 출력 결과를 다운로드할 수 있는지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 다운로드 가능한 경우 true, 아닌 경우 false
- */
-export const isDownloadable = (translationType: TranslationType): boolean => {
-  return isFileInput(translationType);
-};
+import {
+  isFileInput,
+  isDownloadable,
+  getDefaultInitialInput,
+  getDefaultValidator,
+  getDefaultOptions,
+  ParserOptionType,
+} from '../../constants/TranslationTypeMapping';
 
 // 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
 export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
@@ -81,48 +69,16 @@ export interface BaseTranslatorProps {
   OptionComponent?: React.ComponentType<{
     isTranslating: boolean;
     onOptionsChange?: (options: BaseParseOptionsDto) => void;
+    initialOptions?: ParserOptionType;
   }>;
 }
 
-// 기본 초기 입력값 생성 함수
-const getDefaultInitialInput = (translationType: TranslationType): string | string[] => {
-  if (isFileInput(translationType)) {
-    return [] as unknown as string[];
-  } else {
-    return '' as unknown as string;
-  }
-};
-
-// 기본 유효성 검사 함수
-const getDefaultValidator = (
-  translationType: TranslationType
-): ((input: string | string[]) => boolean) => {
-  if (isFileInput(translationType)) {
-    return (input) => (input as string[])?.length > 0;
-  } else if (translationType === TranslationType.JsonString) {
-    return (input) => {
-      try {
-        JSON.parse((input as string).trim());
-        return true;
-      } catch (e) {
-        return false;
-      }
-    };
-  } else {
-    return (input) => (input as string)?.trim().length > 0;
-  }
-};
-
 // 기본 출력 포맷 함수
-const defaultFormatOutput = <TapplyResult,>(output: TapplyResult, isFileInput: boolean): string => {
+const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
   if (isFileInput) {
     return '파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
   } else {
-    return typeof output === 'string'
-      ? output
-      : typeof output === 'object' && output !== null && 'translatedText' in output
-        ? (output as { translatedText: string }).translatedText
-        : JSON.stringify(output, null, 2);
+    return output;
   }
 };
 
@@ -140,7 +96,7 @@ export function BaseTranslator({
     getDefaultInitialInput(options.translationType)
   );
   const [showSettings, setShowSettings] = useState(false);
-  const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto>({
+  const [parserOptions, setParserOptions] = useState<ParserOptionType>({
     sourceLanguage: configStore.getConfig().sourceLanguage,
   });
 
@@ -149,6 +105,19 @@ export function BaseTranslator({
     () => isFileInput(options.translationType),
     [options.translationType]
   );
+
+  // 번역 타입 변경 시 기본 옵션 자동 설정
+  useEffect(() => {
+    const defaultOptions = getDefaultOptions(
+      options.translationType,
+      configStore.getConfig().sourceLanguage
+    );
+    console.log('기본 옵션 설정됨:', defaultOptions);
+    setParserOptions((prevOptions) => ({
+      ...defaultOptions,
+      ...prevOptions, // 이미 설정된 옵션이 있으면 우선 적용
+    }));
+  }, [options.translationType, configStore]);
 
   // 유효성 검증 함수
   const validateInput = useMemo(
@@ -198,7 +167,11 @@ export function BaseTranslator({
 
   // 파서 옵션 변경 핸들러
   const handleParserOptionsChange = useCallback((options: BaseParseOptionsDto) => {
-    setParserOptions(options);
+    console.log('옵션 변경됨:', options);
+    setParserOptions((prevOptions) => ({
+      ...prevOptions,
+      ...options,
+    }));
   }, []);
 
   // 번역 버튼 활성화 여부 계산
@@ -221,6 +194,7 @@ export function BaseTranslator({
           sourceLanguage: config.sourceLanguage, // 최신 sourceLanguage 값 사용
         },
       };
+      console.log('파싱 옵션:', parsePayload.options);
       return (await window.electron.ipcRenderer.invoke(
         parseChannel,
         parsePayload
@@ -264,6 +238,7 @@ export function BaseTranslator({
           sourceLanguage: config.sourceLanguage, // 최신 sourceLanguage 값 사용
         },
       };
+      console.log('적용 옵션:', applyPayload.options);
       return (await window.electron.ipcRenderer.invoke(
         applyChannel,
         applyPayload
@@ -353,6 +328,8 @@ export function BaseTranslator({
               translateResponse.translatedTextPaths,
               config
             );
+            console.log('from applyResponse:');
+            console.log(applyResponse);
 
             if (!applyResponse.success) {
               throw new Error(applyResponse.message || '번역 적용 중 오류가 발생했습니다.');
@@ -633,6 +610,7 @@ export function BaseTranslator({
           <OptionComponent
             isTranslating={isTranslating}
             onOptionsChange={handleParserOptionsChange}
+            initialOptions={parserOptions}
           />
         )}
 
@@ -663,6 +641,7 @@ export function BaseTranslator({
     uiState.dragActive,
     setUIState,
     handleParserOptionsChange,
+    parserOptions,
   ]);
 
   // 알맞은 입력 컨트롤 선택
