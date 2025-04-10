@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../translation-cache.db"
+}
+
+model Translation {
+  id             Int                  @id @default(autoincrement())
+  source         String               @unique(map: "IDX_translation_source")
+  target         String
+  success        Boolean              @default(true)
+  createdAt      DateTime             @default(now()) @map("created_at")
+  lastAccessedAt DateTime             @default(now()) @map("last_accessed_at")
+  fileInfoId     Int?                 @map("file_info_id")
+  fileInfo       FileInfo?            @relation(fields: [fileInfoId], references: [id])
+  history        TranslationHistory[]
+
+  @@index([fileInfoId], map: "IDX_translation_file_info_id")
+  @@index([lastAccessedAt], map: "IDX_translation_last_accessed_at")
+  @@map("translation")
+}
+
+model FileInfo {
+  id           Int           @id @default(autoincrement())
+  fileName     String        @map("file_name")
+  filePath     String        @unique(map: "IDX_file_info_file_path") @map("file_path")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at")
+  translations Translation[]
+
+  @@index([fileName], map: "IDX_file_info_file_name")
+  @@map("file_info")
+}
+
+model TranslationHistory {
+  id            Int         @id @default(autoincrement())
+  translationId Int         @map("translation_id")
+  source        String
+  target        String
+  success       Boolean
+  error         String?
+  model         String
+  createdAt     DateTime    @default(now()) @map("created_at")
+  translation   Translation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+
+  @@index([source], map: "IDX_translation_history_source")
+  @@index([createdAt], map: "IDX_translation_history_created_at")
+  @@index([translationId], map: "IDX_translation_history_translation_id")
+  @@map("translation_history")
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  level     String
+  message   String
+  context   String?
+  timestamp DateTime @default(now())
+  metadata  String?
+
+  @@index([timestamp], map: "IDX_log_timestamp")
+  @@index([level], map: "IDX_log_level")
+  @@map("log")
+}
+
+model example_preset {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique(map: "IDX_example_preset_name")
+  description String?
+  examples    String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement())
+  timestamp BigInt
+  name      String
+}

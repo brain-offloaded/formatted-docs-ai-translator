@@ -1,0 +1,21 @@
+{
+  "b1": "I love vscode",
+  "b2": "I love cursor",
+  "b3": "I love copilot",
+  "b4": {
+    "b41": "I love anthropic",
+    "b42": "I love openai",
+    "b43": "I love gemini",
+    "b44": {
+      "b441": "I love claude",
+      "b442": "I love groq"
+    },
+    "b45": [
+      {
+        "b451": "그냥 한글",
+        "b452": "너도 한글"
+      },
+      "I believe A.I. will change the world."
+    ]
+  }
+}

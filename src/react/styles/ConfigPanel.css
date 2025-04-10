@@ -1,0 +1,57 @@
+.config-panel {
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.config-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.config-item {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.config-label-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.config-label-container label {
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.config-item select,
+.config-item input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 34px;
+  border: none;
+  background: transparent;
+  color: #007bff;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.toggle-password:hover {
+  text-decoration: underline;
+} 

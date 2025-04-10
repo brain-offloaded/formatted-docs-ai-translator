@@ -1,0 +1,21 @@
+{
+  "a1": "I love vscode",
+  "a2": "I love cursor",
+  "a3": "I love copilot",
+  "a4": {
+    "a41": "I am a developer",
+    "a42": "I am a designer",
+    "a43": "I am a tester",
+    "a44": {
+      "a441": "I am a manager",
+      "a442": "I am a leader"
+    },
+    "a45": [
+      {
+        "a451": "그냥 한글",
+        "a452": "You are a developer"
+      },
+      "한글 배열!"
+    ]
+  }
+}

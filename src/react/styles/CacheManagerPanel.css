@@ -1,0 +1,471 @@
+.cache-manager-panel {
+  padding: 20px;
+}
+
+h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+.search-section {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.search-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.search-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-field label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.search-field input,
+.search-field select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.date-fields {
+  display: flex;
+  gap: 15px;
+  flex: 2;
+}
+
+.search-button-container {
+  display: flex;
+  justify-content: center;
+}
+
+.search-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.search-button:hover {
+  background-color: #0056b3;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.action-button {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: white;
+}
+
+.action-button.delete-checked {
+  background-color: #dc3545;
+}
+
+.action-button.delete-all {
+  background-color: #dc3545;
+}
+
+.action-button:hover {
+  opacity: 0.9;
+}
+
+.table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.cache-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.cache-table th,
+.cache-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.cache-table th:nth-child(1),
+.cache-table td:nth-child(1) {
+  width: 40px;
+}
+
+.cache-table th:nth-child(2),
+.cache-table td:nth-child(2) {
+  width: 50px;
+}
+
+.cache-table th:nth-child(3),
+.cache-table td:nth-child(3),
+.cache-table th:nth-child(4),
+.cache-table td:nth-child(4) {
+  width: 30%;
+}
+
+.cache-table th:nth-child(5),
+.cache-table td:nth-child(5) {
+  width: 15%;
+}
+
+.cache-table th:nth-child(6),
+.cache-table td:nth-child(6) {
+  width: 100px;
+}
+
+.cache-table th:nth-child(7),
+.cache-table td:nth-child(7) {
+  width: 100px;
+}
+
+.cache-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.cache-table tr:hover {
+  background-color: #f5f5f5;
+  cursor: pointer;
+}
+
+.text-cell {
+  max-width: 250px;
+}
+
+.text-with-copy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.text-with-copy span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.text-with-copy span:hover {
+  cursor: help;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.action-link {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  padding: 2px 5px;
+  margin-right: 5px;
+}
+
+.action-link:hover {
+  text-decoration: underline;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.items-per-page-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.items-per-page-selector select {
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.custom-items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.custom-items-per-page input {
+  width: 70px;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.custom-items-per-page button {
+  padding: 5px 10px;
+  border-radius: 4px;
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.custom-items-per-page button:hover {
+  background-color: #357abd;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination button {
+  padding: 5px 15px;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.pagination span {
+  margin: 0 10px;
+}
+
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .items-per-page-selector {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .pagination {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.no-items-message {
+  text-align: center;
+  padding: 30px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  color: #666;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.modal-content {
+  padding: 20px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.history-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.detail-item {
+  margin-bottom: 20px;
+}
+
+.detail-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.detail-value {
+  background-color: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  word-break: break-word;
+  position: relative;
+}
+
+.edit-button {
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 5px;
+}
+
+.edit-button.edit-text {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: #17a2b8;
+  color: white;
+}
+
+.editing-container {
+  margin-top: 10px;
+}
+
+.editing-container textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+  gap: 10px;
+}
+
+.edit-button.save {
+  background-color: #28a745;
+  color: white;
+}
+
+.edit-button.cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.detail-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detail-action {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.detail-action.history {
+  background-color: #6c757d;
+}
+
+/* 커스텀 확인 모달 추가 스타일 */
+.confirm-modal {
+  max-width: 400px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 15px;
+  gap: 10px;
+  border-top: 1px solid #ddd;
+}
+
+.action-button.delete-button {
+  background-color: #dc3545;
+}
+
+.action-button.cancel-button {
+  background-color: #6c757d;
+}
+
+/* 확인 버튼 스타일 추가 */
+.action-button.confirm-button {
+  background-color: #007bff; /* 파란색 계열 적용 */
+}
+
+/* 모달 안의 내용 스타일 */
+.modal-content p {
+  margin: 0;
+  padding: 10px 0;
+  font-size: 16px;
+}

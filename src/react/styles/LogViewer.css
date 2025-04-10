@@ -1,0 +1,590 @@
+.log-viewer {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.log-viewer h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.search-section {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  gap: 20px;
+}
+
+.log-level-filters {
+  margin-bottom: 15px;
+}
+
+.log-level-filters h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #555;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input {
+  margin-right: 6px;
+}
+
+.search-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.search-field {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #555;
+}
+
+.search-field input,
+.search-field select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.date-filters {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.search-button-container {
+  margin-top: 15px;
+}
+
+.loading {
+  text-align: center;
+  padding: 30px;
+  font-size: 18px;
+  color: #666;
+}
+
+.no-logs-message {
+  text-align: center;
+  padding: 30px;
+  font-size: 16px;
+  color: #888;
+  font-style: italic;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  table-layout: fixed;
+}
+
+.log-table th,
+.log-table td {
+  border: 1px solid #eee;
+  padding: 10px;
+  text-align: left;
+}
+
+/* 테이블 셀 최대 너비 제한 및 텍스트 오버플로우 처리 */
+.log-table td {
+  max-width: 250px;
+  position: relative;
+}
+
+/* 반응형 열 너비 설정 */
+.log-table th:nth-child(1),
+.log-table td:nth-child(1) {
+  width: 40px; /* 체크박스 열 */
+}
+
+.log-table th:nth-child(2),
+.log-table td:nth-child(2) {
+  width: 100px; /* 날짜 열 */
+}
+
+.log-table th:nth-child(3),
+.log-table td:nth-child(3) {
+  width: 100px; /* 레벨 열 - 너비 증가 */
+}
+
+.log-table th:nth-child(4),
+.log-table td:nth-child(4) {
+  width: 40%; /* 메시지 열 - 너비 증가 */
+}
+
+.log-table th:nth-child(5),
+.log-table td:nth-child(5) {
+  width: 30%; /* 메타데이터 열 - 너비 증가 */
+}
+
+.log-table th:nth-child(6),
+.log-table td:nth-child(6) {
+  width: 90px; /* 작업 열 */
+}
+
+.log-table td span {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 호버 시 툴팁 표시를 위한 스타일 */
+.log-table td span[title]:hover {
+  cursor: help;
+}
+
+.log-table th {
+  background-color: #f8f8f8;
+  font-weight: bold;
+  color: #555;
+}
+
+.log-table tr:hover {
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.checkbox-cell {
+  width: 40px;
+  text-align: center;
+}
+
+.log-level {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.log-level.error {
+  background-color: #ffeded;
+  color: #d32f2f;
+}
+
+.log-level.warn {
+  background-color: #fff8e1;
+  color: #f57c00;
+}
+
+.log-level.info {
+  background-color: #e8f4fd;
+  color: #1976d2;
+}
+
+.log-level.debug {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.action-button {
+  padding: 8px 16px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.action-button:hover {
+  background-color: #d32f2f;
+}
+
+.view-detail-button {
+  padding: 4px 8px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+.view-detail-button:hover {
+  background-color: #1976d2;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.items-per-page-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-items-per-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.custom-items-per-page input {
+  width: 80px;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.custom-items-per-page button {
+  padding: 5px 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination button {
+  padding: 6px 12px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 모달 스타일 */
+.modal-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  cursor: default;
+  z-index: 1000;
+}
+
+.modal {
+  position: relative;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 0;
+  animation: modal-fade-in 0.3s ease;
+  z-index: 1001;
+  opacity: 1;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #888;
+}
+
+.modal-content {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.log-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.log-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.log-info-item {
+  flex: 1;
+  min-width: 200px;
+}
+
+.log-info-label {
+  font-weight: bold;
+  color: #555;
+  margin-right: 8px;
+}
+
+.log-message {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.log-message-header {
+  padding: 10px 15px;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.view-toggle {
+  display: flex;
+}
+
+.view-toggle-btn {
+  padding: 4px 10px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  cursor: pointer;
+}
+
+.view-toggle-btn:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.view-toggle-btn:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.view-toggle-btn.active {
+  background-color: #4CAF50;
+  color: white;
+  border-color: #4CAF50;
+}
+
+.log-message pre {
+  margin: 0;
+  padding: 15px;
+  overflow: auto;
+  max-height: 400px;
+  background-color: #f9f9f9;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* 커스텀 확인 모달 스타일 */
+.confirm-modal {
+  max-width: 400px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 15px;
+  gap: 10px;
+  border-top: 1px solid #ddd;
+}
+
+.action-button.delete-button {
+  background-color: #dc3545;
+}
+
+.action-button.cancel-button {
+  background-color: #6c757d;
+}
+
+.modal-content p {
+  margin: 0;
+  padding: 10px 0;
+  font-size: 16px;
+}
+
+/* 로그 레벨 필터 버튼 스타일 */
+.level-filter-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.level-filter-button {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background-color: #f5f5f5;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+  position: relative;
+  overflow: hidden;
+}
+
+.level-filter-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.level-filter-button.active {
+  opacity: 1;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.level-filter-button .level-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.level-filter-button.error {
+  border-color: rgba(244, 67, 54, 0.5);
+}
+
+.level-filter-button.error .level-indicator {
+  background-color: #f44336; /* 빨간색 - 에러 */
+}
+
+.level-filter-button.error.active {
+  background-color: rgba(244, 67, 54, 0.1);
+  border-color: #f44336;
+}
+
+.level-filter-button.warn {
+  border-color: rgba(255, 152, 0, 0.5);
+}
+
+.level-filter-button.warn .level-indicator {
+  background-color: #ff9800; /* 주황색 - 경고 */
+}
+
+.level-filter-button.warn.active {
+  background-color: rgba(255, 152, 0, 0.1);
+  border-color: #ff9800;
+}
+
+.level-filter-button.info {
+  border-color: rgba(33, 150, 243, 0.5);
+}
+
+.level-filter-button.info .level-indicator {
+  background-color: #2196f3; /* 파란색 - 정보 */
+}
+
+.level-filter-button.info.active {
+  background-color: rgba(33, 150, 243, 0.1);
+  border-color: #2196f3;
+}
+
+.level-filter-button.debug {
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+.level-filter-button.debug .level-indicator {
+  background-color: #4caf50; /* 초록색 - 디버그 */
+}
+
+.level-filter-button.debug.active {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-color: #4caf50;
+}
+
+.level-filter-button .level-label {
+  font-size: 0.9rem;
+} 
