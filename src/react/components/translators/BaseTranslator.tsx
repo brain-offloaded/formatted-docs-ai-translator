@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Box, Typography, useTheme, TextField, Tooltip, IconButton } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
@@ -23,9 +23,9 @@ import {
   isDownloadable,
   getDefaultInitialInput,
   getDefaultValidator,
-  getDefaultOptions,
   ParserOptionType,
 } from '../../constants/TranslationTypeMapping';
+import { useParseOptions } from '../../components/options/BaseParseOptions';
 
 // 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
 export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
@@ -98,30 +98,18 @@ export function BaseTranslator({
   );
   const [showSettings, setShowSettings] = useState(false);
 
-  // 번역 타입에 따른 기본 옵션 생성
-  const defaultOptions = useMemo(
-    () => getDefaultOptions(options.translationType, configStore.getConfig().sourceLanguage),
-    [options.translationType, configStore]
-  );
-
-  // 옵션 상태 관리 - 옵션이 켜고 꺼도 유지되도록 상태 관리
-  const [parserOptions, setParserOptions] = useState<ParserOptionType>({
-    ...defaultOptions,
-  });
+  // useParseOptions 훅을 사용하여 옵션 관리
+  const { options: parserOptions, handleOptionsChange: handleParserOptionsChange } =
+    useParseOptions<ParserOptionType>(
+      undefined, // 초기 옵션은 훅 내부에서 처리됨
+      options.translationType
+    );
 
   // 번역 타입에 따라 파일 입력 여부 확인
   const currentIsFileInput = useMemo(
     () => isFileInput(options.translationType),
     [options.translationType]
   );
-
-  // 번역 타입 변경 시 기본 옵션 자동 설정 (기존 값 유지하면서)
-  useEffect(() => {
-    setParserOptions((prevOptions) => ({
-      ...defaultOptions,
-      ...prevOptions, // 이미 설정된 옵션이 있으면 우선 적용
-    }));
-  }, [defaultOptions]);
 
   // 유효성 검증 함수
   const validateInput = useMemo(
@@ -167,15 +155,6 @@ export function BaseTranslator({
   // JSON 설정 패널 토글
   const toggleJsonSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
-  }, []);
-
-  // 파서 옵션 변경 핸들러
-  const handleParserOptionsChange = useCallback((options: BaseParseOptionsDto) => {
-    console.log('옵션 변경됨:', options);
-    setParserOptions((prevOptions) => ({
-      ...prevOptions,
-      ...options,
-    }));
   }, []);
 
   // 번역 버튼 활성화 여부 계산

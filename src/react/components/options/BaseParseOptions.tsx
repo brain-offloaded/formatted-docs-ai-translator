@@ -73,7 +73,7 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
 
     // 2. initialOptions가 있으면 사용
     if (initialOptions) {
-      return initialOptions;
+      return { ...initialOptions, sourceLanguage } as T;
     }
 
     // 3. translationType이 있으면 기본 옵션 생성
@@ -122,6 +122,26 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
     [handleOptionsChange]
   );
 
+  // 번역 타입이 변경될 때 옵션 업데이트 - 로컬 스토리지에서 해당 타입의 저장된 옵션 불러오기
+  useEffect(() => {
+    if (translationType) {
+      // 로컬 스토리지에서 해당 번역 타입의 옵션 불러오기
+      const savedOptions = loadOptionsFromLocalStorage<T>(translationType);
+
+      if (savedOptions) {
+        // sourceLanguage는 항상 최신 값으로 업데이트
+        setOptions({ ...savedOptions, sourceLanguage } as T);
+      } else if (initialOptions) {
+        // 저장된 옵션이 없으면 초기 옵션 사용
+        setOptions({ ...initialOptions, sourceLanguage } as T);
+      } else {
+        // 초기 옵션도 없으면 기본 옵션 생성
+        const defaultOptions = getDefaultOptions(translationType, sourceLanguage) as T;
+        setOptions(defaultOptions);
+      }
+    }
+  }, [translationType, sourceLanguage, initialOptions]);
+
   // 초기 옵션이 변경될 때 상태 업데이트
   useEffect(() => {
     if (initialOptions) {
@@ -130,10 +150,11 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
           ({
             ...prevOptions,
             ...initialOptions,
+            sourceLanguage, // 항상 최신 sourceLanguage 유지
           }) as T
       );
     }
-  }, [initialOptions]);
+  }, [initialOptions, sourceLanguage]);
 
   // 기본 sourceLanguage 옵션 업데이트
   useEffect(() => {
@@ -144,6 +165,7 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
 
   return {
     options,
+    setOptions,
     handleOptionsChange,
     createFieldChangeHandler,
   };
@@ -155,7 +177,12 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   translationType,
 }: BaseParseOptionsProps<T>): React.ReactElement | null => {
   // useParseOptions 훅 사용
-  useParseOptions(initialOptions, translationType, onOptionsChange);
+  useParseOptions<T>(initialOptions, translationType, onOptionsChange);
+
+  // 디버깅을 위해 옵션 변경 로깅 (필요시 활성화)
+  // useEffect(() => {
+  //   console.log('BaseParseOptions - 현재 옵션:', options);
+  // }, [options]);
 
   // 기본 파싱 옵션에는 UI가 없음
   return null;
