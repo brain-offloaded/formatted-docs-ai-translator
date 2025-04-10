@@ -1,5 +1,5 @@
 import React from 'react';
-import BaseParseOptions, { BaseParseOptionsProps } from './BaseParseOptions';
+import { BaseParseOptions, BaseParseOptionsProps } from './BaseParseOptions';
 
 interface TextParseOptionProps extends BaseParseOptionsProps {}
 
