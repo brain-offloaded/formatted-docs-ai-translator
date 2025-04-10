@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 
-export interface BaseParseOptionsProps {
+export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
   isTranslating: boolean;
-  onOptionsChange?: (options: BaseParseOptionsDto) => void;
+  onOptionsChange?: (options: T) => void;
+  initialOptions?: T;
 }
 
 export const BaseParseOptions: React.FC<BaseParseOptionsProps> = ({ onOptionsChange }) => {

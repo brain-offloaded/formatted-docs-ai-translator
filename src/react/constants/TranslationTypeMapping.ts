@@ -15,6 +15,7 @@ import CsvFileParseOption from '../components/options/CsvFileParseOption';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { SourceLanguage } from '@/utils/language';
+import { BaseParseOptionsProps } from '../components/options/BaseParseOptions';
 
 /**
  * 컴포넌트에서 사용할 파서 옵션 타입
@@ -73,20 +74,16 @@ export const getTranslatorComponent = (type: TranslationType): React.ComponentTy
  */
 export const getParserOptionComponent = <T extends BaseParseOptionsDto>(
   type: TranslationType
-): React.ComponentType<{
-  isTranslating: boolean;
-  onOptionsChange?: (options: BaseParseOptionsDto) => void;
-  initialOptions?: T;
-}> => {
+): React.FC<BaseParseOptionsProps<T>> => {
   switch (type) {
     case TranslationType.JsonFile:
-      return JsonFileParseOption;
+      return JsonFileParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
     case TranslationType.JsonString:
-      return JsonStringParseOption;
+      return JsonStringParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
     case TranslationType.Text:
-      return TextParseOption;
+      return TextParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
     case TranslationType.CsvFile:
-      return CsvFileParseOption;
+      return CsvFileParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
     default:
       throw new Error('Invalid translation type');
   }

@@ -4,9 +4,7 @@ import { BaseParseOptions, BaseParseOptionsProps } from './BaseParseOptions';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { ConfigStore } from '../../config/config-store';
 
-interface CsvFileParseOptionProps extends BaseParseOptionsProps {
-  initialOptions?: CsvParserOptionsDto;
-}
+interface CsvFileParseOptionProps extends BaseParseOptionsProps<CsvParserOptionsDto> {}
 
 const CsvFileParseOption: React.FC<CsvFileParseOptionProps> = ({
   isTranslating,
