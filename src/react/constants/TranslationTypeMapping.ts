@@ -5,11 +5,13 @@ import { TranslationType } from '../contexts/TranslationContext';
 import JsonFileTranslator from '../components/translators/JsonFileTranslator';
 import JsonStringTranslator from '../components/translators/JsonStringTranslator';
 import TextTranslator from '../components/translators/TextTranslator';
+import CsvFileTranslator from '../components/translators/CsvFileTranslator';
 
 // 옵션 컴포넌트
 import JsonFileParseOption from '../components/options/JsonFileParseOption';
 import JsonStringParseOption from '../components/options/JsonStringParseOption';
 import TextParseOption from '../components/options/TextParseOption';
+import CsvFileParseOption from '../components/options/CsvFileParseOption';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 
 /**
@@ -25,6 +27,8 @@ export const getTranslatorComponent = (type: TranslationType): React.ComponentTy
       return JsonStringTranslator;
     case TranslationType.Text:
       return TextTranslator;
+    case TranslationType.CsvFile:
+      return CsvFileTranslator;
     default:
       throw new Error('Invalid translation type');
   }
@@ -48,6 +52,8 @@ export const getParserOptionComponent = (
       return JsonStringParseOption;
     case TranslationType.Text:
       return TextParseOption;
+    case TranslationType.CsvFile:
+      return CsvFileParseOption;
     default:
       throw new Error('Invalid translation type');
   }
@@ -66,6 +72,8 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
       return 'JSON 문자열 번역';
     case TranslationType.Text:
       return '텍스트 번역';
+    case TranslationType.CsvFile:
+      return 'CSV 파일 번역';
     default:
       throw new Error('Invalid translation type');
   }
@@ -88,6 +96,10 @@ export const getTranslationTypes = (): { value: TranslationType; label: string }
     {
       value: TranslationType.Text,
       label: getTranslationTypeLabel(TranslationType.Text),
+    },
+    {
+      value: TranslationType.CsvFile,
+      label: getTranslationTypeLabel(TranslationType.CsvFile),
     },
   ];
 };

@@ -25,7 +25,9 @@ import { BaseApplyResponseDto } from '@/nest/parser/dto/response/base-apply-resp
  * @returns 파일 기반 입력인 경우 true, 아닌 경우 false
  */
 export const isFileInput = (translationType: TranslationType): boolean => {
-  return translationType === TranslationType.JsonFile;
+  return (
+    translationType === TranslationType.JsonFile || translationType === TranslationType.CsvFile
+  );
 };
 
 /**

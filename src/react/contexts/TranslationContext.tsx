@@ -11,6 +11,7 @@ export enum TranslationType {
   Text = 'text',
   JsonFile = 'json-file',
   JsonString = 'json-string',
+  CsvFile = 'csv-file',
 }
 
 export interface TranslationResultState {

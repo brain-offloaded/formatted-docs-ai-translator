@@ -7,7 +7,7 @@ export interface BaseParseOptionsProps {
   onOptionsChange?: (options: BaseParseOptionsDto) => void;
 }
 
-const BaseParseOptions: React.FC<BaseParseOptionsProps> = ({ onOptionsChange }) => {
+export const BaseParseOptions: React.FC<BaseParseOptionsProps> = ({ onOptionsChange }) => {
   const configStore = ConfigStore.getInstance();
 
   // 기본 옵션 초기화 및 상태 관리
