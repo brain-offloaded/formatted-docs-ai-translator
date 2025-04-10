@@ -9,7 +9,7 @@ import { LoggerService } from './logger.service';
 
 @Injectable()
 export class LoggerIpcHandler extends IpcHandler {
-  constructor(private readonly logger: LoggerService) {
+  constructor(protected readonly logger: LoggerService) {
     super();
   }
 

@@ -15,7 +15,7 @@ export function HandleIpc(channel: IpcChannel) {
 }
 
 export class IpcHandler implements OnModuleInit {
-  constructor(private readonly logger: LoggerService) {}
+  protected readonly logger: LoggerService;
 
   onModuleInit() {
     this.registerIpcHandlers();

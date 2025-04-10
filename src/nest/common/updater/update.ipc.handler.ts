@@ -10,7 +10,7 @@ import { errorToString } from '../../../utils/error-stringify';
 
 @Injectable()
 export class UpdateIpcHandler extends IpcHandler {
-  constructor(private readonly logger: LoggerService) {
+  constructor(protected readonly logger: LoggerService) {
     super();
     this.setupAutoUpdater();
   }

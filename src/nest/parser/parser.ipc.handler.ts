@@ -14,7 +14,7 @@ import { deepClone } from '../../utils/deep-clone';
 export class ParserIpcHandler extends IpcHandler {
   constructor(
     private readonly parserService: ParserService,
-    private readonly logger: LoggerService
+    protected readonly logger: LoggerService
   ) {
     super();
   }
