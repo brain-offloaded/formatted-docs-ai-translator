@@ -35,7 +35,7 @@ const JsonFileTranslator: React.FC = () => {
     <BaseTranslator
       options={jsonFileTranslatorOptions}
       parseChannel={IpcChannel.ParseJsonFile}
-      applyChannel={IpcChannel.ApplyTranslationToJson}
+      applyChannel={IpcChannel.ApplyTranslationToJsonFile}
       formatOutput={formatOutput}
       OptionComponent={OptionComponent}
     />
