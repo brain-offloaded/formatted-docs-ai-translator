@@ -30,7 +30,7 @@ const JsonStringTranslator: React.FC = () => {
     <BaseTranslator
       options={jsonStringTranslatorOptions}
       parseChannel={IpcChannel.ParseJsonString}
-      applyChannel={IpcChannel.ApplyTranslationToJson}
+      applyChannel={IpcChannel.ApplyTranslationToJsonString}
       formatOutput={formatOutput}
       OptionComponent={OptionComponent}
     />

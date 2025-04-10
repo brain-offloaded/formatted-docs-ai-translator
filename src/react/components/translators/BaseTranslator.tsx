@@ -46,10 +46,7 @@ export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
   translateContent: (parsedContent: TParsed, config: TranslatorConfig) => Promise<TTranslated>;
 
   // 번역 결과를 적용하는 함수
-  applyTranslation: (
-    originalContent: TParsed,
-    translatedContent: TTranslated
-  ) => Promise<TapplyResult>;
+  applyTranslation: (input: string, translatedContent: TTranslated) => Promise<TapplyResult>;
 }
 
 // 번역기 옵션 인터페이스 - UI 관련 설정만 포함
@@ -250,15 +247,15 @@ export function BaseTranslator({
 
   const applyTranslation = useCallback(
     async (
-      originalContent: string,
+      input: string,
       translatedContent: TranslatedTextPath[],
       config: TranslatorConfig
     ): Promise<BaseApplyResponseDto> => {
       console.log('from applyTranslation:');
-      console.log(originalContent);
+      console.log(input);
       console.log(translatedContent);
       const applyPayload: BaseApplyRequestDto<BaseParseOptionsDto> = {
-        content: originalContent,
+        content: input,
         translatedTextPaths: translatedContent,
         options: {
           ...parserOptions,
@@ -350,7 +347,7 @@ export function BaseTranslator({
             }));
 
             const applyResponse = await applyTranslation(
-              parseResponse.originalContent,
+              singleFileInput,
               translateResponse.translatedTextPaths,
               config
             );
@@ -456,7 +453,7 @@ export function BaseTranslator({
         }));
 
         const applyResponse = await applyTranslation(
-          parseResponse.originalContent,
+          input as string,
           translateResponse.translatedTextPaths,
           config
         );
