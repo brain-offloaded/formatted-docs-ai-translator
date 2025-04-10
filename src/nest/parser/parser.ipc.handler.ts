@@ -179,4 +179,58 @@ export class ParserIpcHandler extends IpcHandler {
       };
     }
   }
+
+  @HandleIpc(IpcChannel.ParseCsvFile)
+  async parseCsvFile(
+    event: IpcMainInvokeEvent,
+    { content, options }: InvokeFunctionRequest<IpcChannel.ParseCsvFile>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ParseCsvFile>> {
+    try {
+      const fileContent = await readFile(content, 'utf8');
+      const targets = this.parserService.getCsvTranslationTargets(fileContent, options);
+      return {
+        success: true,
+        targets,
+        message: 'CSV 파싱 성공',
+      };
+    } catch (error) {
+      this.logger.error('CSV 파일을 파싱하는 중 오류가 발생했습니다:', { error });
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+        targets: [],
+      };
+    }
+  }
+
+  @HandleIpc(IpcChannel.ApplyTranslationToCsvFile)
+  async applyTranslationToCsvFile(
+    event: IpcMainInvokeEvent,
+    {
+      content,
+      translatedTextPaths,
+      options,
+    }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToCsvFile>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToCsvFile>> {
+    try {
+      const fileContent = await readFile(content, 'utf8');
+      const result = this.parserService.applyCsvTranslation(
+        fileContent,
+        translatedTextPaths,
+        options
+      );
+      return {
+        success: true,
+        result,
+        message: 'CSV 번역 적용 성공',
+      };
+    } catch (error) {
+      this.logger.error('CSV 번역 적용 중 오류가 발생했습니다:', { error });
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+        result: '',
+      };
+    }
+  }
 }

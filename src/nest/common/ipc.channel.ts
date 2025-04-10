@@ -27,4 +27,6 @@ export enum IpcChannel {
   ParseJsonString = 'parse-json-string',
   ParsePlainText = 'parse-plain-text',
   ApplyTranslationToPlainText = 'apply-translation-to-plain-text',
+  ParseCsvFile = 'parse-csv-file',
+  ApplyTranslationToCsvFile = 'apply-translation-to-csv-file',
 }
