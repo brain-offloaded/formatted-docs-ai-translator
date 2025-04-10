@@ -19,6 +19,41 @@ export type OptionFieldConfig<T> = {
   options?: { value: string; label: string }[];
 };
 
+// 로컬 스토리지 키 생성 함수
+const getLocalStorageKey = (translationType?: TranslationType): string => {
+  if (!translationType) return 'parse_options_default';
+  return `parse_options_${translationType}`;
+};
+
+// 로컬 스토리지에서 옵션 불러오기
+const loadOptionsFromLocalStorage = <T extends BaseParseOptionsDto>(
+  translationType?: TranslationType
+): T | null => {
+  try {
+    const key = getLocalStorageKey(translationType);
+    const savedOptions = localStorage.getItem(key);
+    if (savedOptions) {
+      return JSON.parse(savedOptions) as T;
+    }
+  } catch (e) {
+    console.error('로컬 스토리지에서 옵션을 불러오는 중 오류 발생:', e);
+  }
+  return null;
+};
+
+// 로컬 스토리지에 옵션 저장
+const saveOptionsToLocalStorage = <T extends BaseParseOptionsDto>(
+  options: T,
+  translationType?: TranslationType
+): void => {
+  try {
+    const key = getLocalStorageKey(translationType);
+    localStorage.setItem(key, JSON.stringify(options));
+  } catch (e) {
+    console.error('로컬 스토리지에 옵션을 저장하는 중 오류 발생:', e);
+  }
+};
+
 export const useParseOptions = <T extends BaseParseOptionsDto>(
   initialOptions?: T,
   translationType?: TranslationType,
@@ -27,16 +62,26 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
   const configStore = ConfigStore.getInstance();
   const sourceLanguage = configStore.getConfig().sourceLanguage;
 
-  // 기본값 설정
+  // 기본값 설정 - 순서대로 시도: 로컬 스토리지 > 초기 옵션 > 기본 옵션
   const getInitialState = (): T => {
+    // 1. 로컬 스토리지에서 불러오기
+    const savedOptions = loadOptionsFromLocalStorage<T>(translationType);
+    if (savedOptions) {
+      // sourceLanguage는 항상 최신 값으로 업데이트
+      return { ...savedOptions, sourceLanguage } as T;
+    }
+
+    // 2. initialOptions가 있으면 사용
     if (initialOptions) {
       return initialOptions;
     }
 
+    // 3. translationType이 있으면 기본 옵션 생성
     if (translationType) {
       return getDefaultOptions(translationType, sourceLanguage) as T;
     }
 
+    // 4. 최후의 경우 sourceLanguage만 포함한 기본 옵션 반환
     return { sourceLanguage } as T;
   };
 
@@ -56,10 +101,13 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
           onOptionsChange(updatedOptions);
         }
 
+        // 로컬 스토리지에 변경된 옵션 저장
+        saveOptionsToLocalStorage(updatedOptions, translationType);
+
         return updatedOptions;
       });
     },
-    [onOptionsChange]
+    [onOptionsChange, translationType]
   );
 
   // 특정 필드 값 변경 핸들러

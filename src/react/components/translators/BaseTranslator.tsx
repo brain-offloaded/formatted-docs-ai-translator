@@ -70,6 +70,7 @@ export interface BaseTranslatorProps {
     isTranslating: boolean;
     onOptionsChange?: (options: BaseParseOptionsDto) => void;
     initialOptions?: ParserOptionType;
+    translationType: TranslationType;
   }>;
 }
 
@@ -615,6 +616,7 @@ export function BaseTranslator({
               isTranslating={isTranslating}
               onOptionsChange={handleParserOptionsChange}
               initialOptions={parserOptions}
+              translationType={options.translationType}
             />
           )}
         </Box>
