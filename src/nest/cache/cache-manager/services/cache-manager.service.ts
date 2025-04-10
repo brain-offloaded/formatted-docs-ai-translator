@@ -60,7 +60,7 @@ export class CacheManagerService implements ICacheManagerService {
         }
       } catch (error) {
         // DB 조회 중 오류 발생 시 로그만 남기고 진행
-        console.error('메모리 캐시 업데이트를 위한 DB 조회 중 오류:', error);
+        this.logger.error('메모리 캐시 업데이트를 위한 DB 조회 중 오류:', { error });
       }
     }
 
@@ -83,7 +83,7 @@ export class CacheManagerService implements ICacheManagerService {
       }
     } catch (error) {
       // DB 조회 중 오류 발생 시 로그만 남기고 진행
-      console.error('메모리 캐시 무효화를 위한 DB 조회 중 오류:', error);
+      this.logger.error('메모리 캐시 무효화를 위한 DB 조회 중 오류:', { error });
       // 선택적 캐시 무효화 실패 - 작업은 계속 진행
     }
 
@@ -112,7 +112,7 @@ export class CacheManagerService implements ICacheManagerService {
       await this.invalidateMemoryCacheMany(sourceTexts);
     } catch (error) {
       // DB 조회 중 오류 발생 시 로그만 남기고 진행
-      console.error('메모리 캐시 무효화를 위한 DB 조회 중 오류:', error);
+      this.logger.error('메모리 캐시 무효화를 위한 DB 조회 중 오류:', { error });
       // 선택적 캐시 무효화 실패 - 작업은 계속 진행
     }
   }
