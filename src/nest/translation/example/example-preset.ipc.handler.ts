@@ -12,7 +12,7 @@ import { ExamplePresetDto } from '@/nest/translation/example/dto/example-preset.
 export class ExamplePresetIpcHandler extends IpcHandler {
   constructor(
     private readonly exampleManagerService: ExampleManagerService,
-    private readonly logger: LoggerService
+    protected readonly logger: LoggerService
   ) {
     super();
   }

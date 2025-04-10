@@ -11,7 +11,7 @@ import { IpcChannel } from '../common/ipc.channel';
 export class CacheIpcHandler extends IpcHandler {
   constructor(
     @Inject(ICacheManagerService) private readonly cacheManagerService: ICacheManagerService,
-    private readonly logger: LoggerService
+    protected readonly logger: LoggerService
   ) {
     super();
   }

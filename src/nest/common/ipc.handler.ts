@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { OnModuleInit } from '@nestjs/common';
+import { LoggerService } from '@/nest/logger/logger.service';
 import { ipcMain } from 'electron';
 
 import { IpcChannel } from './ipc.channel';
@@ -14,6 +15,8 @@ export function HandleIpc(channel: IpcChannel) {
 }
 
 export class IpcHandler implements OnModuleInit {
+  protected readonly logger: LoggerService;
+
   onModuleInit() {
     this.registerIpcHandlers();
   }
@@ -34,8 +37,11 @@ export class IpcHandler implements OnModuleInit {
           try {
             return await originalMethod.call(this, event, ...args);
           } catch (error) {
-            console.error(`Error in IPC handler for channel "${channel}":`, error);
-            throw error;
+            this.logger.error(`Error in IPC handler for channel "${channel}":`, { error });
+            return {
+              success: false,
+              message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+            };
           }
         });
       }

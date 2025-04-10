@@ -12,7 +12,7 @@ import { TranslatorService } from './services/translator.service';
 export class TranslatorIpcHandler extends IpcHandler {
   constructor(
     private readonly translatorService: TranslatorService,
-    private readonly logger: LoggerService
+    protected readonly logger: LoggerService
   ) {
     super();
   }
