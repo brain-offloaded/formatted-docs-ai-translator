@@ -17,6 +17,8 @@ export class CsvParserService implements IParserService<string, CsvParserOptions
 
     // 각 줄마다 처리
     lines.forEach((line, index) => {
+      // 첫 번째 줄 건너뛰기 옵션이 활성화되어 있고 첫 번째 줄인 경우 건너뜀
+      if (options.skipFirstLine && index === 0) return;
       if (!line.trim()) return; // 빈 줄 무시
 
       // 구분자로 분리
@@ -45,7 +47,7 @@ export class CsvParserService implements IParserService<string, CsvParserOptions
   public applyTranslation(
     text: string,
     translatedTextPaths: TranslatedTextPath[],
-    { delimiter, replaceDelimiter }: CsvParserOptionsDto
+    { delimiter, replaceDelimiter, skipFirstLine }: CsvParserOptionsDto
   ): string {
     // 줄 단위로 분리
     const lines = text.split('\n');
@@ -53,6 +55,9 @@ export class CsvParserService implements IParserService<string, CsvParserOptions
     // 번역된 내용을 위치에 맞게 적용
     translatedTextPaths.forEach((item) => {
       const [rowIndex, colIndex] = item.path.split(',').map(Number);
+
+      // skipFirstLine 옵션이 활성화된 경우 첫 번째 줄은 건너뜀
+      if (skipFirstLine && rowIndex === 0) return;
 
       if (lines[rowIndex]) {
         const cells = lines[rowIndex].split(delimiter);
