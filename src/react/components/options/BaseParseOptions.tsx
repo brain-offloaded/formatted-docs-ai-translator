@@ -3,12 +3,15 @@ import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { getDefaultOptions } from '../../constants/TranslationTypeMapping';
+import { OptionItem, OptionsValues, DynamicOptions } from './DynamicOptions';
+import { Box } from '@mui/material';
 
 export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
   isTranslating: boolean;
   onOptionsChange?: (options: T) => void;
   initialOptions?: T;
   translationType?: TranslationType;
+  optionItems?: OptionItem[]; // 동적 옵션 항목 배열
 }
 
 export type OptionFieldConfig<T> = {
@@ -57,7 +60,8 @@ const saveOptionsToLocalStorage = <T extends BaseParseOptionsDto>(
 export const useParseOptions = <T extends BaseParseOptionsDto>(
   initialOptions?: T,
   translationType?: TranslationType,
-  onOptionsChange?: (options: T) => void
+  onOptionsChange?: (options: T) => void,
+  _optionItems?: OptionItem[]
 ) => {
   const configStore = ConfigStore.getInstance();
   const sourceLanguage = configStore.getConfig().sourceLanguage;
@@ -122,6 +126,19 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
     [handleOptionsChange]
   );
 
+  // DynamicOptions 값 변경 처리 함수
+  const handleDynamicOptionsChange = useCallback(
+    (values: OptionsValues) => {
+      const partialOptions: Partial<T> = {};
+      // OptionsValues 객체의 값을 T 타입에 맞게 변환하여 적용
+      Object.entries(values).forEach(([key, value]) => {
+        partialOptions[key as keyof T] = value as T[keyof T];
+      });
+      handleOptionsChange(partialOptions);
+    },
+    [handleOptionsChange]
+  );
+
   // 번역 타입이 변경될 때 옵션 업데이트 - 로컬 스토리지에서 해당 타입의 저장된 옵션 불러오기
   useEffect(() => {
     if (translationType) {
@@ -168,6 +185,7 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
     setOptions,
     handleOptionsChange,
     createFieldChangeHandler,
+    handleDynamicOptionsChange,
   };
 };
 
@@ -175,17 +193,36 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   onOptionsChange,
   initialOptions,
   translationType,
-}: BaseParseOptionsProps<T>): React.ReactElement | null => {
+  isTranslating,
+  optionItems,
+}: BaseParseOptionsProps<T>): React.ReactElement => {
   // useParseOptions 훅 사용
-  useParseOptions<T>(initialOptions, translationType, onOptionsChange);
+  const { options, handleDynamicOptionsChange } = useParseOptions<T>(
+    initialOptions,
+    translationType,
+    onOptionsChange,
+    optionItems
+  );
 
-  // 디버깅을 위해 옵션 변경 로깅 (필요시 활성화)
-  // useEffect(() => {
-  //   console.log('BaseParseOptions - 현재 옵션:', options);
-  // }, [options]);
+  // 현재 옵션 값을 DynamicOptions 용 값으로 변환
+  const optionsValues: OptionsValues = { ...(options as unknown as OptionsValues) };
+
+  // optionItems가 있는 경우에만 DynamicOptions 렌더링
+  if (optionItems && optionItems.length > 0) {
+    return (
+      <Box sx={{ mb: 2 }}>
+        <DynamicOptions
+          options={optionItems}
+          values={optionsValues}
+          onChange={handleDynamicOptionsChange}
+          disabled={isTranslating}
+        />
+      </Box>
+    );
+  }
 
   // 기본 파싱 옵션에는 UI가 없음
-  return null;
+  return <></>;
 };
 
 export default BaseParseOptions;
