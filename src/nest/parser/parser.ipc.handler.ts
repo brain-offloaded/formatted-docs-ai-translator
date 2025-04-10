@@ -29,7 +29,6 @@ export class ParserIpcHandler extends IpcHandler {
     }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToJson>
   ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToJson>> {
     try {
-      console.log('content', content);
       const result = this.parserService.applyJsonTranslation(
         JSON.parse(content),
         translatedTextPaths,
@@ -82,7 +81,6 @@ export class ParserIpcHandler extends IpcHandler {
     { content, options }: InvokeFunctionRequest<IpcChannel.ParseJsonString>
   ): Promise<InvokeFunctionResponse<IpcChannel.ParseJsonString>> {
     try {
-      console.log('content', content);
       const jsonObject = JSON.parse(content);
       const targets = this.parserService.getJsonTranslationTargets(deepClone(jsonObject), options);
       return {

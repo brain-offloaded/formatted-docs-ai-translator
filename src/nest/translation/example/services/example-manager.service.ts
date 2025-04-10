@@ -95,7 +95,7 @@ export class ExampleManagerService {
       const preset = await this.getPresetByName(presetName);
 
       if (!preset) {
-        console.error(`Example preset with name "${presetName}" not found`);
+        this.logger.error(`Example preset with name "${presetName}" not found`);
         return false;
       }
 
@@ -103,7 +103,7 @@ export class ExampleManagerService {
       this.currentPresetName = presetName;
       return true;
     } catch (e) {
-      console.error(`Failed to load example preset: ${e}`);
+      this.logger.error(`Failed to load example preset: ${e}`);
       return false;
     }
   }
@@ -119,7 +119,7 @@ export class ExampleManagerService {
         where: { name: presetName },
       });
     } catch (e) {
-      console.error(`Failed to find example preset by name: ${e}`);
+      this.logger.error(`Failed to find example preset by name: ${e}`);
       return null;
     }
   }
@@ -267,7 +267,7 @@ export class ExampleManagerService {
       await this.typeOrmService.examplePreset.remove(preset);
       return true;
     } catch (e) {
-      console.error(`프리셋 삭제 중 오류 발생: ${e}`);
+      this.logger.error(`프리셋 삭제 중 오류 발생: ${e}`);
       return false;
     }
   }
