@@ -96,8 +96,16 @@ export function BaseTranslator({
     getDefaultInitialInput(options.translationType)
   );
   const [showSettings, setShowSettings] = useState(false);
+
+  // 번역 타입에 따른 기본 옵션 생성
+  const defaultOptions = useMemo(
+    () => getDefaultOptions(options.translationType, configStore.getConfig().sourceLanguage),
+    [options.translationType, configStore]
+  );
+
+  // 옵션 상태 관리 - 옵션이 켜고 꺼도 유지되도록 상태 관리
   const [parserOptions, setParserOptions] = useState<ParserOptionType>({
-    sourceLanguage: configStore.getConfig().sourceLanguage,
+    ...defaultOptions,
   });
 
   // 번역 타입에 따라 파일 입력 여부 확인
@@ -106,18 +114,13 @@ export function BaseTranslator({
     [options.translationType]
   );
 
-  // 번역 타입 변경 시 기본 옵션 자동 설정
+  // 번역 타입 변경 시 기본 옵션 자동 설정 (기존 값 유지하면서)
   useEffect(() => {
-    const defaultOptions = getDefaultOptions(
-      options.translationType,
-      configStore.getConfig().sourceLanguage
-    );
-    console.log('기본 옵션 설정됨:', defaultOptions);
     setParserOptions((prevOptions) => ({
       ...defaultOptions,
       ...prevOptions, // 이미 설정된 옵션이 있으면 우선 적용
     }));
-  }, [options.translationType, configStore]);
+  }, [defaultOptions]);
 
   // 유효성 검증 함수
   const validateInput = useMemo(
@@ -605,14 +608,16 @@ export function BaseTranslator({
           </Tooltip>
         </Box>
 
-        {/* 옵션 컴포넌트 렌더링 */}
-        {showSettings && OptionComponent && (
-          <OptionComponent
-            isTranslating={isTranslating}
-            onOptionsChange={handleParserOptionsChange}
-            initialOptions={parserOptions}
-          />
-        )}
+        {/* 옵션 컴포넌트는 항상 렌더링하되, 필요할 때만 표시 */}
+        <Box sx={{ display: showSettings ? 'block' : 'none' }}>
+          {OptionComponent && (
+            <OptionComponent
+              isTranslating={isTranslating}
+              onOptionsChange={handleParserOptionsChange}
+              initialOptions={parserOptions}
+            />
+          )}
+        </Box>
 
         {/* 파일 업로더 */}
         <FileUploader
