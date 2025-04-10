@@ -42,4 +42,4 @@ const CsvFileTranslator: React.FC = () => {
   );
 };
 
-export default CsvFileTranslator; 
+export default CsvFileTranslator;
