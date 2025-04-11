@@ -47,7 +47,6 @@ function registerNewFormatTranslator(): void {
     options: {
       inputLabel: '새 포맷 입력:',
       inputPlaceholder: '번역할 새 포맷 데이터를 입력하세요.',
-      resultFileType: 'text/plain', // 또는 적절한 MIME 타입
       translationType: TranslationType.NewFormat,
       inputFieldRows: 10,
       // 파일 기반 입력인 경우 아래 속성 추가

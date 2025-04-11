@@ -24,7 +24,6 @@ export interface BaseTranslatorOptions {
   // 번역기 설정
   inputLabel: string;
   inputPlaceholder: string;
-  resultFileType: string;
 
   // 유효성 검증
   validateInput?: (input: string | string[]) => boolean;
@@ -239,6 +238,10 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         let successCount = 0;
         let errorCount = 0;
 
+        // 단일 파일 처리를 위해 변수 추가
+        let singleFileResult: string | null = null;
+        let singleFileName: string | null = null;
+
         // 최종 결과를 저장할 JSZip 객체 생성
         const zip = new JSZip();
 
@@ -304,6 +307,13 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
               // 문자열 결과일 경우
               // 파일 경로에서 파일 이름만 추출 (경로 구분자 / 또는 \ 이후의 마지막 부분)
               const originalFileName = filePath.split(/[/\\]/).pop() || filePath;
+
+              // 단일 파일인 경우를 위해 결과 저장
+              if (totalFiles === 1) {
+                singleFileResult = result;
+                singleFileName = originalFileName;
+              }
+
               // 원본 파일 이름을 그대로 사용
               zip.file(originalFileName, result);
             }
@@ -323,8 +333,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
           }
         }
 
-        // 최종 zip 파일 생성
+        // 최종 zip 파일 생성 (다중 파일용)
         const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+        // 단일 파일 처리
+        let singleFileBlob = null;
+        if (singleFileResult && singleFileName) {
+          singleFileBlob = new Blob([singleFileResult], { type: 'application/octet-stream' });
+        }
 
         // 번역 결과 요약 메시지 생성
         let resultSummary = `처리된 파일: ${totalFiles}개\n`;
@@ -346,8 +362,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
             isError: errorCount > 0,
           },
           zipBlob: zipBlob,
-          singleFileBlob: null,
-          singleFileName: null,
+          singleFileBlob: singleFileBlob,
+          singleFileName: singleFileName,
         });
 
         // 최종 진행 상태 업데이트
@@ -461,49 +477,54 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     currentIsFileInput,
   ]);
 
-  // 결과 다운로드 핸들러
+  // 단일 파일 추출 및 다운로드 함수 제거
+  // 대신 더 간단한 파일 다운로드 함수만 유지
+  const downloadFile = useCallback(
+    (blob: Blob, fileName: string) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSnackbar(`'${fileName}' 파일 다운로드가 시작되었습니다.`);
+    },
+    [showSnackbar]
+  );
+
+  // 결과 다운로드 핸들러 전체 수정
   const handleDownload = useCallback(async () => {
-    if (resultState.translationResult && !resultState.translationResult.isError) {
-      try {
-        // 파일 타입에 따른 다운로드 처리
-        if (currentIsFileInput) {
-          // 파일 입력인 경우, zipBlob 사용
-          if (resultState.zipBlob) {
-            const url = URL.createObjectURL(resultState.zipBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'translated_files.zip';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showSnackbar(`'translated_files.zip' 파일 다운로드가 시작되었습니다.`);
-            return;
-          }
-        } else {
-          const output = resultState.translationResult.text;
-
-          // 일반 텍스트 또는 JSON 데이터인 경우
-          const content = typeof output === 'string' ? output : JSON.stringify(output, null, 2);
-
-          const blob = new Blob([content], { type: options.resultFileType });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download =
-            'translated' + (options.resultFileType === 'application/json' ? '.json' : '.txt');
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          showSnackbar(`'translated' 파일 다운로드가 시작되었습니다.`);
-        }
-      } catch (error) {
-        console.error('다운로드 오류:', error);
-        showSnackbar('다운로드 중 오류가 발생했습니다.');
-      }
+    if (!resultState.translationResult || resultState.translationResult.isError) {
+      return;
     }
-  }, [resultState, options.resultFileType, showSnackbar, currentIsFileInput]);
+
+    try {
+      // 파일 번역이 아닌 경우 다운로드를 지원하지 않음
+      if (!currentIsFileInput) {
+        showSnackbar('파일 번역만 다운로드를 지원합니다.');
+        return;
+      }
+
+      // 단일 파일인 경우 직접 다운로드
+      if (resultState.singleFileBlob && resultState.singleFileName) {
+        downloadFile(resultState.singleFileBlob, resultState.singleFileName);
+        return;
+      }
+
+      // 다중 파일인 경우 zip으로 다운로드
+      if (resultState.zipBlob) {
+        downloadFile(resultState.zipBlob, 'translated_files.zip');
+        return;
+      }
+
+      showSnackbar('다운로드할 파일이 없습니다.');
+    } catch (error) {
+      console.error('다운로드 오류:', error);
+      showSnackbar('다운로드 중 오류가 발생했습니다.');
+    }
+  }, [resultState, showSnackbar, currentIsFileInput, downloadFile]);
 
   // 다운로드 버튼 표시 여부
   const shouldShowDownloadButton = useMemo(() => currentIsFileInput, [currentIsFileInput]);
