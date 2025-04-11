@@ -191,12 +191,10 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
  */
 export const getTranslationTypes = (): { value: TranslationType; label: string }[] => {
   // Object.values 사용 시 enum의 숫자 값과 문자열 키가 모두 포함될 수 있으므로 필터링
-  return Object.values(TranslationType)
-    .filter((value): value is TranslationType => typeof value === 'number')
-    .map((type) => ({
-      value: type,
-      label: getTranslationTypeLabel(type),
-    }));
+  return Object.values(TranslationType).map((type) => ({
+    value: type,
+    label: getTranslationTypeLabel(type),
+  }));
 };
 
 /**
