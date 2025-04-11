@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
 import { TranslationType, useTranslation } from '../contexts/TranslationContext';
 import {
-  getTranslatorComponent,
+  getTranslatorWithOptions,
   getTranslationTypeLabel,
 } from '../constants/TranslationTypeMapping';
 import ExamplePresetSelector from './translation/ExamplePresetSelector';
@@ -32,7 +32,8 @@ export default function TranslationPanel(): React.ReactElement {
   );
 
   // TranslationType에 따라 적절한 컴포넌트 가져오기
-  const TranslatorComponent = getTranslatorComponent(translationType);
+  const { TranslatorComponent, OptionComponent } =
+    getTranslatorWithOptions<typeof translationType>(translationType);
 
   return (
     <Box sx={{ position: 'relative' }}>
@@ -54,7 +55,7 @@ export default function TranslationPanel(): React.ReactElement {
             />
 
             {/* 선택된 번역 유형에 따라 적절한 컴포넌트 렌더링 */}
-            <TranslatorComponent />
+            <TranslatorComponent OptionComponent={OptionComponent} />
           </Box>
         </CardContent>
       </Card>

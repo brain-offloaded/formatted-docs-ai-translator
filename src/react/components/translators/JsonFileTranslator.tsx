@@ -2,10 +2,13 @@ import React from 'react';
 import { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
-import { getParserOptionComponent } from '../../constants/TranslationTypeMapping';
+import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
+import { BaseParseOptionsProps } from '../../components/options/BaseParseOptions';
 
 // JSON 파일 번역기
-const JsonFileTranslator: React.FC = () => {
+const JsonFileTranslator: React.FC<{
+  OptionComponent: React.ComponentType<BaseParseOptionsProps<JsonParserOptionsDto>>;
+}> = ({ OptionComponent }) => {
   // 번역기 옵션 설정
   const jsonFileTranslatorOptions: BaseTranslatorOptions = {
     inputLabel: 'JSON 파일 입력:',
@@ -28,11 +31,8 @@ const JsonFileTranslator: React.FC = () => {
     return '';
   };
 
-  // 파서 옵션 컴포넌트 가져오기
-  const OptionComponent = getParserOptionComponent(TranslationType.JsonFile);
-
   return (
-    <BaseTranslator
+    <BaseTranslator<JsonParserOptionsDto>
       options={jsonFileTranslatorOptions}
       parseChannel={IpcChannel.ParseJsonFile}
       applyChannel={IpcChannel.ApplyTranslationToJsonFile}

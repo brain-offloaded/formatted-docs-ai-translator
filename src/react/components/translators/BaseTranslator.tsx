@@ -60,7 +60,7 @@ export interface BaseTranslatorOptions {
   fileLabel?: string;
 }
 
-export interface BaseTranslatorProps {
+export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
   options: BaseTranslatorOptions;
   parseChannel: IpcChannel;
   translateChannel?: IpcChannel;
@@ -68,9 +68,9 @@ export interface BaseTranslatorProps {
   formatOutput?: (output: string, isFileInput: boolean) => string;
   OptionComponent?: React.ComponentType<{
     isTranslating: boolean;
-    onOptionsChange?: (options: BaseParseOptionsDto) => void;
-    initialOptions?: ParserOptionType;
-    translationType: TranslationType;
+    onOptionsChange?: (options: T) => void;
+    initialOptions?: T;
+    translationType?: TranslationType;
   }>;
 }
 
@@ -83,14 +83,14 @@ const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
   }
 };
 
-export function BaseTranslator({
+export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsDto>({
   options,
   parseChannel,
   translateChannel = IpcChannel.TranslateTextArray,
   applyChannel,
   formatOutput = defaultFormatOutput,
   OptionComponent,
-}: BaseTranslatorProps): React.ReactElement {
+}: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
   const configStore = ConfigStore.getInstance();
   const [input, setInput] = useState<string | string[]>(
@@ -100,7 +100,7 @@ export function BaseTranslator({
 
   // useParseOptions 훅을 사용하여 옵션 관리
   const { options: parserOptions, handleOptionsChange: handleParserOptionsChange } =
-    useParseOptions<ParserOptionType>(
+    useParseOptions<T>(
       undefined, // 초기 옵션은 훅 내부에서 처리됨
       options.translationType
     );
@@ -170,7 +170,7 @@ export function BaseTranslator({
       // 단순화된 입력 구조로 로그 출력
       console.log(input);
 
-      const parsePayload: BaseParseRequestDto<BaseParseOptionsDto> = {
+      const parsePayload: BaseParseRequestDto<T> = {
         content: input,
         options: {
           ...parserOptions,
@@ -213,7 +213,7 @@ export function BaseTranslator({
       console.log('from applyTranslation:');
       console.log(input);
       console.log(translatedContent);
-      const applyPayload: BaseApplyRequestDto<BaseParseOptionsDto> = {
+      const applyPayload: BaseApplyRequestDto<T> = {
         content: input,
         translatedTextPaths: translatedContent,
         options: {

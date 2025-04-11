@@ -16,11 +16,43 @@ import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { SourceLanguage } from '@/utils/language';
 import { BaseParseOptionsProps } from '../components/options/BaseParseOptions';
+import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
+import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
 
 /**
  * 컴포넌트에서 사용할 파서 옵션 타입
  */
 export type ParserOptionType = BaseParseOptionsDto;
+
+/**
+ * 각 TranslationType에 대한 옵션 타입 매핑
+ */
+export interface TranslationTypeToOptionsMap {
+  [TranslationType.JsonFile]: JsonParserOptionsDto;
+  [TranslationType.JsonString]: JsonParserOptionsDto;
+  [TranslationType.Text]: PlainTextParserOptionsDto;
+  [TranslationType.CsvFile]: CsvParserOptionsDto;
+}
+
+/**
+ * 각 TranslationType에 대한 옵션 컴포넌트 타입 매핑
+ */
+export interface TranslationTypeToOptionComponentMap {
+  [TranslationType.JsonFile]: typeof JsonFileParseOption;
+  [TranslationType.JsonString]: typeof JsonStringParseOption;
+  [TranslationType.Text]: typeof TextParseOption;
+  [TranslationType.CsvFile]: typeof CsvFileParseOption;
+}
+
+/**
+ * 각 TranslationType에 대한 Translator 컴포넌트 타입 매핑
+ */
+export interface TranslationTypeToTranslatorMap {
+  [TranslationType.JsonFile]: typeof JsonFileTranslator;
+  [TranslationType.JsonString]: typeof JsonStringTranslator;
+  [TranslationType.Text]: typeof TextTranslator;
+  [TranslationType.CsvFile]: typeof CsvFileTranslator;
+}
 
 /**
  * 번역 타입에 따른 기본 옵션을 반환하는 함수
@@ -52,16 +84,36 @@ export const getDefaultOptions = (
  * @param type 번역 유형
  * @returns 해당 번역 유형에 맞는 React 컴포넌트
  */
-export const getTranslatorComponent = (type: TranslationType): React.ComponentType => {
+export const getTranslatorComponent = <T extends TranslationType>(
+  type: T
+): React.ComponentType<{
+  OptionComponent: React.ComponentType<BaseParseOptionsProps<TranslationTypeToOptionsMap[T]>>;
+}> => {
   switch (type) {
     case TranslationType.JsonFile:
-      return JsonFileTranslator;
+      return JsonFileTranslator as React.ComponentType<{
+        OptionComponent: React.ComponentType<
+          BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.JsonFile]>
+        >;
+      }>;
     case TranslationType.JsonString:
-      return JsonStringTranslator;
+      return JsonStringTranslator as React.ComponentType<{
+        OptionComponent: React.ComponentType<
+          BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.JsonString]>
+        >;
+      }>;
     case TranslationType.Text:
-      return TextTranslator;
+      return TextTranslator as React.ComponentType<{
+        OptionComponent: React.ComponentType<
+          BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.Text]>
+        >;
+      }>;
     case TranslationType.CsvFile:
-      return CsvFileTranslator;
+      return CsvFileTranslator as React.ComponentType<{
+        OptionComponent: React.ComponentType<
+          BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.CsvFile]>
+        >;
+      }>;
     default:
       throw new Error('Invalid translation type');
   }
@@ -72,18 +124,26 @@ export const getTranslatorComponent = (type: TranslationType): React.ComponentTy
  * @param type 번역 유형
  * @returns 해당 번역 유형에 맞는 옵션 컴포넌트
  */
-export const getParserOptionComponent = <T extends BaseParseOptionsDto>(
-  type: TranslationType
-): React.FC<BaseParseOptionsProps<T>> => {
+export const getParserOptionComponent = <T extends TranslationType>(
+  type: T
+): React.ComponentType<BaseParseOptionsProps<TranslationTypeToOptionsMap[T]>> => {
   switch (type) {
     case TranslationType.JsonFile:
-      return JsonFileParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
+      return JsonFileParseOption as React.ComponentType<
+        BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.JsonFile]>
+      >;
     case TranslationType.JsonString:
-      return JsonStringParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
+      return JsonStringParseOption as React.ComponentType<
+        BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.JsonString]>
+      >;
     case TranslationType.Text:
-      return TextParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
+      return TextParseOption as React.ComponentType<
+        BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.Text]>
+      >;
     case TranslationType.CsvFile:
-      return CsvFileParseOption as unknown as React.FC<BaseParseOptionsProps<T>>;
+      return CsvFileParseOption as React.ComponentType<
+        BaseParseOptionsProps<TranslationTypeToOptionsMap[typeof TranslationType.CsvFile]>
+      >;
     default:
       throw new Error('Invalid translation type');
   }
@@ -189,4 +249,19 @@ export const getTranslationTypes = (): { value: TranslationType; label: string }
       label: getTranslationTypeLabel(TranslationType.CsvFile),
     },
   ];
+};
+
+/**
+ * TranslationType에 따라 번역기 컴포넌트와 옵션 컴포넌트를 함께 반환하는 함수
+ * @param type 번역 유형
+ * @returns 번역기 컴포넌트와 옵션 컴포넌트를 포함하는 객체
+ */
+export const getTranslatorWithOptions = <T extends TranslationType>(type: T) => {
+  const OptionComponent = getParserOptionComponent<T>(type);
+  const TranslatorComponent = getTranslatorComponent<T>(type);
+
+  return {
+    TranslatorComponent,
+    OptionComponent,
+  };
 };

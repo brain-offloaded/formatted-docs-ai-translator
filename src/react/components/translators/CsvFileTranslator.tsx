@@ -2,10 +2,13 @@ import React from 'react';
 import { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
-import { getParserOptionComponent } from '../../constants/TranslationTypeMapping';
+import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
+import { BaseParseOptionsProps } from '../../components/options/BaseParseOptions';
 
 // CSV 파일 번역기
-const CsvFileTranslator: React.FC = () => {
+const CsvFileTranslator: React.FC<{
+  OptionComponent: React.ComponentType<BaseParseOptionsProps<CsvParserOptionsDto>>;
+}> = ({ OptionComponent }) => {
   // 번역기 옵션 설정
   const csvFileTranslatorOptions: BaseTranslatorOptions = {
     inputLabel: 'CSV 파일 입력:',
@@ -28,11 +31,8 @@ const CsvFileTranslator: React.FC = () => {
     return '';
   };
 
-  // 파서 옵션 컴포넌트 가져오기
-  const OptionComponent = getParserOptionComponent(TranslationType.CsvFile);
-
   return (
-    <BaseTranslator
+    <BaseTranslator<CsvParserOptionsDto>
       options={csvFileTranslatorOptions}
       parseChannel={IpcChannel.ParseCsvFile}
       applyChannel={IpcChannel.ApplyTranslationToCsvFile}
