@@ -1,10 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
-import {
-  Box,
-  useTheme,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { TranslatorConfig } from '../../../types/config';
@@ -97,10 +92,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const [options] = useState(initialOptions);
 
   // 현재 파일 입력 모드인지 확인 (parserOptions의 isFile 값으로 결정)
-  const currentIsFileInput = useMemo(
-    () => parserOptions?.isFile || false,
-    [parserOptions]
-  );
+  const currentIsFileInput = useMemo(() => parserOptions?.isFile || false, [parserOptions]);
 
   // 입력 상태 초기화
   const [input, setInput] = useState<string | string[]>(currentIsFileInput ? [] : '');
@@ -228,7 +220,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         applyPayload
       )) as BaseApplyResponseDto;
     },
-    [applyChannel, parserOptions, currentIsFileInput]
+    [applyChannel, parserOptions]
   );
 
   // 번역 처리 함수
