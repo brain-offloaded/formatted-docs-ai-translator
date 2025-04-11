@@ -15,7 +15,7 @@ export function registerAllTranslators(): void {
   registerTextTranslator();
 
   // CSV 파일 번역기 등록
-  registerCsvFileTranslator();
+  registerCsvTranslator();
 }
 
 /**
@@ -80,11 +80,11 @@ function registerTextTranslator(): void {
 /**
  * CSV 파일 번역기 등록
  */
-function registerCsvFileTranslator(): void {
+function registerCsvTranslator(): void {
   // 번역기 설정
-  const csvFileTranslatorConfig: TranslatorConfig = {
+  const csvTranslatorConfig: TranslatorConfig = {
     options: {
-      inputLabel: 'CSV 파일 선택:',
+      inputLabel: 'CSV 입력:',
       inputPlaceholder: '',
       resultFileType: 'text/csv',
       translationType: TranslationType.CsvFile,
@@ -97,7 +97,7 @@ function registerCsvFileTranslator(): void {
   };
 
   // 파싱 옵션 설정
-  const csvFileParseOptionsConfig: ParseOptionsConfig = {
+  const csvParseOptionsConfig: ParseOptionsConfig = {
     label: 'CSV 파일 파싱 옵션',
     optionItems: [
       {
@@ -119,6 +119,6 @@ function registerCsvFileTranslator(): void {
   };
 
   // 번역기와 파싱 옵션 등록
-  TranslatorFactory.registerTranslator(TranslationType.CsvFile, csvFileTranslatorConfig);
-  ParseOptionsFactory.registerParseOptions(TranslationType.CsvFile, csvFileParseOptionsConfig);
+  TranslatorFactory.registerTranslator(TranslationType.CsvFile, csvTranslatorConfig);
+  ParseOptionsFactory.registerParseOptions(TranslationType.CsvFile, csvParseOptionsConfig);
 }
