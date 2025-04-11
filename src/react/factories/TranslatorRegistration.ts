@@ -8,77 +8,48 @@ import { OptionType } from '../components/options/DynamicOptions';
  * 모든 번역기와 파싱 옵션을 등록하는 함수
  */
 export function registerAllTranslators(): void {
-  // JSON 파일 번역기 등록
-  registerJsonFileTranslator();
-
-  // JSON 문자열 번역기 등록
-  registerJsonStringTranslator();
-
+  // JSON 번역기 등록
+  registerJsonTranslator();
+  
   // 텍스트 번역기 등록
   registerTextTranslator();
-
+  
   // CSV 파일 번역기 등록
   registerCsvFileTranslator();
 }
 
 /**
- * JSON 파일 번역기 등록
+ * JSON 번역기 등록
  */
-function registerJsonFileTranslator(): void {
+function registerJsonTranslator(): void {
   // 번역기 설정
-  const jsonFileTranslatorConfig: TranslatorConfig = {
+  const jsonTranslatorConfig: TranslatorConfig = {
     options: {
-      inputLabel: 'JSON 파일 선택:',
-      inputPlaceholder: '',
+      inputLabel: 'JSON 입력:',
+      inputPlaceholder: '{ "key": "번역할 텍스트" }',
       resultFileType: 'application/json',
-      translationType: TranslationType.JsonFile,
+      translationType: TranslationType.Json,
+      isFileInput: false, // 기본값은 텍스트 입력 모드
+      inputFieldRows: 10,
       fileExtension: '.json',
       fileLabel: 'JSON 파일',
     },
-    parseChannel: IpcChannel.ParseJsonFile,
-    applyChannel: IpcChannel.ApplyTranslationToJsonFile,
+    // 두 가지 모드 모두 지원하도록 모든 채널 등록
+    parseFileChannel: IpcChannel.ParseJsonFile,
+    parseStringChannel: IpcChannel.ParseJsonString,
+    applyFileChannel: IpcChannel.ApplyTranslationToJsonFile,
+    applyStringChannel: IpcChannel.ApplyTranslationToJsonString,
     formatOutput: (output: string): string => output,
   };
-
+  
   // 파싱 옵션 설정
-  const jsonFileParseOptionsConfig: ParseOptionsConfig = {
-    label: 'JSON 파일 파싱 옵션',
+  const jsonParseOptionsConfig: ParseOptionsConfig = {
+    label: 'JSON 파싱 옵션',
   };
-
+  
   // 번역기와 파싱 옵션 등록
-  TranslatorFactory.registerTranslator(TranslationType.JsonFile, jsonFileTranslatorConfig);
-  ParseOptionsFactory.registerParseOptions(TranslationType.JsonFile, jsonFileParseOptionsConfig);
-}
-
-/**
- * JSON 문자열 번역기 등록
- */
-function registerJsonStringTranslator(): void {
-  // 번역기 설정
-  const jsonStringTranslatorConfig: TranslatorConfig = {
-    options: {
-      inputLabel: 'JSON 문자열 입력:',
-      inputPlaceholder: '{ "key": "번역할 텍스트" }',
-      resultFileType: 'application/json',
-      translationType: TranslationType.JsonString,
-      inputFieldRows: 10,
-    },
-    parseChannel: IpcChannel.ParseJsonString,
-    applyChannel: IpcChannel.ApplyTranslationToJsonString,
-    formatOutput: (output: string): string => output,
-  };
-
-  // 파싱 옵션 설정
-  const jsonStringParseOptionsConfig: ParseOptionsConfig = {
-    label: 'JSON 문자열 파싱 옵션',
-  };
-
-  // 번역기와 파싱 옵션 등록
-  TranslatorFactory.registerTranslator(TranslationType.JsonString, jsonStringTranslatorConfig);
-  ParseOptionsFactory.registerParseOptions(
-    TranslationType.JsonString,
-    jsonStringParseOptionsConfig
-  );
+  TranslatorFactory.registerTranslator(TranslationType.Json, jsonTranslatorConfig);
+  ParseOptionsFactory.registerParseOptions(TranslationType.Json, jsonParseOptionsConfig);
 }
 
 /**
@@ -92,10 +63,11 @@ function registerTextTranslator(): void {
       inputPlaceholder: '번역할 텍스트를 입력하세요...',
       resultFileType: 'text/plain',
       translationType: TranslationType.Text,
+      isFileInput: false, // 파일 입력 모드 비활성화
       inputFieldRows: 10,
     },
-    parseChannel: IpcChannel.ParsePlainText,
-    applyChannel: IpcChannel.ApplyTranslationToPlainText,
+    parseStringChannel: IpcChannel.ParsePlainText, // 문자열 파싱 채널
+    applyStringChannel: IpcChannel.ApplyTranslationToPlainText, // 문자열 번역 적용 채널
     formatOutput: (output: string): string => output,
   };
 
@@ -120,11 +92,12 @@ function registerCsvFileTranslator(): void {
       inputPlaceholder: '',
       resultFileType: 'text/csv',
       translationType: TranslationType.CsvFile,
+      isFileInput: true, // 파일 입력 모드 활성화
       fileExtension: '.csv',
       fileLabel: 'CSV 파일',
     },
-    parseChannel: IpcChannel.ParseCsvFile,
-    applyChannel: IpcChannel.ApplyTranslationToCsvFile,
+    parseFileChannel: IpcChannel.ParseCsvFile, // 파일 파싱 채널
+    applyFileChannel: IpcChannel.ApplyTranslationToCsvFile, // 파일 번역 적용 채널
     formatOutput: (output: string): string => output,
   };
 

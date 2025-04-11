@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
@@ -49,8 +49,9 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
   onOptionsChange?: (options: T) => void,
   _optionItems?: OptionItem[]
 ) => {
-  const configStore = ConfigStore.getInstance();
-  const sourceLanguage = configStore.getConfig().sourceLanguage;
+  // ConfigStore 인스턴스를 useMemo로 메모이제이션
+  const configStore = useMemo(() => ConfigStore.getInstance(), []);
+  const sourceLanguage = useMemo(() => configStore.getConfig().sourceLanguage, [configStore]);
 
   // 기본값 설정 - 순서대로 시도: 로컬 스토리지 > 초기 옵션 > 기본 옵션
   const getInitialState = (): T => {
@@ -161,10 +162,18 @@ export const useParseOptions = <T extends BaseParseOptionsDto>(
 
   // 기본 sourceLanguage 옵션 업데이트
   useEffect(() => {
-    handleOptionsChange({
-      sourceLanguage: configStore.getConfig().sourceLanguage,
-    } as Partial<T>);
-  }, [configStore, handleOptionsChange]);
+    setOptions((prevOptions) => {
+      const updatedOptions = {
+        ...prevOptions,
+        sourceLanguage,
+      } as T;
+
+      // 상태 업데이트 후 변경 사항을 부모에게 알리고 로컬 스토리지에 저장
+      saveOptionsToLocalStorage(updatedOptions, translationType);
+
+      return updatedOptions;
+    });
+  }, [sourceLanguage, onOptionsChange, translationType, setOptions]);
 
   return {
     options,

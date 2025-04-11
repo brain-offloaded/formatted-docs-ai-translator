@@ -63,50 +63,19 @@ export function getParserOptionComponent<T extends TranslationType>(
 }
 
 /**
- * 입력 타입이 파일 기반인지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 파일 기반 입력인 경우 true, 아닌 경우 false
+ * 파일 모드에 따른 기본 유효성 검사 함수를 반환하는 함수
+ * @param isFileInput 파일 입력 모드 여부
+ * @param translationType 번역 타입 (JSON 문자열 여부 등 확인용)
+ * @returns 해당 모드에 맞는 유효성 검사 함수
  */
-export const isFileInput = (translationType: TranslationType): boolean => {
-  return (
-    translationType === TranslationType.JsonFile || translationType === TranslationType.CsvFile
-  );
-};
-
-/**
- * 출력 결과를 다운로드할 수 있는지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 다운로드 가능한 경우 true, 아닌 경우 false
- */
-export const isDownloadable = (translationType: TranslationType): boolean => {
-  return isFileInput(translationType);
-};
-
-/**
- * 기본 초기 입력값 생성 함수
- * @param translationType 번역 타입
- * @returns 해당 번역 타입에 맞는 기본 초기 입력값
- */
-export const getDefaultInitialInput = (translationType: TranslationType): string | string[] => {
-  if (isFileInput(translationType)) {
-    return []; // 파일 입력은 빈 배열로 초기화
-  } else {
-    return ''; // 문자열 입력은 빈 문자열로 초기화
-  }
-};
-
-/**
- * 기본 유효성 검사 함수를 반환하는 함수
- * @param translationType 번역 타입
- * @returns 해당 번역 타입에 맞는 유효성 검사 함수
- */
-export const getDefaultValidator = (
+export const getDefaultValidatorByMode = (
+  isFileInput: boolean,
   translationType: TranslationType
 ): ((input: string | string[]) => boolean) => {
-  if (isFileInput(translationType)) {
+  if (isFileInput) {
     // 입력이 배열이고 요소가 있는지 확인
     return (input) => Array.isArray(input) && input.length > 0;
-  } else if (translationType === TranslationType.JsonString) {
+  } else if (translationType === TranslationType.Json) {
     // 입력이 문자열이고 유효한 JSON인지 확인
     return (input) => {
       if (typeof input !== 'string') return false;
@@ -131,10 +100,8 @@ export const getDefaultValidator = (
  */
 export const getTranslationTypeLabel = (type: TranslationType): string => {
   switch (type) {
-    case TranslationType.JsonFile:
-      return 'JSON 파일 번역';
-    case TranslationType.JsonString:
-      return 'JSON 문자열 번역';
+    case TranslationType.Json:
+      return 'JSON 번역';
     case TranslationType.Text:
       return '텍스트 번역';
     case TranslationType.CsvFile:

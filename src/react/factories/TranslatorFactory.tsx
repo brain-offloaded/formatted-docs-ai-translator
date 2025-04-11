@@ -11,10 +11,12 @@ import { OptionItem } from '../components/options/DynamicOptions';
 export interface TranslatorConfig {
   // 기본 번역기 옵션
   options: BaseTranslatorOptions;
-  // IPC 채널 설정
-  parseChannel: IpcChannel;
+  // IPC 채널 설정 - 파일 모드와 문자열 모드 분리
+  parseFileChannel?: IpcChannel;
+  parseStringChannel?: IpcChannel;
   translateChannel?: IpcChannel;
-  applyChannel: IpcChannel;
+  applyFileChannel?: IpcChannel;
+  applyStringChannel?: IpcChannel;
   // 출력 포맷 함수 (선택 사항)
   formatOutput?: (output: string, isFileInput: boolean) => string;
   // 기본 옵션 아이템 (선택 사항)
@@ -86,9 +88,11 @@ export class TranslatorFactory {
       return (
         <BaseTranslator
           options={config.options}
-          parseChannel={config.parseChannel}
+          parseFileChannel={config.parseFileChannel}
+          parseStringChannel={config.parseStringChannel}
           translateChannel={config.translateChannel || IpcChannel.TranslateTextArray}
-          applyChannel={config.applyChannel}
+          applyFileChannel={config.applyFileChannel}
+          applyStringChannel={config.applyStringChannel}
           formatOutput={config.formatOutput}
           parserOptions={parserOptions as TranslationTypeToOptionsMap[T]}
         />
