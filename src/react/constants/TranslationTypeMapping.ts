@@ -41,7 +41,8 @@ export type OptionComponentType<T extends TranslationType> = React.ComponentType
 
 // 번역기 컴포넌트 타입
 export type TranslatorComponentType<T extends TranslationType> = React.ComponentType<{
-  OptionComponent: OptionComponentType<T>;
+  parserOptions?: TranslationTypeToOptionsMap[T] | null;
+  onOptionsChange?: (options: TranslationTypeToOptionsMap[T]) => void;
 }>;
 
 /**

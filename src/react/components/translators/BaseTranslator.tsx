@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
@@ -23,7 +23,6 @@ import {
   getDefaultInitialInput,
   getDefaultValidator,
 } from '../../constants/TranslationTypeMapping';
-import { BaseParseOptionsProps, useParseOptions } from '../../components/options/BaseParseOptions';
 
 // 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
 export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
@@ -64,7 +63,9 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   translateChannel?: IpcChannel;
   applyChannel: IpcChannel;
   formatOutput?: (output: string, isFileInput: boolean) => string;
-  OptionComponent?: React.ComponentType<BaseParseOptionsProps<T>>;
+  // 옵션 관련 props
+  parserOptions?: T | null;
+  onOptionsChange?: (options: T) => void;
 }
 
 // 기본 출력 포맷 함수
@@ -82,7 +83,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   translateChannel = IpcChannel.TranslateTextArray,
   applyChannel,
   formatOutput = defaultFormatOutput,
-  OptionComponent,
+  parserOptions: externalParserOptions,
+  onOptionsChange,
 }: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
   const configStore = ConfigStore.getInstance();
@@ -90,12 +92,34 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     getDefaultInitialInput(options.translationType)
   );
 
-  // useParseOptions 훅을 사용하여 옵션 관리
-  const { options: parserOptions, handleOptionsChange: handleParserOptionsChange } =
-    useParseOptions<T>(
-      undefined, // 초기 옵션은 훅 내부에서 처리됨
-      options.translationType
-    );
+  // 내부적으로 사용할 파서 옵션 상태
+  const [parserOptions, setParserOptions] = useState<T>({
+    sourceLanguage: configStore.getConfig().sourceLanguage,
+  } as T);
+
+  // 외부에서 전달받은 옵션이 변경되면 내부 상태 업데이트
+  useEffect(() => {
+    if (externalParserOptions) {
+      setParserOptions(
+        (prev) =>
+          ({
+            ...prev,
+            ...externalParserOptions,
+          }) as T
+      );
+    }
+  }, [externalParserOptions]);
+
+  // 내부 파서 옵션이 변경되면 부모 컴포넌트에 알림
+  const handleParserOptionsChange = useCallback(
+    (newOptions: T) => {
+      setParserOptions(newOptions);
+      if (onOptionsChange) {
+        onOptionsChange(newOptions);
+      }
+    },
+    [onOptionsChange]
+  );
 
   // 번역 타입에 따라 파일 입력 여부 확인
   const currentIsFileInput = useMemo(
@@ -523,19 +547,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const renderTextInput = useCallback(() => {
     return (
       <Box sx={{ my: 2 }}>
-        {/* 옵션 패널 - BaseParseOptions 컴포넌트로 대체 */}
-        {OptionComponent && (
-          <OptionComponent
-            isTranslating={isTranslating}
-            onOptionsChange={handleParserOptionsChange}
-            initialOptions={parserOptions}
-            translationType={options.translationType}
-            label={options.inputLabel}
-          />
-        )}
-
         <TextField
-          label=""
+          label={options.inputLabel}
           multiline
           fullWidth
           rows={options.inputFieldRows || 10}
@@ -567,26 +580,12 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     theme.palette.mode,
     theme.palette.primary.main,
     handleInputChange,
-    OptionComponent,
-    handleParserOptionsChange,
-    parserOptions,
   ]);
 
   // 렌더링 - 파일 입력
   const renderFileInput = useCallback(() => {
     return (
       <>
-        {/* 옵션 패널 - BaseParseOptions 컴포넌트로 대체 */}
-        {OptionComponent && (
-          <OptionComponent
-            isTranslating={isTranslating}
-            onOptionsChange={handleParserOptionsChange}
-            initialOptions={parserOptions}
-            translationType={options.translationType}
-            label={options.inputLabel}
-          />
-        )}
-
         {/* 파일 업로더 */}
         <FileUploader
           isDisabled={isTranslating}
@@ -604,15 +603,12 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     );
   }, [
     options,
-    OptionComponent,
     isTranslating,
     input,
     handleFileChange,
     handleClearFilesLocal,
     uiState.dragActive,
     setUIState,
-    handleParserOptionsChange,
-    parserOptions,
   ]);
 
   // 알맞은 입력 컨트롤 선택

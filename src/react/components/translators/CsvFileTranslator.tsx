@@ -3,16 +3,21 @@ import { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
-import { BaseParseOptionsProps } from '../../components/options/BaseParseOptions';
 
-// CSV 파일 번역기
-const CsvFileTranslator: React.FC<{
-  OptionComponent: React.ComponentType<BaseParseOptionsProps<CsvParserOptionsDto>>;
-}> = ({ OptionComponent }) => {
+// Props 타입 정의
+interface CsvFileTranslatorProps {
+  parserOptions?: CsvParserOptionsDto | null;
+  onOptionsChange?: (options: CsvParserOptionsDto) => void;
+}
+
+const CsvFileTranslator: React.FC<CsvFileTranslatorProps> = ({
+  parserOptions,
+  onOptionsChange,
+}) => {
   // 번역기 옵션 설정
   const csvFileTranslatorOptions: BaseTranslatorOptions = {
-    inputLabel: 'CSV 파일 입력:',
-    inputPlaceholder: '번역할 CSV 파일을 업로드하세요.',
+    inputLabel: 'CSV 파일 선택:',
+    inputPlaceholder: '',
     resultFileType: 'text/csv',
 
     // 번역 타입
@@ -24,11 +29,8 @@ const CsvFileTranslator: React.FC<{
   };
 
   // 출력 포맷 함수
-  const formatOutput = (_output: string, isFileInput: boolean): string => {
-    if (isFileInput) {
-      return 'CSV 파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
-    }
-    return '';
+  const formatOutput = (output: string): string => {
+    return output;
   };
 
   return (
@@ -37,7 +39,8 @@ const CsvFileTranslator: React.FC<{
       parseChannel={IpcChannel.ParseCsvFile}
       applyChannel={IpcChannel.ApplyTranslationToCsvFile}
       formatOutput={formatOutput}
-      OptionComponent={OptionComponent}
+      parserOptions={parserOptions}
+      onOptionsChange={onOptionsChange}
     />
   );
 };

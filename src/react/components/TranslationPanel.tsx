@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
 import { TranslationType, useTranslation } from '../contexts/TranslationContext';
 import {
@@ -7,11 +7,26 @@ import {
 } from '../constants/TranslationTypeMapping';
 import ExamplePresetSelector from './translation/ExamplePresetSelector';
 import TranslationTypeSelector from './common/TranslationTypeSelector';
+import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 
 export default function TranslationPanel(): React.ReactElement {
   // Context에서 상태와 함수 가져오기
-  const { translationType, setTranslationType, handleClearFiles, uiState, setResultState } =
-    useTranslation();
+  const {
+    translationType,
+    setTranslationType,
+    handleClearFiles,
+    uiState,
+    setResultState,
+    isTranslating,
+  } = useTranslation();
+
+  // 옵션 상태 관리
+  const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
+
+  // 옵션 변경 핸들러
+  const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
+    setParserOptions(options);
+  }, []);
 
   // 번역 타입 변경 핸들러
   const handleTranslationTypeChange = useCallback(
@@ -27,6 +42,8 @@ export default function TranslationPanel(): React.ReactElement {
         singleFileBlob: null,
         singleFileName: null,
       });
+      // 옵션 초기화
+      setParserOptions(null);
     },
     [setTranslationType, handleClearFiles, setResultState]
   );
@@ -54,8 +71,22 @@ export default function TranslationPanel(): React.ReactElement {
               onChange={handleTranslationTypeChange}
             />
 
-            {/* 선택된 번역 유형에 따라 적절한 컴포넌트 렌더링 */}
-            <TranslatorComponent OptionComponent={OptionComponent} />
+            {/* 옵션 컴포넌트 렌더링 */}
+            {OptionComponent && (
+              <OptionComponent
+                isTranslating={isTranslating}
+                onOptionsChange={handleOptionsChange}
+                initialOptions={parserOptions || undefined}
+                translationType={translationType}
+                label={getTranslationTypeLabel(translationType) + ' 옵션'}
+              />
+            )}
+
+            {/* 번역기 컴포넌트 렌더링 - 옵션은 props로 전달 */}
+            <TranslatorComponent
+              parserOptions={parserOptions}
+              onOptionsChange={handleOptionsChange}
+            />
           </Box>
         </CardContent>
       </Card>

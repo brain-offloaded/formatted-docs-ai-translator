@@ -3,11 +3,17 @@ import { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
 import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
-import { BaseParseOptionsProps } from '../../components/options/BaseParseOptions';
 
-const TextTranslator: React.FC<{
-  OptionComponent: React.ComponentType<BaseParseOptionsProps<PlainTextParserOptionsDto>>;
-}> = ({ OptionComponent }) => {
+// Props 타입 정의
+interface TextTranslatorProps {
+  parserOptions?: PlainTextParserOptionsDto | null;
+  onOptionsChange?: (options: PlainTextParserOptionsDto) => void;
+}
+
+const TextTranslator: React.FC<TextTranslatorProps> = ({
+  parserOptions,
+  onOptionsChange,
+}) => {
   // 번역기 옵션 설정
   const textTranslatorOptions: BaseTranslatorOptions = {
     inputLabel: '텍스트 입력:',
@@ -32,7 +38,8 @@ const TextTranslator: React.FC<{
       parseChannel={IpcChannel.ParsePlainText}
       applyChannel={IpcChannel.ApplyTranslationToPlainText}
       formatOutput={formatOutput}
-      OptionComponent={OptionComponent}
+      parserOptions={parserOptions}
+      onOptionsChange={onOptionsChange}
     />
   );
 };
