@@ -26,7 +26,7 @@ export const getDefaultOptions = (
   sourceLanguage: SourceLanguage
 ): ParserOptionType => {
   switch (translationType) {
-    case TranslationType.CsvFile:
+    case TranslationType.Csv:
       return {
         sourceLanguage,
         delimiter: ',',
@@ -109,7 +109,7 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
       return 'JSON 번역';
     case TranslationType.Text:
       return '텍스트 번역';
-    case TranslationType.CsvFile:
+    case TranslationType.Csv:
       return 'CSV 번역';
     default:
       throw new Error('Invalid translation type');

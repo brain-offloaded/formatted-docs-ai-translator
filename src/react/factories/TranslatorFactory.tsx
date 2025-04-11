@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  BaseTranslator,
-  BaseTranslatorOptions,
-} from '../components/translators/BaseTranslator';
+import { BaseTranslator, BaseTranslatorOptions } from '../components/translators/BaseTranslator';
 import { TranslationType } from '../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
 import { TranslationTypeToOptionsMap, TranslatorComponentType } from '../types/translation-types';
