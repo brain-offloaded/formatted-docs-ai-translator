@@ -10,10 +10,10 @@ import { OptionType } from '../components/options/DynamicOptions';
 export function registerAllTranslators(): void {
   // JSON 번역기 등록
   registerJsonTranslator();
-  
+
   // 텍스트 번역기 등록
   registerTextTranslator();
-  
+
   // CSV 파일 번역기 등록
   registerCsvFileTranslator();
 }
@@ -34,19 +34,17 @@ function registerJsonTranslator(): void {
       fileExtension: '.json',
       fileLabel: 'JSON 파일',
     },
-    // 두 가지 모드 모두 지원하도록 모든 채널 등록
-    parseFileChannel: IpcChannel.ParseJsonFile,
-    parseStringChannel: IpcChannel.ParseJsonString,
-    applyFileChannel: IpcChannel.ApplyTranslationToJsonFile,
-    applyStringChannel: IpcChannel.ApplyTranslationToJsonString,
+    // 통합된 채널 사용
+    parseChannel: IpcChannel.ParseJson,
+    applyChannel: IpcChannel.ApplyTranslationToJson,
     formatOutput: (output: string): string => output,
   };
-  
+
   // 파싱 옵션 설정
   const jsonParseOptionsConfig: ParseOptionsConfig = {
     label: 'JSON 파싱 옵션',
   };
-  
+
   // 번역기와 파싱 옵션 등록
   TranslatorFactory.registerTranslator(TranslationType.Json, jsonTranslatorConfig);
   ParseOptionsFactory.registerParseOptions(TranslationType.Json, jsonParseOptionsConfig);
@@ -66,8 +64,8 @@ function registerTextTranslator(): void {
       isFileInput: false, // 파일 입력 모드 비활성화
       inputFieldRows: 10,
     },
-    parseStringChannel: IpcChannel.ParsePlainText, // 문자열 파싱 채널
-    applyStringChannel: IpcChannel.ApplyTranslationToPlainText, // 문자열 번역 적용 채널
+    parseChannel: IpcChannel.ParsePlainText,
+    applyChannel: IpcChannel.ApplyTranslationToPlainText,
     formatOutput: (output: string): string => output,
   };
 
@@ -96,8 +94,8 @@ function registerCsvFileTranslator(): void {
       fileExtension: '.csv',
       fileLabel: 'CSV 파일',
     },
-    parseFileChannel: IpcChannel.ParseCsvFile, // 파일 파싱 채널
-    applyFileChannel: IpcChannel.ApplyTranslationToCsvFile, // 파일 번역 적용 채널
+    parseChannel: IpcChannel.ParseCsv,
+    applyChannel: IpcChannel.ApplyTranslationToCsv,
     formatOutput: (output: string): string => output,
   };
 

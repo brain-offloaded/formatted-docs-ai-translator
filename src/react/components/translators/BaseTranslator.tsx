@@ -65,12 +65,10 @@ export interface BaseTranslatorOptions {
 
 export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
   options: BaseTranslatorOptions;
-  // 채널 설정 - 파일 모드와 문자열 모드 분리
-  parseFileChannel?: IpcChannel;
-  parseStringChannel?: IpcChannel;
+  // 채널 설정 - 파일 모드와 문자열 모드 통합
+  parseChannel?: IpcChannel;
   translateChannel?: IpcChannel;
-  applyFileChannel?: IpcChannel;
-  applyStringChannel?: IpcChannel;
+  applyChannel?: IpcChannel;
   formatOutput?: (output: string, isFileInput: boolean) => string;
   // 옵션 관련 props
   parserOptions?: T | null;
@@ -95,11 +93,9 @@ const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
 
 export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsDto>({
   options: initialOptions,
-  parseFileChannel,
-  parseStringChannel,
+  parseChannel,
   translateChannel = IpcChannel.TranslateTextArray,
-  applyFileChannel,
-  applyStringChannel,
+  applyChannel,
   formatOutput = defaultFormatOutput,
   parserOptions,
 }: BaseTranslatorProps<T>): React.ReactElement {
@@ -147,12 +143,12 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         // 새 모드에 필요한 채널이 있는지 확인
         const isFileMode = newMode === 'file';
 
-        if (isFileMode && !parseFileChannel) {
+        if (isFileMode && !parseChannel) {
           showSnackbar('이 번역기는 파일 입력 모드를 지원하지 않습니다.');
           return; // 모드 전환 취소
         }
 
-        if (!isFileMode && !parseStringChannel) {
+        if (!isFileMode && !parseChannel) {
           showSnackbar('이 번역기는 텍스트 입력 모드를 지원하지 않습니다.');
           return; // 모드 전환 취소
         }
@@ -162,7 +158,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         setInputMode(newMode);
       }
     },
-    [parseFileChannel, parseStringChannel, showSnackbar]
+    [parseChannel, showSnackbar]
   );
 
   // 유효성 검증 함수
@@ -212,23 +208,19 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
           ...effectiveOptions,
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
+        isFile: currentIsFileInput,
       };
 
-      // 파일 모드인지 여부에 따라 적절한 채널 선택
-      const channelToUse = currentIsFileInput ? parseFileChannel : parseStringChannel;
-
-      if (!channelToUse) {
-        throw new Error(
-          `파일 모드(${currentIsFileInput})에 적합한 파싱 채널이 정의되지 않았습니다.`
-        );
+      if (!parseChannel) {
+        throw new Error('파싱 채널이 정의되지 않았습니다.');
       }
 
       return (await window.electron.ipcRenderer.invoke(
-        channelToUse,
+        parseChannel,
         parsePayload
       )) as BaseParseResponseDto;
     },
-    [parseFileChannel, parseStringChannel, parserOptions, currentIsFileInput]
+    [parseChannel, parserOptions, currentIsFileInput]
   );
 
   const translateContent = useCallback(
@@ -264,23 +256,19 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
           ...effectiveOptions,
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
+        isFile: currentIsFileInput,
       };
 
-      // 파일 모드인지 여부에 따라 적절한 채널 선택
-      const channelToUse = currentIsFileInput ? applyFileChannel : applyStringChannel;
-
-      if (!channelToUse) {
-        throw new Error(
-          `파일 모드(${currentIsFileInput})에 적합한 적용 채널이 정의되지 않았습니다.`
-        );
+      if (!applyChannel) {
+        throw new Error('적용 채널이 정의되지 않았습니다.');
       }
 
       return (await window.electron.ipcRenderer.invoke(
-        channelToUse,
+        applyChannel,
         applyPayload
       )) as BaseApplyResponseDto;
     },
-    [applyFileChannel, applyStringChannel, parserOptions, currentIsFileInput]
+    [applyChannel, parserOptions, currentIsFileInput]
   );
 
   // 번역 처리 함수
