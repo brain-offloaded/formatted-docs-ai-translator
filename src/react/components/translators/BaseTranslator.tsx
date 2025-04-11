@@ -238,6 +238,10 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         let successCount = 0;
         let errorCount = 0;
 
+        // 단일 파일 처리를 위해 변수 추가
+        let singleFileResult: string | null = null;
+        let singleFileName: string | null = null;
+
         // 최종 결과를 저장할 JSZip 객체 생성
         const zip = new JSZip();
 
@@ -303,6 +307,13 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
               // 문자열 결과일 경우
               // 파일 경로에서 파일 이름만 추출 (경로 구분자 / 또는 \ 이후의 마지막 부분)
               const originalFileName = filePath.split(/[/\\]/).pop() || filePath;
+
+              // 단일 파일인 경우를 위해 결과 저장
+              if (totalFiles === 1) {
+                singleFileResult = result;
+                singleFileName = originalFileName;
+              }
+
               // 원본 파일 이름을 그대로 사용
               zip.file(originalFileName, result);
             }
@@ -322,8 +333,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
           }
         }
 
-        // 최종 zip 파일 생성
+        // 최종 zip 파일 생성 (다중 파일용)
         const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+        // 단일 파일 처리
+        let singleFileBlob = null;
+        if (singleFileResult && singleFileName) {
+          singleFileBlob = new Blob([singleFileResult], { type: 'application/octet-stream' });
+        }
 
         // 번역 결과 요약 메시지 생성
         let resultSummary = `처리된 파일: ${totalFiles}개\n`;
@@ -345,8 +362,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
             isError: errorCount > 0,
           },
           zipBlob: zipBlob,
-          singleFileBlob: null,
-          singleFileName: null,
+          singleFileBlob: singleFileBlob,
+          singleFileName: singleFileName,
         });
 
         // 최종 진행 상태 업데이트
@@ -460,7 +477,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     currentIsFileInput,
   ]);
 
-  // 파일 다운로드 유틸리티 함수
+  // 단일 파일 추출 및 다운로드 함수 제거
+  // 대신 더 간단한 파일 다운로드 함수만 유지
   const downloadFile = useCallback(
     (blob: Blob, fileName: string) => {
       const url = URL.createObjectURL(blob);
@@ -476,30 +494,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     [showSnackbar]
   );
 
-  // 단일 파일 추출 및 다운로드
-  const downloadSingleFile = useCallback(
-    async (zipBlob: Blob, originalFileName: string) => {
-      try {
-        // zip 파일에서 첫 번째 파일 추출
-        const buffer = await zipBlob.arrayBuffer();
-        const zip = await JSZip.loadAsync(buffer);
-        const firstFileName = Object.keys(zip.files)[0];
-        const fileContent = await zip.file(firstFileName)?.async('blob');
-
-        if (fileContent) {
-          downloadFile(fileContent, originalFileName);
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error('단일 파일 추출 오류:', error);
-        return false;
-      }
-    },
-    [downloadFile]
-  );
-
-  // 결과 다운로드 핸들러
+  // 결과 다운로드 핸들러 전체 수정
   const handleDownload = useCallback(async () => {
     if (!resultState.translationResult || resultState.translationResult.isError) {
       return;
@@ -512,28 +507,24 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         return;
       }
 
-      // zipBlob이 없는 경우
-      if (!resultState.zipBlob) {
-        showSnackbar('다운로드할 파일이 없습니다.');
+      // 단일 파일인 경우 직접 다운로드
+      if (resultState.singleFileBlob && resultState.singleFileName) {
+        downloadFile(resultState.singleFileBlob, resultState.singleFileName);
         return;
       }
 
-      const inputArray = input as string[];
-
-      // 파일이 하나인 경우 - 단일 파일로 다운로드
-      if (inputArray.length === 1) {
-        const originalFileName = inputArray[0].split(/[/\\]/).pop() || 'translated';
-        const success = await downloadSingleFile(resultState.zipBlob, originalFileName);
-        if (success) return;
+      // 다중 파일인 경우 zip으로 다운로드
+      if (resultState.zipBlob) {
+        downloadFile(resultState.zipBlob, 'translated_files.zip');
+        return;
       }
 
-      // 파일이 여러 개이거나 단일 파일 추출 실패 시 zip으로 다운로드
-      downloadFile(resultState.zipBlob, 'translated_files.zip');
+      showSnackbar('다운로드할 파일이 없습니다.');
     } catch (error) {
       console.error('다운로드 오류:', error);
       showSnackbar('다운로드 중 오류가 발생했습니다.');
     }
-  }, [resultState, showSnackbar, currentIsFileInput, input, downloadFile, downloadSingleFile]);
+  }, [resultState, showSnackbar, currentIsFileInput, downloadFile]);
 
   // 다운로드 버튼 표시 여부
   const shouldShowDownloadButton = useMemo(() => currentIsFileInput, [currentIsFileInput]);
