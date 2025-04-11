@@ -5,6 +5,7 @@ import { OptionItem } from '../components/options/DynamicOptions';
 import {
   OptionComponentType,
   TranslationTypeToOptionsMap,
+  BaseParseOptionsProps,
   CustomOptionComponentProps,
 } from '../types/translation-types';
 
@@ -79,9 +80,9 @@ export class ParseOptionsFactory {
     }
 
     // 파싱 옵션 컴포넌트 생성 함수
-    const OptionComponent = (props: CustomOptionComponentProps) => {
+    const OptionComponent = (props: CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>) => {
       // props에 추가 속성을 병합
-      const combinedProps: any = {
+      const combinedProps: BaseParseOptionsProps<TranslationTypeToOptionsMap[T]> = {
         ...props,
         translationType: type,
         label: config.label,

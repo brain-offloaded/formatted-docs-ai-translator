@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import JSZip from 'jszip';
 
 // 상태 인터페이스 정의
@@ -216,7 +216,7 @@ export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ childre
   );
 
   // Context 값 구성
-  const value = useMemo(() => ({
+  const value = {
     translationType,
     isTranslating,
     fileState,
@@ -232,23 +232,7 @@ export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ childre
     showSnackbar,
     handleClearFiles,
     showTranslationResult,
-  }), [
-    translationType,
-    isTranslating,
-    fileState,
-    resultState,
-    uiState,
-    isConfigValid,
-    setTranslationType,
-    setIsTranslating,
-    setFileState,
-    setResultState,
-    setUIState,
-    setIsConfigValid,
-    showSnackbar,
-    handleClearFiles,
-    showTranslationResult
-  ]);
+  };
 
   return <TranslationContext.Provider value={value}>{children}</TranslationContext.Provider>;
 };
