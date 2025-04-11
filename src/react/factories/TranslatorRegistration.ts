@@ -27,7 +27,6 @@ function registerJsonTranslator(): void {
     options: {
       inputLabel: 'JSON 입력:',
       inputPlaceholder: '{ "key": "번역할 텍스트" }',
-      resultFileType: 'application/json',
       translationType: TranslationType.Json,
       inputFieldRows: 10,
       fileExtension: '.json',
@@ -58,7 +57,6 @@ function registerTextTranslator(): void {
     options: {
       inputLabel: '텍스트 입력:',
       inputPlaceholder: '번역할 텍스트를 입력하세요...',
-      resultFileType: 'text/plain',
       translationType: TranslationType.Text,
       inputFieldRows: 10,
     },
@@ -86,7 +84,6 @@ function registerCsvTranslator(): void {
     options: {
       inputLabel: 'CSV 입력:',
       inputPlaceholder: '',
-      resultFileType: 'text/csv',
       translationType: TranslationType.Csv,
       fileExtension: '.csv',
       fileLabel: 'CSV',
