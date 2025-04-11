@@ -20,16 +20,16 @@ import { BaseApplyResponseDto } from '@/nest/parser/dto/response/base-apply-resp
 import { getDefaultValidatorByMode } from '../../constants/TranslationTypeMapping';
 
 // 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
-export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
-  // 입력을 파싱하는 함수
-  parseInput: (input: string, config: TranslatorConfig) => Promise<TParsed>;
+// export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
+//   // 입력을 파싱하는 함수
+//   parseInput: (input: string, config: TranslatorConfig) => Promise<TParsed>;
 
-  // 파싱된 콘텐츠를 번역하는 함수
-  translateContent: (parsedContent: TParsed, config: TranslatorConfig) => Promise<TTranslated>;
+//   // 파싱된 콘텐츠를 번역하는 함수
+//   translateContent: (parsedContent: TParsed, config: TranslatorConfig) => Promise<TTranslated>;
 
-  // 번역 결과를 적용하는 함수
-  applyTranslation: (input: string, translatedContent: TTranslated) => Promise<TapplyResult>;
-}
+//   // 번역 결과를 적용하는 함수
+//   applyTranslation: (input: string, translatedContent: TTranslated) => Promise<TapplyResult>;
+// }
 
 // 번역기 옵션 인터페이스 - UI 관련 설정만 포함
 export interface BaseTranslatorOptions {

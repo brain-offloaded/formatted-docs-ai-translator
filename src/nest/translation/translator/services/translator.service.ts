@@ -110,6 +110,7 @@ export class TranslatorService {
       text: item.text,
       translatedText: postprocessedTexts[index],
       path: item.path,
+      extra: item.extra,
     }));
 
     return {

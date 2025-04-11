@@ -2,18 +2,20 @@ import { AiModelName } from '../ai/model';
 import { SourceLanguage } from '../utils/language';
 import type { TextPath, TranslatedTextPath } from './common';
 
-export interface TranslatorRequest {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface TranslatorRequest<TExtra = any> {
   sourceLanguage: SourceLanguage;
   sourceFilePath: string;
-  textPaths: TextPath[];
+  textPaths: TextPath<TExtra>[];
   maxOutputTokenCount: number;
   modelName: AiModelName;
   apiKey: string;
 }
 
-export interface TranslatorResponse {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface TranslatorResponse<TExtra = any> {
   translatedFilePath: string;
-  textPaths: TranslatedTextPath[];
+  textPaths: TranslatedTextPath<TExtra>[];
 }
 
 export interface TranslationResult {
