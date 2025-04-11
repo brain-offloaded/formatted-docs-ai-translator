@@ -7,11 +7,20 @@ export interface IParserService<
   ParsedInformation = TextPath,
   TranslatedInformation = TranslatedTextPath,
 > {
-  getTranslationTargets(source: TargetFormat, options: ParserOptions): ParsedInformation[];
+  readFile(filePath: string, options: ParserOptions): TargetFormat;
+
+  readString(content: string, options: ParserOptions): TargetFormat;
+
+  getTranslationTargets(
+    source: string,
+    options: ParserOptions,
+    isFile: boolean
+  ): ParsedInformation[];
 
   applyTranslation(
-    source: TargetFormat,
+    source: string,
     translations: TranslatedInformation[],
-    options: ParserOptions
+    options: ParserOptions,
+    isFile: boolean
   ): TargetFormat;
 }
