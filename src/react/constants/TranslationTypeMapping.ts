@@ -32,10 +32,12 @@ export const getDefaultOptions = (
         delimiter: ',',
         replaceDelimiter: ';',
         skipFirstLine: false,
+        isFile: false,
       } as CsvParserOptionsDto;
     default:
       return {
         sourceLanguage,
+        isFile: false,
       } as BaseParseOptionsDto;
   }
 };

@@ -3,11 +3,8 @@ import {
   Box,
   useTheme,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { TextFields as TextFieldsIcon, InsertDriveFile as FileIcon } from '@mui/icons-material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { TranslatorConfig } from '../../../types/config';
@@ -66,7 +63,7 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   parseChannel?: IpcChannel;
   translateChannel?: IpcChannel;
   applyChannel?: IpcChannel;
-  formatOutput?: (output: string, inputMode: InputMode) => string;
+  formatOutput?: (output: string, isFileMode: boolean) => string;
   // 옵션 관련 props
   parserOptions?: T | null;
 }
@@ -76,40 +73,9 @@ export interface CustomTranslatorProps<T extends BaseParseOptionsDto = BaseParse
   parserOptions?: T | null;
 }
 
-// 입력 모드 타입 정의
-export enum InputMode {
-  TEXT = 'text',
-  FILE = 'file',
-}
-
-// 로컬 스토리지 키
-const INPUT_MODE_STORAGE_KEY = 'translator_input_mode';
-
-// 로컬 스토리지에서 입력 모드 가져오기
-const getSavedInputMode = (): InputMode => {
-  try {
-    const savedMode = localStorage.getItem(INPUT_MODE_STORAGE_KEY);
-    if (savedMode === InputMode.TEXT || savedMode === InputMode.FILE) {
-      return savedMode as InputMode;
-    }
-  } catch (e) {
-    console.error('입력 모드를 로컬 스토리지에서 불러오는 중 오류 발생:', e);
-  }
-  return InputMode.FILE; // 기본값은 FILE
-};
-
-// 로컬 스토리지에 입력 모드 저장
-const saveInputMode = (mode: InputMode): void => {
-  try {
-    localStorage.setItem(INPUT_MODE_STORAGE_KEY, mode);
-  } catch (e) {
-    console.error('입력 모드를 로컬 스토리지에 저장하는 중 오류 발생:', e);
-  }
-};
-
 // 기본 출력 포맷 함수
-const defaultFormatOutput = (output: string, inputMode: InputMode): string => {
-  if (inputMode === InputMode.FILE) {
+const defaultFormatOutput = (output: string, isFileMode: boolean): string => {
+  if (isFileMode) {
     return '파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
   } else {
     return output;
@@ -130,19 +96,19 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   // 내부 옵션 상태
   const [options] = useState(initialOptions);
 
-  // 입력 모드 상태 관리 - 로컬 스토리지에서 가져오기
-  const [inputMode, setInputMode] = useState<InputMode>(getSavedInputMode());
-
-  // 현재 파일 입력 모드인지 확인
-  const currentIsFileInput = useMemo(() => inputMode === InputMode.FILE, [inputMode]);
+  // 현재 파일 입력 모드인지 확인 (parserOptions의 isFile 값으로 결정)
+  const currentIsFileInput = useMemo(
+    () => parserOptions?.isFile || false,
+    [parserOptions]
+  );
 
   // 입력 상태 초기화
   const [input, setInput] = useState<string | string[]>(currentIsFileInput ? [] : '');
 
-  // 입력 모드 변경 시 로컬 스토리지에 저장
+  // isFile 변경 시 입력 초기화
   useEffect(() => {
-    saveInputMode(inputMode);
-  }, [inputMode]);
+    setInput(currentIsFileInput ? [] : '');
+  }, [currentIsFileInput]);
 
   // Context에서 상태와 함수 가져오기
   const {
@@ -156,31 +122,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     showSnackbar,
     handleClearFiles,
   } = useTranslation();
-
-  // 입력 모드 변경 핸들러
-  const handleInputModeChange = useCallback(
-    (_event: React.MouseEvent<HTMLElement>, newMode: InputMode | null) => {
-      if (newMode !== null) {
-        // 새 모드에 필요한 채널이 있는지 확인
-        const isFileMode = newMode === InputMode.FILE;
-
-        if (isFileMode && !parseChannel) {
-          showSnackbar('이 번역기는 파일 입력 모드를 지원하지 않습니다.');
-          return; // 모드 전환 취소
-        }
-
-        if (!isFileMode && !parseChannel) {
-          showSnackbar('이 번역기는 텍스트 입력 모드를 지원하지 않습니다.');
-          return; // 모드 전환 취소
-        }
-
-        // 모드 변경 시 입력 초기화
-        setInput(newMode === InputMode.FILE ? [] : '');
-        setInputMode(newMode);
-      }
-    },
-    [parseChannel, showSnackbar]
-  );
 
   // 유효성 검증 함수
   const validateInput = useMemo(
@@ -228,7 +169,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         options: {
           ...effectiveOptions,
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
-          isFile: currentIsFileInput,
         },
       };
 
@@ -276,7 +216,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         options: {
           ...effectiveOptions,
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
-          isFile: currentIsFileInput,
         },
       };
 
@@ -491,7 +430,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         }));
 
         // 결과 포맷팅
-        const formattedResult = formatOutput(applyResponse.result as string, inputMode);
+        const formattedResult = formatOutput(applyResponse.result as string, currentIsFileInput);
 
         // 결과 설정
         setResultState({
@@ -540,7 +479,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     applyTranslation,
     formatOutput,
     currentIsFileInput,
-    inputMode,
   ]);
 
   // 결과 다운로드 핸들러
@@ -685,33 +623,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   return (
     <>
-      {/* 입력 모드 전환 토글 버튼 */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Typography variant="body2" sx={{ mr: 1, alignSelf: 'center' }}>
-          입력 모드:
-        </Typography>
-        <ToggleButtonGroup
-          value={inputMode}
-          exclusive
-          onChange={handleInputModeChange}
-          size="small"
-          disabled={isTranslating}
-        >
-          <ToggleButton value={InputMode.TEXT} aria-label="텍스트 입력">
-            <TextFieldsIcon fontSize="small" />
-            <Typography variant="caption" sx={{ ml: 0.5 }}>
-              텍스트
-            </Typography>
-          </ToggleButton>
-          <ToggleButton value={InputMode.FILE} aria-label="파일 입력">
-            <FileIcon fontSize="small" />
-            <Typography variant="caption" sx={{ ml: 0.5 }}>
-              파일
-            </Typography>
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
-
       {/* 입력 컨트롤 렌더링 */}
       {renderInputControl}
 
