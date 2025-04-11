@@ -110,7 +110,7 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
     case TranslationType.Text:
       return '텍스트 번역';
     case TranslationType.CsvFile:
-      return 'CSV 파일 번역';
+      return 'CSV 번역';
     default:
       throw new Error('Invalid translation type');
   }

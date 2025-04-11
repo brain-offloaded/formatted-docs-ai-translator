@@ -3,7 +3,7 @@ import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { getDefaultOptions } from '../../constants/TranslationTypeMapping';
-import { OptionsValues, DynamicOptions, OptionItem, OptionType } from './DynamicOptions';
+import { OptionsValues, DynamicOptions } from './DynamicOptions';
 import { Box, Tooltip, IconButton, Typography, FormControlLabel, Switch } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { BaseParseOptionsProps } from '../../types/translation-types';
@@ -43,13 +43,6 @@ const saveOptionsToLocalStorage = <T extends BaseParseOptionsDto>(
   }
 };
 
-// 기본 isFile 옵션 아이템 정의
-const defaultFileOptionsItem: OptionItem = {
-  name: 'isFile',
-  type: OptionType.BOOLEAN,
-  description: '입력이 파일 경로인지 여부를 설정합니다. 체크하면 파일 경로로 간주합니다.',
-};
-
 export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOptionsDto>({
   onOptionsChange,
   initialOptions, // This is the state from the parent (parserOptions)
@@ -69,11 +62,8 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   // 결합된 옵션 아이템 - 항상 isFile 옵션 포함
   const combinedOptionItems = useMemo(() => {
     const baseItems = optionItems || [];
-    // isFile 옵션이 기존 아이템에 없는 경우만 추가
-    if (!baseItems.find((item) => item.name === 'isFile')) {
-      return [...baseItems, defaultFileOptionsItem];
-    }
-    return baseItems;
+    // isFile 옵션이 기존 아이템에 있다면 제거
+    return baseItems.filter((item) => item.name !== 'isFile');
   }, [optionItems]);
 
   // Effect to initialize options in the parent if they are null or update sourceLanguage

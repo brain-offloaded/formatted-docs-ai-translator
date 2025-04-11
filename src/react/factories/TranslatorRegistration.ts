@@ -89,7 +89,7 @@ function registerCsvTranslator(): void {
       resultFileType: 'text/csv',
       translationType: TranslationType.CsvFile,
       fileExtension: '.csv',
-      fileLabel: 'CSV 파일',
+      fileLabel: 'CSV',
     },
     parseChannel: IpcChannel.ParseCsv,
     applyChannel: IpcChannel.ApplyTranslationToCsv,
@@ -98,7 +98,7 @@ function registerCsvTranslator(): void {
 
   // 파싱 옵션 설정
   const csvParseOptionsConfig: ParseOptionsConfig = {
-    label: 'CSV 파일 파싱 옵션',
+    label: 'CSV 파싱 옵션',
     optionItems: [
       {
         name: 'delimiter',
