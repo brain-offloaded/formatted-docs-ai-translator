@@ -4,11 +4,16 @@
 
 ## 목차
 
-- [번역 유형 추가](#번역-유형-추가)
-- [파서 옵션 컴포넌트 생성](#파서-옵션-컴포넌트-생성)
-- [번역기 컴포넌트 생성](#번역기-컴포넌트-생성)
-- [번역 타입 매핑 추가](#번역-타입-매핑-추가)
-- [유틸리티 함수 업데이트](#유틸리티-함수-업데이트)
+- [파서 추가 후 프론트엔드 구현 가이드](#파서-추가-후-프론트엔드-구현-가이드)
+  - [목차](#목차)
+  - [번역 유형 추가](#번역-유형-추가)
+  - [번역기 및 파싱 옵션 등록](#번역기-및-파싱-옵션-등록)
+    - [번역기 설정 구성](#번역기-설정-구성)
+    - [번역기 등록 함수 추가](#번역기-등록-함수-추가)
+    - [파싱 옵션 설정 구성](#파싱-옵션-설정-구성)
+  - [사용자 정의 옵션 (선택 사항)](#사용자-정의-옵션-선택-사항)
+  - [커스텀 번역기 동작 (선택 사항)](#커스텀-번역기-동작-선택-사항)
+  - [주의사항](#주의사항)
 
 ## 번역 유형 추가
 
@@ -17,42 +22,151 @@
 ```typescript
 export enum TranslationType {
   Text = 'text',
-  JsonFile = 'json-file',
-  JsonString = 'json-string',
-  // 새 번역 유형 추가
+  Json = 'json',
+  Csv = 'csv',
+  // 새로운 번역 유형 추가
   NewFormat = 'new-format',
 }
 ```
 
-## 파서 옵션 컴포넌트 생성
+## 번역기 및 파싱 옵션 등록
 
-새 파서에 필요한 옵션 설정 컴포넌트를 생성합니다:
+프로젝트는 팩토리 패턴과 레지스트리 패턴을 사용하여 번역기를 관리합니다. 새로운 번역기를 추가하려면 `TranslatorFactory`와 `ParseOptionsFactory`에 새 번역 유형을 등록해야 합니다.
+
+### 번역기 설정 구성
+
+`src/react/factories/TranslatorRegistration.ts` 파일에 새 번역기 등록 함수를 추가합니다:
 
 ```typescript
-// src/react/components/options/NewFormatParseOption.tsx
+/**
+ * 새 포맷 번역기 등록
+ */
+function registerNewFormatTranslator(): void {
+  // 번역기 설정
+  const newFormatTranslatorConfig: TranslatorConfig = {
+    options: {
+      inputLabel: '새 포맷 입력:',
+      inputPlaceholder: '번역할 새 포맷 데이터를 입력하세요.',
+      resultFileType: 'text/plain', // 또는 적절한 MIME 타입
+      translationType: TranslationType.NewFormat,
+      inputFieldRows: 10,
+      // 파일 기반 입력인 경우 아래 속성 추가
+      fileExtension: '.txt', // 파일 확장자
+      fileLabel: '새 포맷 파일', // 파일 선택 레이블
+    },
+    // IPC 채널 설정
+    parseChannel: IpcChannel.ParseNewFormat,
+    applyChannel: IpcChannel.ApplyTranslationToNewFormat,
+    // 출력 포맷 함수 (선택 사항)
+    formatOutput: (output: string, isFileMode: boolean): string => {
+      if (isFileMode) {
+        return '파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
+      }
+      return output;
+    },
+  };
+
+  // 파싱 옵션 설정
+  const newFormatParseOptionsConfig: ParseOptionsConfig = {
+    label: '새 포맷 파싱 옵션',
+    // 옵션 항목 (선택 사항)
+    optionItems: [
+      {
+        key: 'someOption',
+        label: '추가 옵션',
+        type: OptionType.SHORT_STRING,
+        description: '추가 옵션에 대한 설명',
+      },
+      {
+        key: 'anotherOption',
+        label: '다른 옵션',
+        type: OptionType.BOOLEAN,
+        description: '다른 옵션에 대한 설명',
+      },
+    ],
+  };
+
+  // 번역기와 파싱 옵션 등록
+  TranslatorFactory.registerTranslator(TranslationType.NewFormat, newFormatTranslatorConfig);
+  ParseOptionsFactory.registerParseOptions(TranslationType.NewFormat, newFormatParseOptionsConfig);
+}
+```
+
+### 번역기 등록 함수 추가
+
+`registerAllTranslators` 함수에 새 번역기 등록 함수를 호출하는 코드를 추가합니다:
+
+```typescript
+/**
+ * 모든 번역기와 파싱 옵션을 등록하는 함수
+ */
+export function registerAllTranslators(): void {
+  // 기존 번역기 등록
+  registerJsonTranslator();
+  registerTextTranslator();
+  registerCsvTranslator();
+  
+  // 새 번역기 등록
+  registerNewFormatTranslator();
+}
+```
+
+### 파싱 옵션 설정 구성
+
+파싱 옵션에 새로운 DTO 유형을 사용하려면 `src/react/types/translation-types.ts` 파일에 새 유형을 추가합니다:
+
+```typescript
+// 새 DTO import
+import { NewFormatParserOptionsDto } from '@/nest/parser/dto/options/new-format-parser-options.dto';
+
+// TranslationType에 따른 옵션 DTO 매핑 확장
+export interface TranslationTypeToOptionsMap {
+  [TranslationType.Json]: JsonParserOptionsDto;
+  [TranslationType.Text]: PlainTextParserOptionsDto;
+  [TranslationType.Csv]: CsvParserOptionsDto;
+  // 새 번역 유형에 대한 옵션 DTO 매핑 추가
+  [TranslationType.NewFormat]: NewFormatParserOptionsDto;
+}
+```
+
+## 사용자 정의 옵션 (선택 사항)
+
+대부분의 경우 `BaseParseOptions` 컴포넌트를 통해 자동으로 생성되는 옵션 UI로 충분합니다. 그러나 복잡한 옵션 UI가 필요한 경우 `DynamicOptions`가 제공하는 옵션 타입(`SHORT_STRING`, `LONG_STRING`, `NUMBER`, `BOOLEAN`)보다 더 많은 커스터마이징이 필요할 수 있습니다.
+
+이 경우 `BaseParseOptions`를 대체하는 커스텀 옵션 컴포넌트를 직접 구현하고, `ParseOptionsFactory` 대신 이 컴포넌트를 사용하도록 설정할 수 있습니다:
+
+```typescript
+// src/react/components/options/CustomNewFormatOptions.tsx
 import React, { useCallback, useState, useEffect } from 'react';
-import { Box, Switch, FormControlLabel, TextField } from '@mui/material';
-import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
+import { Box, Switch, FormControlLabel, TextField, Select, MenuItem } from '@mui/material';
 import { NewFormatParserOptionsDto } from '@/nest/parser/dto/options/new-format-parser-options.dto';
 import { ConfigStore } from '../../config/config-store';
+import { CustomOptionComponentProps } from '../../types/translation-types';
 
-interface NewFormatParseOptionProps {
-  isTranslating: boolean;
-  onOptionsChange?: (options: NewFormatParserOptionsDto) => void;
-}
+// 커스텀 옵션 컴포넌트 props 타입
+interface CustomNewFormatOptionsProps extends CustomOptionComponentProps<NewFormatParserOptionsDto> {}
 
-const NewFormatParseOption: React.FC<NewFormatParseOptionProps> = ({
+// 커스텀 옵션 컴포넌트 구현
+export const CustomNewFormatOptions: React.FC<CustomNewFormatOptionsProps> = ({
   isTranslating,
   onOptionsChange,
+  initialOptions,
 }) => {
   const configStore = ConfigStore.getInstance();
-  const [options, setOptions] = useState<NewFormatParserOptionsDto>({
-    sourceLanguage: configStore.getConfig().sourceLanguage,
-    someOption: '',
-    anotherOption: false,
-  });
+  const sourceLanguage = configStore.getConfig().sourceLanguage;
+  
+  // 옵션 상태 관리
+  const [options, setOptions] = useState<NewFormatParserOptionsDto>(
+    initialOptions || {
+      sourceLanguage,
+      isFile: false,
+      someOption: '',
+      anotherOption: false,
+      // 추가 옵션들
+    }
+  );
 
-  // 옵션 변경 시 상위 컴포넌트에 전달
+  // 옵션 변경 시 상위 컴포넌트에 알림
   useEffect(() => {
     if (onOptionsChange) {
       onOptionsChange(options);
@@ -61,30 +175,52 @@ const NewFormatParseOption: React.FC<NewFormatParseOptionProps> = ({
 
   // 옵션 변경 핸들러
   const handleOptionChange = useCallback(
-    (optionName: keyof NewFormatParserOptionsDto, value: string | boolean) => {
+    (key: keyof NewFormatParserOptionsDto, value: any) => {
       setOptions((prev) => ({
         ...prev,
-        [optionName]: value,
+        [key]: value,
       }));
     },
     []
   );
 
+  // 파일 모드 토글 핸들러
+  const handleFileInputToggle = useCallback(
+    (checked: boolean) => {
+      handleOptionChange('isFile', checked);
+    },
+    [handleOptionChange]
+  );
+
   return (
     <Box sx={{ mb: 2 }}>
+      {/* 파일 입력 모드 토글 */}
+      <FormControlLabel
+        control={
+          <Switch
+            checked={options.isFile || false}
+            onChange={(e) => handleFileInputToggle(e.target.checked)}
+            disabled={isTranslating}
+          />
+        }
+        label="파일 모드"
+      />
+      
+      {/* 추가 옵션 UI 구현 */}
       <TextField
         label="추가 옵션"
         fullWidth
-        value={options.someOption}
+        value={options.someOption || ''}
         onChange={(e) => handleOptionChange('someOption', e.target.value)}
         disabled={isTranslating}
         size="small"
         margin="dense"
       />
+      
       <FormControlLabel
         control={
           <Switch
-            checked={options.anotherOption}
+            checked={options.anotherOption || false}
             onChange={(e) => handleOptionChange('anotherOption', e.target.checked)}
             disabled={isTranslating}
           />
@@ -94,265 +230,141 @@ const NewFormatParseOption: React.FC<NewFormatParseOptionProps> = ({
     </Box>
   );
 };
-
-export default NewFormatParseOption;
 ```
 
-## 번역기 컴포넌트 생성
-
-`BaseTranslator`를 기반으로 새 번역기 컴포넌트를 생성합니다:
+그런 다음 커스텀 옵션 컴포넌트를 등록하는 방식을 수정합니다:
 
 ```typescript
-// src/react/components/translators/NewFormatTranslator.tsx
-import React from 'react';
-import { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';
-import { TranslationType } from '../../contexts/TranslationContext';
+// 커스텀 컴포넌트 import
+import { CustomNewFormatOptions } from '../components/options/CustomNewFormatOptions';
+
+function registerNewFormatTranslator(): void {
+  // 번역기 설정 (위와 동일)
+  const newFormatTranslatorConfig: TranslatorConfig = {
+    // ... 기존 설정
+  };
+
+  // 커스텀 옵션 컴포넌트 등록
+  const OptionComponent: OptionComponentType<TranslationType.NewFormat> = 
+    (props) => <CustomNewFormatOptions {...props} />;
+  
+  // 번역기 등록
+  TranslatorFactory.registerTranslator(TranslationType.NewFormat, newFormatTranslatorConfig);
+  
+  // 커스텀 옵션 컴포넌트 직접 등록 (ParseOptionsFactory.registerParseOptions 대신)
+  ParseOptionsRegistry.getInstance().register(TranslationType.NewFormat, {
+    label: '새 포맷 파싱 옵션',
+    // customComponent 필드 추가 (선택사항)
+    customComponent: OptionComponent
+  });
+}
+```
+
+## 커스텀 번역기 동작 (선택 사항)
+
+대부분의 경우 `BaseTranslator` 컴포넌트를 통해 자동으로 생성되는 번역기 UI로 충분합니다. 그러나 추가적인 커스터마이징이 필요한 경우, 완전히 새로운 번역기 컴포넌트를 구현하고 등록할 수 있습니다.
+
+```typescript
+// src/react/components/translators/CustomNewFormatTranslator.tsx
+import React, { useState, useCallback } from 'react';
+import { Box, TextField, Button } from '@mui/material';
 import { IpcChannel } from '@/nest/common/ipc.channel';
-import { getParserOptionComponent } from '../../constants/TranslationTypeMapping';
+import { useTranslation } from '../../contexts/TranslationContext';
+import { NewFormatParserOptionsDto } from '@/nest/parser/dto/options/new-format-parser-options.dto';
+import { CustomTranslatorProps } from './BaseTranslator';
 
-const NewFormatTranslator: React.FC = () => {
-  // 번역기 옵션 설정
-  const newFormatTranslatorOptions: BaseTranslatorOptions = {
-    inputLabel: '새 포맷 입력:',
-    inputPlaceholder: '번역할 새 포맷 데이터를 입력하세요.',
-    resultFileType: 'text/plain', // 또는 적절한 MIME 타입
-    
-    // 번역 타입
-    translationType: TranslationType.NewFormat,
-    
-    // 파일 업로드 설정 (파일 기반 입력인 경우)
-    // fileExtension: '.txt', // 파일 확장자
-    // fileLabel: '새 포맷 파일', // 파일 선택 레이블
-    
-    // 텍스트 영역 설정 (텍스트 기반 입력인 경우)
-    inputFieldRows: 12,
-  };
-  
-  // 출력 포맷 함수
-  const formatOutput = (output: string): string => {
-    return output;
-  };
-  
-  // 파서 옵션 컴포넌트 가져오기
-  const OptionComponent = getParserOptionComponent(TranslationType.NewFormat);
-  
-  return (
-    <BaseTranslator
-      options={newFormatTranslatorOptions}
-      parseChannel={IpcChannel.ParseNewFormat}
-      applyChannel={IpcChannel.ApplyTranslationToNewFormat}
-      formatOutput={formatOutput}
-      OptionComponent={OptionComponent}
-    />
-  );
-};
+// 커스텀 번역기 컴포넌트 props 타입
+interface CustomNewFormatTranslatorProps extends CustomTranslatorProps<NewFormatParserOptionsDto> {}
 
-export default NewFormatTranslator;
-```
+// 커스텀 번역기 컴포넌트 구현
+export const CustomNewFormatTranslator: React.FC<CustomNewFormatTranslatorProps> = ({
+  parserOptions
+}) => {
+  const [input, setInput] = useState('');
+  const { isTranslating, setIsTranslating, showSnackbar } = useTranslation();
 
-## 번역 타입 매핑 추가
+  // 번역 처리 핸들러
+  const handleTranslate = useCallback(async () => {
+    if (isTranslating || !input.trim()) return;
 
-마지막으로 `src/react/constants/TranslationTypeMapping.ts` 파일을 업데이트하여 새 번역 타입과 컴포넌트 간의 매핑을 추가합니다:
+    try {
+      setIsTranslating(true);
+      
+      // 커스텀 파싱 로직
+      const parseResult = await window.electron.ipcRenderer.invoke(
+        IpcChannel.ParseNewFormat,
+        {
+          content: input,
+          options: parserOptions
+        }
+      );
 
-```typescript
-// 컴포넌트 import 추가
-import NewFormatTranslator from '../components/translators/NewFormatTranslator';
-import NewFormatParseOption from '../components/options/NewFormatParseOption';
-
-/**
- * TranslationType에 따라 적절한 컴포넌트를 반환하는 함수
- */
-export const getTranslatorComponent = (type: TranslationType): React.ComponentType => {
-  switch (type) {
-    case TranslationType.JsonFile:
-      return JsonFileTranslator;
-    case TranslationType.JsonString:
-      return JsonStringTranslator;
-    case TranslationType.Text:
-      return TextTranslator;
-    case TranslationType.NewFormat:
-      return NewFormatTranslator;
-    default:
-      throw new Error('Invalid translation type');
-  }
-};
-
-/**
- * TranslationType에 따라 적절한 옵션 컴포넌트를 반환하는 함수
- */
-export const getParserOptionComponent = (
-  type: TranslationType
-): React.ComponentType<{
-  isTranslating: boolean;
-  onOptionsChange?: (options: BaseParseOptionsDto) => void;
-}> => {
-  switch (type) {
-    case TranslationType.JsonFile:
-      return JsonFileParseOption;
-    case TranslationType.JsonString:
-      return JsonStringParseOption;
-    case TranslationType.Text:
-      return TextParseOption;
-    case TranslationType.NewFormat:
-      return NewFormatParseOption;
-    default:
-      throw new Error('Invalid translation type');
-  }
-};
-
-/**
- * TranslationType에 따라 적절한 라벨 문자열을 반환하는 함수
- */
-export const getTranslationTypeLabel = (type: TranslationType): string => {
-  switch (type) {
-    case TranslationType.JsonFile:
-      return 'JSON 파일 번역';
-    case TranslationType.JsonString:
-      return 'JSON 문자열 번역';
-    case TranslationType.Text:
-      return '텍스트 번역';
-    case TranslationType.NewFormat:
-      return '새 포맷 번역';
-    default:
-      throw new Error('Invalid translation type');
-  }
-};
-
-/**
- * TranslationType 목록을 반환하는 함수
- */
-export const getTranslationTypes = (): { value: TranslationType; label: string }[] => {
-  return [
-    {
-      value: TranslationType.JsonFile,
-      label: getTranslationTypeLabel(TranslationType.JsonFile),
-    },
-    {
-      value: TranslationType.JsonString,
-      label: getTranslationTypeLabel(TranslationType.JsonString),
-    },
-    {
-      value: TranslationType.Text,
-      label: getTranslationTypeLabel(TranslationType.Text),
-    },
-    {
-      value: TranslationType.NewFormat,
-      label: getTranslationTypeLabel(TranslationType.NewFormat),
-    },
-  ];
-};
-```
-
-## 유틸리티 함수 업데이트
-
-새로운 번역 유형을 추가할 때는 `BaseTranslator.tsx`와 다른 유틸리티 파일에 정의된 `TranslationType`을 사용하는 함수들도 업데이트해야 합니다.
-
-### 1. BaseTranslator.tsx의 유틸리티 함수 수정
-
-`src/react/components/translators/BaseTranslator.tsx`에서 다음 함수들을 수정합니다:
-
-```typescript
-/**
- * 입력 타입이 파일 기반인지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 파일 기반 입력인 경우 true, 아닌 경우 false
- */
-export const isFileInput = (translationType: TranslationType): boolean => {
-  return (
-    translationType === TranslationType.JsonFile ||
-    // 필요한 경우 새 포맷이 파일 기반이면 여기에 추가
-    translationType === TranslationType.NewFormat
-  );
-};
-
-/**
- * 출력 결과를 다운로드할 수 있는지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 다운로드 가능한 경우 true, 아닌 경우 false
- */
-export const isDownloadable = (translationType: TranslationType): boolean => {
-  return (
-    isFileInput(translationType) ||
-    // 파일 입력이 아니지만 다운로드 가능한 타입이 있다면 여기에 추가
-    translationType === TranslationType.NewFormat
-  );
-};
-```
-
-### 2. 기본 초기 입력값 및 유효성 검사 함수 수정
-
-새 번역 타입에 맞는 기본 입력값과 유효성 검사 방법을 추가합니다:
-
-```typescript
-// 기본 초기 입력값 생성 함수
-const getDefaultInitialInput = (translationType: TranslationType): string | string[] => {
-  if (isFileInput(translationType)) {
-    return [] as unknown as string[];
-  } else if (translationType === TranslationType.NewFormat) {
-    // 새 포맷의 초기 입력 타입을 설정
-    return '';
-  } else {
-    return '' as unknown as string;
-  }
-};
-
-// 기본 유효성 검사 함수
-const getDefaultValidator = (
-  translationType: TranslationType
-): ((input: string | string[]) => boolean) => {
-  if (isFileInput(translationType)) {
-    return (input) => (input as string[])?.length > 0;
-  } else if (translationType === TranslationType.JsonString) {
-    return (input) => {
-      try {
-        JSON.parse((input as string).trim());
-        return true;
-      } catch (e) {
-        return false;
+      if (!parseResult.success) {
+        throw new Error(parseResult.message || '파싱 실패');
       }
-    };
-  } else if (translationType === TranslationType.NewFormat) {
-    // 새 포맷의 유효성 검사 로직을 구현
-    return (input) => {
-      // 여기에 특정 형식 검증 로직을 구현
-      return (input as string)?.trim().length > 0;
-    };
-  } else {
-    return (input) => (input as string)?.trim().length > 0;
-  }
+
+      // 커스텀 번역 로직
+      // ...
+
+      // 성공 처리
+      showSnackbar('번역이 완료되었습니다!');
+    } catch (error) {
+      showSnackbar(`오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+    } finally {
+      setIsTranslating(false);
+    }
+  }, [input, isTranslating, parserOptions, setIsTranslating, showSnackbar]);
+
+  return (
+    <Box>
+      <TextField
+        fullWidth
+        multiline
+        rows={10}
+        label="새 포맷 입력"
+        placeholder="번역할 텍스트를 입력하세요..."
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        disabled={isTranslating}
+        margin="normal"
+      />
+      
+      <Button
+        fullWidth
+        variant="contained"
+        onClick={handleTranslate}
+        disabled={isTranslating || !input.trim()}
+      >
+        {isTranslating ? '번역 중...' : '번역'}
+      </Button>
+    </Box>
+  );
 };
+
+// 그런 다음 이 커스텀 번역기를 등록합니다:
+function registerNewFormatTranslator(): void {
+  // ...기존 설정
+
+  // 커스텀 번역기 등록
+  const TranslatorComponent: TranslatorComponentType<TranslationType.NewFormat> = 
+    (props) => <CustomNewFormatTranslator {...props} />;
+  
+  // TranslatorRegistry에 직접 등록
+  TranslatorRegistry.getInstance().register(TranslationType.NewFormat, {
+    options: newFormatTranslatorConfig.options,
+    // customComponent 필드 추가 (선택사항)
+    customComponent: TranslatorComponent
+  });
+  
+  // ParseOptionsFactory는 기존대로 사용
+  ParseOptionsFactory.registerParseOptions(TranslationType.NewFormat, newFormatParseOptionsConfig);
+}
 ```
 
-### 3. 출력 포맷 함수 수정
+## 주의사항
 
-특별한 출력 형식이 필요한 경우 `defaultFormatOutput` 함수를 수정합니다:
-
-```typescript
-// 기본 출력 포맷 함수
-const defaultFormatOutput = <TapplyResult,>(output: TapplyResult, isFileInput: boolean): string => {
-  if (isFileInput) {
-    return '파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
-  } else if (typeof output === 'object' && output !== null && 'newFormatSpecific' in output) {
-    // 특정 포맷에 맞는 출력 형식을 구현
-    return (output as { newFormatSpecific: string }).newFormatSpecific;
-  } else {
-    return typeof output === 'string'
-      ? output
-      : typeof output === 'object' && output !== null && 'translatedText' in output
-        ? (output as { translatedText: string }).translatedText
-        : JSON.stringify(output, null, 2);
-  }
-};
-```
-
-### 주의사항
-
-새로운 번역 유형을 추가할 때는 다음 사항에 유의해야 합니다:
-
-1. 파일 입력 여부에 따라 `isFileInput` 함수를 수정합니다.
-2. 다운로드 가능 여부에 따라 `isDownloadable` 함수를 수정합니다.
-3. 입력 형식에 특별한 초기값이 필요한 경우 `getDefaultInitialInput` 함수를 수정합니다.
-4. 입력 검증에 특별한 로직이 필요한 경우 `getDefaultValidator` 함수를 수정합니다.
-5. 출력 형식에 특별한 처리가 필요한 경우 `defaultFormatOutput` 함수를 수정합니다.
-
-이렇게 하면 새로운 파서가 프론트엔드에서도 완전히 통합되어 사용 가능합니다. 이제 사용자는 UI에서 새로운 번역 유형을 선택하고 해당 파서의 기능을 사용할 수 있습니다. 
+1. **유형 안전성**: 항상 타입스크립트 타입을 올바르게 사용하여 유형 안전성을 유지하세요.
+2. **레지스트리 패턴**: 프로젝트는 싱글톤 레지스트리 패턴을 사용하여 번역기와 옵션 컴포넌트를 관리합니다. 기존 패턴을 따라 구현하세요.
+3. **초기화 타이밍**: 모든 번역기는 앱 시작 시 한 번만 등록됩니다(`registerAllTranslators` 함수를 통해). 동적으로 번역기를 추가하거나 제거할 수 없습니다.
+4. **옵션 저장**: 사용자가 설정한 옵션은 자동으로 로컬 스토리지에 저장되므로, 페이지를 새로고침해도 유지됩니다.
+5. **채널 설정**: IPC 채널은 `adding-parser.md`에 설명된 대로 미리 백엔드에 구현되어 있어야 합니다. 
