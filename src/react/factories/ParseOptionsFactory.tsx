@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { BaseParseOptions } from '../components/options/BaseParseOptions';
 import { TranslationType } from '../contexts/TranslationContext';
 import { OptionItem } from '../components/options/DynamicOptions';
@@ -25,6 +25,8 @@ export interface ParseOptionsConfig {
 export class ParseOptionsRegistry {
   private static instance: ParseOptionsRegistry;
   private registry: Map<TranslationType, ParseOptionsConfig> = new Map();
+  // 캐시된 옵션 컴포넌트 저장
+  private componentCache: Map<TranslationType, OptionComponentType<any>> = new Map();
 
   private constructor() {}
 
@@ -42,6 +44,8 @@ export class ParseOptionsRegistry {
    */
   public register(type: TranslationType, config: ParseOptionsConfig): void {
     this.registry.set(type, config);
+    // 등록 시 캐시 초기화
+    this.componentCache.delete(type);
   }
 
   /**
@@ -60,6 +64,46 @@ export class ParseOptionsRegistry {
   public getAllTypes(): TranslationType[] {
     return Array.from(this.registry.keys());
   }
+
+  /**
+   * 캐시된 옵션 컴포넌트 가져오기 또는 생성
+   * @param type 번역 타입
+   * @returns 옵션 컴포넌트
+   */
+  public getOrCreateComponent<T extends TranslationType>(type: T): OptionComponentType<T> {
+    // 캐시에서 확인
+    const cachedComponent = this.componentCache.get(type) as OptionComponentType<T>;
+    if (cachedComponent) {
+      return cachedComponent;
+    }
+
+    // 없으면 생성
+    const config = this.getConfig(type);
+    if (!config) {
+      throw new Error(`파싱 옵션 설정을 찾을 수 없습니다: ${type}`);
+    }
+
+    // 메모이제이션된 옵션 컴포넌트 생성
+    const OptionComponent = memo(
+      (props: CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>) => {
+        // props에 추가 속성을 병합
+        const combinedProps: BaseParseOptionsProps<TranslationTypeToOptionsMap[T]> = {
+          ...props,
+          translationType: type,
+          label: config.label,
+          optionItems: config.optionItems,
+        };
+
+        // JSX 사용하여 컴포넌트 생성
+        return <BaseParseOptions {...combinedProps} />;
+      }
+    );
+
+    // 캐시에 저장
+    this.componentCache.set(type, OptionComponent as OptionComponentType<any>);
+
+    return OptionComponent as OptionComponentType<T>;
+  }
 }
 
 /**
@@ -74,26 +118,7 @@ export class ParseOptionsFactory {
    * @returns 파싱 옵션 컴포넌트
    */
   public static createParseOptions<T extends TranslationType>(type: T): OptionComponentType<T> {
-    const config = this.registry.getConfig(type);
-    if (!config) {
-      throw new Error(`파싱 옵션 설정을 찾을 수 없습니다: ${type}`);
-    }
-
-    // 파싱 옵션 컴포넌트 생성 함수
-    const OptionComponent = (props: CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>) => {
-      // props에 추가 속성을 병합
-      const combinedProps: BaseParseOptionsProps<TranslationTypeToOptionsMap[T]> = {
-        ...props,
-        translationType: type,
-        label: config.label,
-        optionItems: config.optionItems,
-      };
-
-      // JSX 사용하여 컴포넌트 생성
-      return <BaseParseOptions {...combinedProps} />;
-    };
-
-    return OptionComponent;
+    return this.registry.getOrCreateComponent(type);
   }
 
   /**
