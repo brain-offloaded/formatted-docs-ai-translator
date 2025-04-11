@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
@@ -50,14 +50,12 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   isTranslating,
   optionItems,
   label,
+  showSettings, // props로 showSettings 받기
+  onToggleSettings, // props로 onToggleSettings 받기
 }: BaseParseOptionsProps<T>): React.ReactElement => {
   // ConfigStore and sourceLanguage
   const configStore = useMemo(() => ConfigStore.getInstance(), []);
   const sourceLanguage = useMemo(() => configStore.getConfig().sourceLanguage, [configStore]);
-
-  // Settings panel visibility
-  const [showSettings, setShowSettings] = useState(false);
-  const toggleSettings = useCallback(() => setShowSettings((prev) => !prev), []);
 
   // 결합된 옵션 아이템 - 항상 isFile 옵션 포함
   const combinedOptionItems = useMemo(() => {
@@ -155,8 +153,8 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
         <Tooltip title="번역 옵션">
           <IconButton
             size="small"
-            onClick={toggleSettings}
-            color={showSettings ? 'primary' : 'default'}
+            onClick={onToggleSettings} // 전달받은 onToggleSettings 사용
+            color={showSettings ? 'primary' : 'default'} // 전달받은 showSettings 사용
           >
             <SettingsIcon />
           </IconButton>
@@ -179,6 +177,8 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
 
       {/* Settings Panel */}
       <Box sx={{ display: showSettings ? 'block' : 'none', mb: 2 }}>
+        {' '}
+        {/* 전달받은 showSettings 사용 */}
         <DynamicOptions
           options={combinedOptionItems}
           values={optionsValues} // Pass the derived value based on parent's state

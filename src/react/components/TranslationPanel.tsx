@@ -22,10 +22,17 @@ export default function TranslationPanel(): React.ReactElement {
 
   // 옵션 상태 관리
   const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
+  // 설정 패널 표시 여부 상태 관리 (상태 끌어올리기)
+  const [showSettings, setShowSettings] = useState(false);
 
   // 옵션 변경 핸들러
   const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
     setParserOptions(options);
+  }, []);
+
+  // 설정 토글 핸들러
+  const toggleSettings = useCallback(() => {
+    setShowSettings((prev) => !prev);
   }, []);
 
   // 번역 타입 변경 핸들러
@@ -44,6 +51,8 @@ export default function TranslationPanel(): React.ReactElement {
       });
       // 옵션 초기화
       setParserOptions(null);
+      // 설정 패널도 초기화
+      setShowSettings(false);
     },
     [setTranslationType, handleClearFiles, setResultState]
   );
@@ -79,6 +88,8 @@ export default function TranslationPanel(): React.ReactElement {
                 initialOptions={parserOptions || undefined}
                 translationType={translationType}
                 label={getTranslationTypeLabel(translationType) + ' 옵션'}
+                showSettings={showSettings}
+                onToggleSettings={toggleSettings}
               />
             )}
 
