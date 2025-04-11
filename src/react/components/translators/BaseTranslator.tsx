@@ -151,13 +151,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   const parseInput = useCallback(
     async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto> => {
-      console.log('from parseInput:');
-      // 단순화된 입력 구조로 로그 출력
-      console.log(input);
-
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
       const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
-
       const parsePayload: BaseParseRequestDto<T> = {
         content: input,
         options: {
@@ -165,7 +160,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
       };
-      console.log('파싱 옵션:', parsePayload.options);
+
       return (await window.electron.ipcRenderer.invoke(
         parseChannel,
         parsePayload
@@ -198,13 +193,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       translatedContent: TranslatedTextPath[],
       config: TranslatorConfig
     ): Promise<BaseApplyResponseDto> => {
-      console.log('from applyTranslation:');
-      console.log(input);
-      console.log(translatedContent);
-
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
       const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
-
       const applyPayload: BaseApplyRequestDto<T> = {
         content: input,
         translatedTextPaths: translatedContent,
@@ -213,7 +203,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
       };
-      console.log('적용 옵션:', applyPayload.options);
+
       return (await window.electron.ipcRenderer.invoke(
         applyChannel,
         applyPayload
@@ -303,8 +293,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
               translateResponse.translatedTextPaths,
               config
             );
-            console.log('from applyResponse:');
-            console.log(applyResponse);
 
             if (!applyResponse.success) {
               throw new Error(applyResponse.message || '번역 적용 중 오류가 발생했습니다.');
