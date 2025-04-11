@@ -16,45 +16,81 @@ export class ParserService {
     private readonly csvParserService: CsvParserService
   ) {}
 
-  public getJsonTranslationTargets(
-    json: Record<string, unknown>,
-    options: JsonParserOptionsDto
-  ): TextPath[] {
-    return this.jsonParserService.getTranslationTargets(json, options);
+  public async getJsonTranslationTargets(
+    json: string,
+    options: JsonParserOptionsDto,
+    isFile = false
+  ): Promise<TextPath[]> {
+    return await this.jsonParserService.getTranslationTargets({
+      source: json,
+      options,
+      isFile,
+    });
   }
 
-  public applyJsonTranslation(
-    json: Record<string, unknown>,
+  public async applyJsonTranslation(
+    json: string,
     translations: TranslatedTextPath[],
-    options: JsonParserOptionsDto
-  ): Record<string, unknown> {
-    return this.jsonParserService.applyTranslation(json, translations, options);
+    options: JsonParserOptionsDto,
+    isFile = false
+  ): Promise<Record<string, unknown>> {
+    return await this.jsonParserService.applyTranslation({
+      source: json,
+      translations,
+      options,
+      isFile,
+    });
   }
 
-  public getPlainTextTranslationTargets(
+  public async getPlainTextTranslationTargets(
     text: string,
-    options: PlainTextParserOptionsDto
-  ): TextPath[] {
-    return this.plainTextParserService.getTranslationTargets(text, options);
+    options: PlainTextParserOptionsDto,
+    isFile = false
+  ): Promise<TextPath[]> {
+    return await this.plainTextParserService.getTranslationTargets({
+      source: text,
+      options,
+      isFile,
+    });
   }
 
-  public applyPlainTextTranslation(
+  public async applyPlainTextTranslation(
     text: string,
     translations: TranslatedTextPath[],
-    options: PlainTextParserOptionsDto
-  ): string {
-    return this.plainTextParserService.applyTranslation(text, translations, options);
+    options: PlainTextParserOptionsDto,
+    isFile = false
+  ): Promise<string> {
+    return await this.plainTextParserService.applyTranslation({
+      source: text,
+      translations,
+      options,
+      isFile,
+    });
   }
 
-  public getCsvTranslationTargets(text: string, options: CsvParserOptionsDto): TextPath[] {
-    return this.csvParserService.getTranslationTargets(text, options);
+  public async getCsvTranslationTargets(
+    text: string,
+    options: CsvParserOptionsDto,
+    isFile = false
+  ): Promise<TextPath[]> {
+    return await this.csvParserService.getTranslationTargets({
+      source: text,
+      options,
+      isFile,
+    });
   }
 
-  public applyCsvTranslation(
+  public async applyCsvTranslation(
     text: string,
     translations: TranslatedTextPath[],
-    options: CsvParserOptionsDto
-  ): string {
-    return this.csvParserService.applyTranslation(text, translations, options);
+    options: CsvParserOptionsDto,
+    isFile = false
+  ): Promise<string> {
+    return await this.csvParserService.applyTranslation({
+      source: text,
+      translations,
+      options,
+      isFile,
+    });
   }
 }
