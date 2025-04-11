@@ -8,11 +8,11 @@ import { CsvParserService } from './services/csv-parser.service';
 
 @Module({
   providers: [
-    ParserService, 
-    JsonParserService, 
-    ParserIpcHandler, 
+    ParserService,
+    JsonParserService,
+    ParserIpcHandler,
     PlainTextParserService,
-    CsvParserService
+    CsvParserService,
   ],
   exports: [ParserService],
 })

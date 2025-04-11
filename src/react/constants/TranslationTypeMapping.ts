@@ -1,19 +1,11 @@
 import { TranslationType } from '../contexts/TranslationContext';
-
-// 나중에 생성할 컴포넌트 타입 가져오기
-import JsonFileTranslator from '../components/translators/JsonFileTranslator';
-import JsonStringTranslator from '../components/translators/JsonStringTranslator';
-import TextTranslator from '../components/translators/TextTranslator';
-import CsvFileTranslator from '../components/translators/CsvFileTranslator';
-
-// 옵션 컴포넌트
-import JsonFileParseOption from '../components/options/JsonFileParseOption';
-import JsonStringParseOption from '../components/options/JsonStringParseOption';
-import TextParseOption from '../components/options/TextParseOption';
-import CsvFileParseOption from '../components/options/CsvFileParseOption';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { SourceLanguage } from '@/utils/language';
+
+// 팩토리 가져오기
+import { TranslatorFactory } from '../factories/TranslatorFactory';
+import { ParseOptionsFactory } from '../factories/ParseOptionsFactory';
 
 // 공통 타입 가져오기
 import {
@@ -48,16 +40,6 @@ export const getDefaultOptions = (
   }
 };
 
-// Translator Component Map
-const translatorComponentMap: {
-  [K in TranslationType]: TranslatorComponentType<K>;
-} = {
-  [TranslationType.JsonFile]: JsonFileTranslator,
-  [TranslationType.JsonString]: JsonStringTranslator,
-  [TranslationType.Text]: TextTranslator,
-  [TranslationType.CsvFile]: CsvFileTranslator,
-};
-
 /**
  * TranslationType에 따라 적절한 컴포넌트를 반환하는 함수
  * @param type 번역 유형
@@ -66,24 +48,8 @@ const translatorComponentMap: {
 export function getTranslatorComponent<T extends TranslationType>(
   type: T
 ): TranslatorComponentType<T> {
-  const component = translatorComponentMap[type];
-  if (!component) {
-    // 이론적으로는 도달할 수 없지만, 안전을 위해 추가
-    throw new Error(`Invalid translation type: ${type}`);
-  }
-  // 이제 TypeScript는 component의 타입이 TranslatorComponentType<T>임을 정확히 추론합니다.
-  return component;
+  return TranslatorFactory.createTranslator(type);
 }
-
-// Parser Option Component Map
-const parserOptionComponentMap: {
-  [K in TranslationType]: OptionComponentType<K>;
-} = {
-  [TranslationType.JsonFile]: JsonFileParseOption,
-  [TranslationType.JsonString]: JsonStringParseOption,
-  [TranslationType.Text]: TextParseOption,
-  [TranslationType.CsvFile]: CsvFileParseOption,
-};
 
 /**
  * TranslationType에 따라 적절한 옵션 컴포넌트를 반환하는 함수
@@ -93,13 +59,7 @@ const parserOptionComponentMap: {
 export function getParserOptionComponent<T extends TranslationType>(
   type: T
 ): OptionComponentType<T> {
-  const component = parserOptionComponentMap[type];
-  if (!component) {
-    // 이론적으로는 도달할 수 없지만, 안전을 위해 추가
-    throw new Error(`Invalid translation type: ${type}`);
-  }
-  // TypeScript는 component의 타입이 OptionComponentType<T>임을 정확히 추론합니다.
-  return component;
+  return ParseOptionsFactory.createParseOptions(type);
 }
 
 /**
@@ -153,7 +113,6 @@ export const getDefaultValidator = (
       try {
         JSON.parse(input.trim());
         // 빈 JSON 문자열도 유효하다고 간주할 수 있으나, 여기서는 비어있지 않은지만 확인
-        // 필요하다면 `input.trim() === '{}'` 또는 `input.trim() === '[]'` 같은 추가 검사 가능
         return input.trim().length > 0;
       } catch (e) {
         return false;
