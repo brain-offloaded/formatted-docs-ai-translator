@@ -63,7 +63,7 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   const combinedOptionItems = useMemo(() => {
     const baseItems = optionItems || [];
     // isFile 옵션이 기존 아이템에 있다면 제거
-    return baseItems.filter((item) => item.name !== 'isFile');
+    return baseItems.filter((item) => item.key !== 'isFile');
   }, [optionItems]);
 
   // Effect to initialize options in the parent if they are null or update sourceLanguage
