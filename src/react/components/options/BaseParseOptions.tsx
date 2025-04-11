@@ -3,7 +3,7 @@ import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { getDefaultOptions } from '../../constants/TranslationTypeMapping';
-import { OptionItem, OptionsValues, DynamicOptions } from './DynamicOptions';
+import { OptionsValues, DynamicOptions } from './DynamicOptions';
 import { Box, Tooltip, IconButton, Typography } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { BaseParseOptionsProps } from '../../types/translation-types';
@@ -43,177 +43,85 @@ const saveOptionsToLocalStorage = <T extends BaseParseOptionsDto>(
   }
 };
 
-export const useParseOptions = <T extends BaseParseOptionsDto>(
-  initialOptions?: T,
-  translationType?: TranslationType,
-  onOptionsChange?: (options: T) => void,
-  _optionItems?: OptionItem[]
-) => {
-  // ConfigStore 인스턴스를 useMemo로 메모이제이션
-  const configStore = useMemo(() => ConfigStore.getInstance(), []);
-  const sourceLanguage = useMemo(() => configStore.getConfig().sourceLanguage, [configStore]);
-
-  // 기본값 설정 - 순서대로 시도: 로컬 스토리지 > 초기 옵션 > 기본 옵션
-  const getInitialState = (): T => {
-    // 1. 로컬 스토리지에서 불러오기
-    const savedOptions = loadOptionsFromLocalStorage<T>(translationType);
-    if (savedOptions) {
-      // sourceLanguage는 항상 최신 값으로 업데이트
-      return { ...savedOptions, sourceLanguage } as T;
-    }
-
-    // 2. initialOptions가 있으면 사용
-    if (initialOptions) {
-      return { ...initialOptions, sourceLanguage } as T;
-    }
-
-    // 3. translationType이 있으면 기본 옵션 생성
-    if (translationType) {
-      return getDefaultOptions(translationType, sourceLanguage) as T;
-    }
-
-    // 4. 최후의 경우 sourceLanguage만 포함한 기본 옵션 반환
-    return { sourceLanguage } as T;
-  };
-
-  const [options, setOptions] = useState<T>(getInitialState());
-
-  // 옵션 변경 핸들러
-  const handleOptionsChange = useCallback(
-    (newOptions: Partial<T>) => {
-      setOptions((prevOptions) => {
-        const updatedOptions = {
-          ...prevOptions,
-          ...newOptions,
-        } as T;
-
-        // 부모 컴포넌트에 옵션 변경 알림
-        if (onOptionsChange) {
-          onOptionsChange(updatedOptions);
-        }
-
-        // 로컬 스토리지에 변경된 옵션 저장
-        saveOptionsToLocalStorage(updatedOptions, translationType);
-
-        return updatedOptions;
-      });
-    },
-    [onOptionsChange, translationType]
-  );
-
-  // 특정 필드 값 변경 핸들러
-  const createFieldChangeHandler = useCallback(
-    <K extends keyof T>(fieldName: K) => {
-      return (value: T[K]) => {
-        const partialOptions: Partial<T> = {};
-        partialOptions[fieldName] = value;
-        handleOptionsChange(partialOptions);
-      };
-    },
-    [handleOptionsChange]
-  );
-
-  // DynamicOptions 값 변경 처리 함수
-  const handleDynamicOptionsChange = useCallback(
-    (values: OptionsValues) => {
-      const partialOptions: Partial<T> = {};
-      // OptionsValues 객체의 값을 T 타입에 맞게 변환하여 적용
-      Object.entries(values).forEach(([key, value]) => {
-        partialOptions[key as keyof T] = value as T[keyof T];
-      });
-      handleOptionsChange(partialOptions);
-    },
-    [handleOptionsChange]
-  );
-
-  // 번역 타입이 변경될 때 옵션 업데이트 - 로컬 스토리지에서 해당 타입의 저장된 옵션 불러오기
-  useEffect(() => {
-    if (translationType) {
-      // 로컬 스토리지에서 해당 번역 타입의 옵션 불러오기
-      const savedOptions = loadOptionsFromLocalStorage<T>(translationType);
-
-      if (savedOptions) {
-        // sourceLanguage는 항상 최신 값으로 업데이트
-        setOptions({ ...savedOptions, sourceLanguage } as T);
-      } else if (initialOptions) {
-        // 저장된 옵션이 없으면 초기 옵션 사용
-        setOptions({ ...initialOptions, sourceLanguage } as T);
-      } else {
-        // 초기 옵션도 없으면 기본 옵션 생성
-        const defaultOptions = getDefaultOptions(translationType, sourceLanguage) as T;
-        setOptions(defaultOptions);
-      }
-    }
-  }, [translationType, sourceLanguage, initialOptions]);
-
-  // 초기 옵션이 변경될 때 상태 업데이트
-  useEffect(() => {
-    if (initialOptions) {
-      setOptions(
-        (prevOptions) =>
-          ({
-            ...prevOptions,
-            ...initialOptions,
-            sourceLanguage, // 항상 최신 sourceLanguage 유지
-          }) as T
-      );
-    }
-  }, [initialOptions, sourceLanguage]);
-
-  // 기본 sourceLanguage 옵션 업데이트
-  useEffect(() => {
-    setOptions((prevOptions) => {
-      const updatedOptions = {
-        ...prevOptions,
-        sourceLanguage,
-      } as T;
-
-      // 상태 업데이트 후 변경 사항을 부모에게 알리고 로컬 스토리지에 저장
-      saveOptionsToLocalStorage(updatedOptions, translationType);
-
-      return updatedOptions;
-    });
-  }, [sourceLanguage, onOptionsChange, translationType, setOptions]);
-
-  return {
-    options,
-    setOptions,
-    handleOptionsChange,
-    createFieldChangeHandler,
-    handleDynamicOptionsChange,
-  };
-};
-
 export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOptionsDto>({
   onOptionsChange,
-  initialOptions,
+  initialOptions, // This is the state from the parent (parserOptions)
   translationType,
   isTranslating,
   optionItems,
   label,
 }: BaseParseOptionsProps<T>): React.ReactElement => {
-  // 설정 패널 토글 상태
+  // ConfigStore and sourceLanguage
+  const configStore = useMemo(() => ConfigStore.getInstance(), []);
+  const sourceLanguage = useMemo(() => configStore.getConfig().sourceLanguage, [configStore]);
+
+  // Settings panel visibility
   const [showSettings, setShowSettings] = useState(false);
+  const toggleSettings = useCallback(() => setShowSettings((prev) => !prev), []);
 
-  // 설정 패널 토글 함수
-  const toggleSettings = useCallback(() => {
-    setShowSettings((prev) => !prev);
-  }, []);
+  // Effect to initialize options in the parent if they are null or update sourceLanguage
+  useEffect(() => {
+    // Ensure callbacks and type are available
+    if (!onOptionsChange || !translationType) {
+      return;
+    }
 
-  // useParseOptions 훅 사용
-  const { options, handleDynamicOptionsChange } = useParseOptions<T>(
-    initialOptions,
-    translationType,
-    onOptionsChange,
-    optionItems
+    if (!initialOptions) {
+      // Parent state is null, initialize it
+      let optionsToSet = loadOptionsFromLocalStorage<T>(translationType);
+
+      if (!optionsToSet) {
+        optionsToSet = getDefaultOptions(translationType, sourceLanguage) as T;
+      } else {
+        optionsToSet = { ...optionsToSet, sourceLanguage };
+      }
+
+      if (optionsToSet) {
+        onOptionsChange(optionsToSet); // Update parent state
+        // No need to save here, as loading/defaulting handles the initial state
+        // saveOptionsToLocalStorage(optionsToSet, translationType);
+      }
+    } else if (initialOptions.sourceLanguage !== sourceLanguage) {
+      // Parent state exists, but sourceLanguage needs update
+      const updatedOptions = { ...initialOptions, sourceLanguage };
+      onOptionsChange(updatedOptions);
+      // Save the update with the correct sourceLanguage
+      saveOptionsToLocalStorage(updatedOptions, translationType);
+    }
+    // We depend on initialOptions being potentially null/defined,
+    // and its sourceLanguage value vs the current sourceLanguage.
+    // translationType and onOptionsChange are also dependencies.
+  }, [translationType, initialOptions, onOptionsChange, sourceLanguage]);
+
+  // Handler for changes from DynamicOptions
+  const handleDynamicOptionsChange = useCallback(
+    (changedValues: OptionsValues) => {
+      // Ensure parent state exists before updating
+      if (onOptionsChange && initialOptions) {
+        const updatedOptions = {
+          ...initialOptions,
+          ...changedValues, // Apply changes from DynamicOptions
+          sourceLanguage, // Ensure sourceLanguage is current
+        } as T;
+
+        onOptionsChange(updatedOptions); // Update parent state
+        saveOptionsToLocalStorage(updatedOptions, translationType); // Save changes
+      }
+      // If initialOptions is null, the useEffect above should handle initialization shortly.
+      // We avoid updating based on potentially stale state here.
+    },
+    [onOptionsChange, initialOptions, translationType, sourceLanguage]
   );
 
-  // 현재 옵션 값을 DynamicOptions 용 값으로 변환
-  const optionsValues: OptionsValues = { ...(options as unknown as OptionsValues) };
+  // Prepare values for DynamicOptions - use parent's state or empty object if null
+  const optionsValues: OptionsValues = useMemo(() => {
+    // Provide an empty object if initialOptions is null to avoid errors in DynamicOptions
+    return initialOptions ? { ...(initialOptions as unknown as OptionsValues) } : {};
+  }, [initialOptions]);
 
   return (
     <>
-      {/* 톱니바퀴 아이콘과 레이블 */}
+      {/* Settings Icon and Label */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         {label && <Typography variant="body1">{label}</Typography>}
         <Tooltip title="번역 옵션">
@@ -227,13 +135,13 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
         </Tooltip>
       </Box>
 
-      {/* 설정 패널 - 토글 시 표시/숨김 */}
+      {/* Settings Panel */}
       <Box sx={{ display: showSettings ? 'block' : 'none', mb: 2 }}>
         <DynamicOptions
           options={optionItems || []}
-          values={optionsValues}
-          onChange={handleDynamicOptionsChange}
-          disabled={isTranslating}
+          values={optionsValues} // Pass the derived value based on parent's state
+          onChange={handleDynamicOptionsChange} // Call handler that updates parent state
+          disabled={isTranslating || !initialOptions} // Disable if translating or parent state not yet initialized
         />
       </Box>
     </>

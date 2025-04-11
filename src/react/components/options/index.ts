@@ -10,5 +10,5 @@ export const TextParseOption = getParserOptionComponent(TranslationType.Text);
 export const CsvFileParseOption = getParserOptionComponent(TranslationType.CsvFile);
 
 // 기본 옵션 export
-export { BaseParseOptions, useParseOptions } from './BaseParseOptions';
+export { BaseParseOptions } from './BaseParseOptions';
 export { DynamicOptions, OptionType, OptionItem } from './DynamicOptions';
