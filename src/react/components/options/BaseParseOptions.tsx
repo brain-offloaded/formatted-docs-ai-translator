@@ -4,7 +4,8 @@ import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { getDefaultOptions } from '../../constants/TranslationTypeMapping';
 import { OptionItem, OptionsValues, DynamicOptions } from './DynamicOptions';
-import { Box } from '@mui/material';
+import { Box, Tooltip, IconButton, Typography } from '@mui/material';
+import { Settings as SettingsIcon } from '@mui/icons-material';
 
 export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
   isTranslating: boolean;
@@ -12,6 +13,8 @@ export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParse
   initialOptions?: T;
   translationType?: TranslationType;
   optionItems?: OptionItem[]; // 동적 옵션 항목 배열
+  // UI 관련 속성 추가
+  label?: string;
 }
 
 export type OptionFieldConfig<T> = {
@@ -195,7 +198,16 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   translationType,
   isTranslating,
   optionItems,
+  label,
 }: BaseParseOptionsProps<T>): React.ReactElement => {
+  // 설정 패널 토글 상태
+  const [showSettings, setShowSettings] = useState(false);
+
+  // 설정 패널 토글 함수
+  const toggleSettings = useCallback(() => {
+    setShowSettings((prev) => !prev);
+  }, []);
+
   // useParseOptions 훅 사용
   const { options, handleDynamicOptionsChange } = useParseOptions<T>(
     initialOptions,
@@ -207,22 +219,33 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   // 현재 옵션 값을 DynamicOptions 용 값으로 변환
   const optionsValues: OptionsValues = { ...(options as unknown as OptionsValues) };
 
-  // optionItems가 있는 경우에만 DynamicOptions 렌더링
-  if (optionItems && optionItems.length > 0) {
-    return (
-      <Box sx={{ mb: 2 }}>
+  return (
+    <>
+      {/* 톱니바퀴 아이콘과 레이블 */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        {label && <Typography variant="body1">{label}</Typography>}
+        <Tooltip title="번역 옵션">
+          <IconButton
+            size="small"
+            onClick={toggleSettings}
+            color={showSettings ? 'primary' : 'default'}
+          >
+            <SettingsIcon />
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      {/* 설정 패널 - 토글 시 표시/숨김 */}
+      <Box sx={{ display: showSettings ? 'block' : 'none', mb: 2 }}>
         <DynamicOptions
-          options={optionItems}
+          options={optionItems || []}
           values={optionsValues}
           onChange={handleDynamicOptionsChange}
           disabled={isTranslating}
         />
       </Box>
-    );
-  }
-
-  // 기본 파싱 옵션에는 UI가 없음
-  return <></>;
+    </>
+  );
 };
 
 export default BaseParseOptions;

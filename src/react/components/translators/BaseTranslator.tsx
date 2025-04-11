@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Box, Typography, useTheme, TextField, Tooltip, IconButton } from '@mui/material';
-import { Settings as SettingsIcon } from '@mui/icons-material';
+import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { TranslatorConfig } from '../../../types/config';
@@ -23,9 +22,8 @@ import {
   isDownloadable,
   getDefaultInitialInput,
   getDefaultValidator,
-  ParserOptionType,
 } from '../../constants/TranslationTypeMapping';
-import { useParseOptions } from '../../components/options/BaseParseOptions';
+import { BaseParseOptionsProps, useParseOptions } from '../../components/options/BaseParseOptions';
 
 // 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
 export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
@@ -66,12 +64,7 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   translateChannel?: IpcChannel;
   applyChannel: IpcChannel;
   formatOutput?: (output: string, isFileInput: boolean) => string;
-  OptionComponent?: React.ComponentType<{
-    isTranslating: boolean;
-    onOptionsChange?: (options: T) => void;
-    initialOptions?: T;
-    translationType?: TranslationType;
-  }>;
+  OptionComponent?: React.ComponentType<BaseParseOptionsProps<T>>;
 }
 
 // 기본 출력 포맷 함수
@@ -96,7 +89,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const [input, setInput] = useState<string | string[]>(
     getDefaultInitialInput(options.translationType)
   );
-  const [showSettings, setShowSettings] = useState(false);
 
   // useParseOptions 훅을 사용하여 옵션 관리
   const { options: parserOptions, handleOptionsChange: handleParserOptionsChange } =
@@ -151,11 +143,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     handleInputChange([] as unknown as string[]);
     handleClearFiles();
   }, [handleInputChange, handleClearFiles]);
-
-  // JSON 설정 패널 토글
-  const toggleJsonSettings = useCallback(() => {
-    setShowSettings((prev) => !prev);
-  }, []);
 
   // 번역 버튼 활성화 여부 계산
   const isTranslateButtonDisabled = useMemo(() => {
@@ -536,8 +523,19 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const renderTextInput = useCallback(() => {
     return (
       <Box sx={{ my: 2 }}>
+        {/* 옵션 패널 - BaseParseOptions 컴포넌트로 대체 */}
+        {OptionComponent && (
+          <OptionComponent
+            isTranslating={isTranslating}
+            onOptionsChange={handleParserOptionsChange}
+            initialOptions={parserOptions}
+            translationType={options.translationType}
+            label={options.inputLabel}
+          />
+        )}
+
         <TextField
-          label={options.inputLabel}
+          label=""
           multiline
           fullWidth
           rows={options.inputFieldRows || 10}
@@ -569,36 +567,25 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     theme.palette.mode,
     theme.palette.primary.main,
     handleInputChange,
+    OptionComponent,
+    handleParserOptionsChange,
+    parserOptions,
   ]);
 
   // 렌더링 - 파일 입력
   const renderFileInput = useCallback(() => {
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="body1">{options.inputLabel}</Typography>
-          <Tooltip title="번역 옵션">
-            <IconButton
-              size="small"
-              onClick={toggleJsonSettings}
-              color={showSettings ? 'primary' : 'default'}
-            >
-              <SettingsIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {/* 옵션 컴포넌트는 항상 렌더링하되, 필요할 때만 표시 */}
-        <Box sx={{ display: showSettings ? 'block' : 'none' }}>
-          {OptionComponent && (
-            <OptionComponent
-              isTranslating={isTranslating}
-              onOptionsChange={handleParserOptionsChange}
-              initialOptions={parserOptions}
-              translationType={options.translationType}
-            />
-          )}
-        </Box>
+        {/* 옵션 패널 - BaseParseOptions 컴포넌트로 대체 */}
+        {OptionComponent && (
+          <OptionComponent
+            isTranslating={isTranslating}
+            onOptionsChange={handleParserOptionsChange}
+            initialOptions={parserOptions}
+            translationType={options.translationType}
+            label={options.inputLabel}
+          />
+        )}
 
         {/* 파일 업로더 */}
         <FileUploader
@@ -617,8 +604,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     );
   }, [
     options,
-    showSettings,
-    toggleJsonSettings,
     OptionComponent,
     isTranslating,
     input,
