@@ -13,7 +13,9 @@ export abstract class BaseParserService<
     return this.readString(content, options);
   }
 
-  public abstract readString(content: string, options: ParserOptions): Promise<TargetFormat>;
+  public async readString(content: string, _options: ParserOptions): Promise<TargetFormat> {
+    return content as TargetFormat;
+  }
 
   public async read(params: {
     source: string;
