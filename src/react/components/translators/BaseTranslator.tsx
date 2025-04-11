@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
@@ -65,7 +65,6 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   formatOutput?: (output: string, isFileInput: boolean) => string;
   // 옵션 관련 props
   parserOptions?: T | null;
-  onOptionsChange?: (options: T) => void;
 }
 
 // 기본 출력 포맷 함수
@@ -83,42 +82,12 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   translateChannel = IpcChannel.TranslateTextArray,
   applyChannel,
   formatOutput = defaultFormatOutput,
-  parserOptions: externalParserOptions,
-  onOptionsChange,
+  parserOptions,
 }: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
   const configStore = ConfigStore.getInstance();
   const [input, setInput] = useState<string | string[]>(
     getDefaultInitialInput(options.translationType)
-  );
-
-  // 내부적으로 사용할 파서 옵션 상태
-  const [parserOptions, setParserOptions] = useState<T>({
-    sourceLanguage: configStore.getConfig().sourceLanguage,
-  } as T);
-
-  // 외부에서 전달받은 옵션이 변경되면 내부 상태 업데이트
-  useEffect(() => {
-    if (externalParserOptions) {
-      setParserOptions(
-        (prev) =>
-          ({
-            ...prev,
-            ...externalParserOptions,
-          }) as T
-      );
-    }
-  }, [externalParserOptions]);
-
-  // 내부 파서 옵션이 변경되면 부모 컴포넌트에 알림
-  const handleParserOptionsChange = useCallback(
-    (newOptions: T) => {
-      setParserOptions(newOptions);
-      if (onOptionsChange) {
-        onOptionsChange(newOptions);
-      }
-    },
-    [onOptionsChange]
   );
 
   // 번역 타입에 따라 파일 입력 여부 확인
@@ -181,11 +150,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       // 단순화된 입력 구조로 로그 출력
       console.log(input);
 
+      // parserOptions가 없는 경우 최소한의 기본 옵션 사용
+      const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
+
       const parsePayload: BaseParseRequestDto<T> = {
         content: input,
         options: {
-          ...parserOptions,
-          sourceLanguage: config.sourceLanguage, // 최신 sourceLanguage 값 사용
+          ...effectiveOptions,
+          sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
       };
       console.log('파싱 옵션:', parsePayload.options);
@@ -224,12 +196,16 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       console.log('from applyTranslation:');
       console.log(input);
       console.log(translatedContent);
+
+      // parserOptions가 없는 경우 최소한의 기본 옵션 사용
+      const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
+
       const applyPayload: BaseApplyRequestDto<T> = {
         content: input,
         translatedTextPaths: translatedContent,
         options: {
-          ...parserOptions,
-          sourceLanguage: config.sourceLanguage, // 최신 sourceLanguage 값 사용
+          ...effectiveOptions,
+          sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
       };
       console.log('적용 옵션:', applyPayload.options);
