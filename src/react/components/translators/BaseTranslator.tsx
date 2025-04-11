@@ -64,7 +64,10 @@ const defaultFormatOutput = (output: string, isFileMode: boolean): string => {
   }
 };
 
-export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsDto>({
+// BaseTranslator 컴포넌트를 React.memo로 감싸기
+export const BaseTranslator = React.memo(function BaseTranslator<
+  T extends BaseParseOptionsDto = BaseParseOptionsDto,
+>({
   options: initialOptions,
   parseChannel,
   translateChannel = IpcChannel.TranslateTextArray,
@@ -650,4 +653,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         ))}
     </>
   );
-}
+});
+
+// Optional: Add display name for better debugging
+// BaseTranslator.displayName = 'BaseTranslator';

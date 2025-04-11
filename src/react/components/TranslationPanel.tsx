@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
 import { TranslationType, useTranslation } from '../contexts/TranslationContext';
 import {
@@ -58,8 +58,10 @@ export default function TranslationPanel(): React.ReactElement {
   );
 
   // TranslationType에 따라 적절한 컴포넌트 가져오기
-  const { TranslatorComponent, OptionComponent } =
-    getTranslatorWithOptions<typeof translationType>(translationType);
+  const { TranslatorComponent, OptionComponent } = useMemo(
+    () => getTranslatorWithOptions<typeof translationType>(translationType),
+    [translationType]
+  );
 
   return (
     <Box sx={{ position: 'relative' }}>

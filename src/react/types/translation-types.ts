@@ -5,7 +5,6 @@ import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-opti
 import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { CustomTranslatorProps } from '../components/translators/BaseTranslator';
-import { OptionItem } from '../components/options/DynamicOptions';
 
 /**
  * 컴포넌트에서 사용할 파서 옵션 타입
@@ -13,26 +12,24 @@ import { OptionItem } from '../components/options/DynamicOptions';
 export type ParserOptionType = BaseParseOptionsDto;
 
 /**
- * 기본 파서 옵션 Props 타입
+ * 기본 파서 옵션 Props 타입 - BaseParseOptions.tsx 내부로 이동
  */
-export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
+// export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> { ... }
+
+/**
+ * 공통 옵션 컴포넌트 Props 타입 정의 (제네릭 제거)
+ */
+export interface CustomOptionComponentProps {
   isTranslating: boolean;
-  onOptionsChange?: (options: T) => void;
-  initialOptions?: T;
+  onOptionsChange?: (options: BaseParseOptionsDto) => void;
+  initialOptions?: BaseParseOptionsDto;
   translationType?: TranslationType;
-  optionItems?: OptionItem[]; // 동적 옵션 항목 배열
-  // UI 관련 속성 추가
+  // optionItems는 ParseOptionsFactory에서 주입되므로 여기서는 선택사항이 아님
+  // optionItems?: OptionItem[];
   label?: string;
-  // 설정 패널 표시 여부 상태 (상태 끌어올리기)
   showSettings?: boolean;
   onToggleSettings?: () => void;
 }
-
-/**
- * 공통 옵션 컴포넌트 Props 타입 정의
- */
-export type CustomOptionComponentProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> =
-  BaseParseOptionsProps<T>;
 
 /**
  * 옵션 필드 설정 타입
@@ -54,10 +51,9 @@ export interface TranslationTypeToOptionsMap {
   [TranslationType.Csv]: CsvParserOptionsDto;
 }
 
-// 옵션 컴포넌트 타입
-export type OptionComponentType<T extends TranslationType> = React.ComponentType<
-  CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>
->;
+// 옵션 컴포넌트 타입 (제네릭 제거)
+export type OptionComponentType<T extends TranslationType> =
+  React.ComponentType<CustomOptionComponentProps>;
 
 // 번역기 컴포넌트 타입
 export type TranslatorComponentType<T extends TranslationType> = React.ComponentType<
