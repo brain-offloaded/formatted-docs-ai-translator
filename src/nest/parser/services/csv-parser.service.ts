@@ -69,10 +69,7 @@ export class CsvParserService implements IParserService<string, CsvParserOptions
             // 번역된 텍스트에서 구분자를 대체
             let processedTranslation = item.translatedText;
             if (replaceDelimiter && delimiter) {
-              processedTranslation = processedTranslation.replace(
-                new RegExp(delimiter, 'g'),
-                replaceDelimiter
-              );
+              processedTranslation = processedTranslation.replaceAll(delimiter, replaceDelimiter);
             }
 
             cells[colIndex] = cells[colIndex].replace(trimmedCell, processedTranslation);
