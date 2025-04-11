@@ -11,7 +11,7 @@ import { ApplyTranslationToCsvRequestDto } from './request/apply-translation-to-
 export class ParserRequestResponse {
   [IpcChannel.ParseJson]: {
     Request: ParseJsonRequestDto;
-    Response: BaseParseResponseDto;
+    Response: BaseParseResponseDto<unknown>;
   };
   [IpcChannel.ApplyTranslationToJson]: {
     Request: ApplyTranslationToJsonRequestDto;
@@ -19,7 +19,7 @@ export class ParserRequestResponse {
   };
   [IpcChannel.ParsePlainText]: {
     Request: ParsePlainTextRequestDto;
-    Response: BaseParseResponseDto;
+    Response: BaseParseResponseDto<unknown>;
   };
   [IpcChannel.ApplyTranslationToPlainText]: {
     Request: ApplyTranslationToPlainTextRequestDto;
@@ -27,7 +27,7 @@ export class ParserRequestResponse {
   };
   [IpcChannel.ParseCsv]: {
     Request: ParseCsvRequestDto;
-    Response: BaseParseResponseDto;
+    Response: BaseParseResponseDto<unknown>;
   };
   [IpcChannel.ApplyTranslationToCsv]: {
     Request: ApplyTranslationToCsvRequestDto;

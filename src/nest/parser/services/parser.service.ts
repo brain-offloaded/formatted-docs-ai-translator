@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { TextPath, TranslatedTextPath } from '../../../types/common';
+import { SimpleTranslatedTextPath, SimpleTextPath } from '../../../types/common';
 import { JsonParserService } from './json-parser.service';
 import { PlainTextParserService } from './plain-text-parser.service';
 import { CsvParserService } from './csv-parser.service';
@@ -24,7 +24,7 @@ export class ParserService {
   public async getJsonTranslationTargets(
     content: string,
     options: JsonParserOptionsDto
-  ): Promise<TextPath[]> {
+  ): Promise<SimpleTextPath[]> {
     return await this.jsonParserService.getTranslationTargets({
       source: content,
       options,
@@ -39,7 +39,7 @@ export class ParserService {
    */
   public async applyJsonTranslation(
     content: string,
-    translations: TranslatedTextPath[],
+    translations: SimpleTranslatedTextPath[],
     options: JsonParserOptionsDto
   ): Promise<Record<string, unknown>> {
     return await this.jsonParserService.applyTranslation({
@@ -57,7 +57,7 @@ export class ParserService {
   public async getPlainTextTranslationTargets(
     content: string,
     options: PlainTextParserOptionsDto
-  ): Promise<TextPath[]> {
+  ): Promise<SimpleTextPath[]> {
     return await this.plainTextParserService.getTranslationTargets({
       source: content,
       options,
@@ -72,7 +72,7 @@ export class ParserService {
    */
   public async applyPlainTextTranslation(
     content: string,
-    translations: TranslatedTextPath[],
+    translations: SimpleTranslatedTextPath[],
     options: PlainTextParserOptionsDto
   ): Promise<string> {
     return await this.plainTextParserService.applyTranslation({
@@ -90,7 +90,7 @@ export class ParserService {
   public async getCsvTranslationTargets(
     content: string,
     options: CsvParserOptionsDto
-  ): Promise<TextPath[]> {
+  ): Promise<SimpleTextPath[]> {
     return await this.csvParserService.getTranslationTargets({
       source: content,
       options,
@@ -105,7 +105,7 @@ export class ParserService {
    */
   public async applyCsvTranslation(
     content: string,
-    translations: TranslatedTextPath[],
+    translations: SimpleTranslatedTextPath[],
     options: CsvParserOptionsDto
   ): Promise<string> {
     return await this.csvParserService.applyTranslation({

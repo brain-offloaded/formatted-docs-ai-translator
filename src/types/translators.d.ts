@@ -2,8 +2,7 @@ import { AiModelName } from '../ai/model';
 import { SourceLanguage } from '../utils/language';
 import type { TextPath, TranslatedTextPath } from './common';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface TranslatorRequest<TExtra = any> {
+export interface TranslatorRequest<TExtra> {
   sourceLanguage: SourceLanguage;
   sourceFilePath: string;
   textPaths: TextPath<TExtra>[];
@@ -12,8 +11,7 @@ export interface TranslatorRequest<TExtra = any> {
   apiKey: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface TranslatorResponse<TExtra = any> {
+export interface TranslatorResponse<TExtra> {
   translatedFilePath: string;
   textPaths: TranslatedTextPath<TExtra>[];
 }

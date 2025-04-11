@@ -1,12 +1,12 @@
-import { TextPath, TranslatedTextPath } from '../../../types/common';
+import { SimpleTextPath, SimpleTranslatedTextPath } from '../../../types/common';
 import { BaseParseOptionsDto } from '../dto/base-parse-options.dto';
 import * as fs from 'fs/promises';
 
 export abstract class BaseParserService<
   TargetFormat,
   ParserOptions extends BaseParseOptionsDto,
-  ParsedInformation = TextPath,
-  TranslatedInformation = TranslatedTextPath,
+  ParsedInformation = SimpleTextPath,
+  TranslatedInformation = SimpleTranslatedTextPath,
 > {
   public async readFile(filePath: string, options: ParserOptions): Promise<TargetFormat> {
     const content = await fs.readFile(filePath, 'utf-8');

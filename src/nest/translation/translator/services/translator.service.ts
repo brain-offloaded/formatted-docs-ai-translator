@@ -66,7 +66,7 @@ export class TranslatorService {
     },
     textPaths,
     sourceFilePath,
-  }: InvokeFunctionRequest<IpcChannel.TranslateTextArray>): Promise<TranslatorResponse> {
+  }: InvokeFunctionRequest<IpcChannel.TranslateTextArray>): Promise<TranslatorResponse<unknown>> {
     const sourceTexts = textPaths.map((item) => item.text);
 
     const preprocessedTexts = sourceTexts.map((text) => this.preprocessText(text));

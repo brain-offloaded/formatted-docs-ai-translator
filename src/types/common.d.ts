@@ -11,6 +11,10 @@ export class TextPath<TExtra> {
   extra?: TExtra;
 }
 
+export class SimpleTextPath extends TextPath<never> {}
+
 export class TranslatedTextPath<TExtra> extends TextPath<TExtra> {
   translatedText: string;
 }
+
+export class SimpleTranslatedTextPath extends TranslatedTextPath<never> {}

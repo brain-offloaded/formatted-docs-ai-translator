@@ -1,8 +1,7 @@
 import { TranslatedTextPath } from '@/types/common';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class TranslateTextArrayResponseDto<TExtra = any> {
+export class TranslateTextArrayResponseDto {
   success: boolean;
   message: string;
-  translatedTextPaths: TranslatedTextPath<TExtra>[];
+  translatedTextPaths: TranslatedTextPath<unknown>[];
 }

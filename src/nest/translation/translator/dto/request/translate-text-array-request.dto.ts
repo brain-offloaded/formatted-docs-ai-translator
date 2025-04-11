@@ -1,9 +1,8 @@
 import { TextPath } from '@/types/common';
 import { TranslatorConfig } from '@/types/config';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export class TranslateTextArrayRequestDto<TExtra = any> {
+export class TranslateTextArrayRequestDto {
   config: TranslatorConfig;
-  textPaths: TextPath<TExtra>[];
+  textPaths: TextPath<unknown>[];
   sourceFilePath: string;
 }

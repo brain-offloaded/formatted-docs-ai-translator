@@ -151,7 +151,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   }, [isTranslating, isConfigValid, validateInput, input]);
 
   const parseInput = useCallback(
-    async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto> => {
+    async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto<unknown>> => {
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
       const effectiveOptions =
         parserOptions ||
@@ -171,14 +171,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       return (await window.electron.ipcRenderer.invoke(
         parseChannel,
         parsePayload
-      )) as BaseParseResponseDto;
+      )) as BaseParseResponseDto<unknown>;
     },
     [parseChannel, parserOptions, currentIsFileInput]
   );
 
   const translateContent = useCallback(
     async (
-      parsedContent: BaseParseResponseDto,
+      parsedContent: BaseParseResponseDto<unknown>,
       config: TranslatorConfig
     ): Promise<InvokeFunctionResponse<IpcChannel.TranslateTextArray>> => {
       const translatePayload: InvokeFunctionRequest<IpcChannel.TranslateTextArray> = {
@@ -197,12 +197,12 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const applyTranslation = useCallback(
     async (
       input: string,
-      translatedContent: TranslatedTextPath[],
+      translatedContent: TranslatedTextPath<unknown>[],
       config: TranslatorConfig
     ): Promise<BaseApplyResponseDto> => {
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
       const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
-      const applyPayload: BaseApplyRequestDto<T> = {
+      const applyPayload: BaseApplyRequestDto<unknown, T> = {
         content: input,
         translatedTextPaths: translatedContent,
         options: {

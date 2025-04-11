@@ -1,4 +1,4 @@
-import { TextPath, TranslatedTextPath } from '@/types/common';
+import { SimpleTextPath, SimpleTranslatedTextPath } from '@/types/common';
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 
@@ -29,13 +29,13 @@ export class CsvParserService extends BaseParserService<string, CsvParserOptions
   public async getTranslationTargets(params: {
     source: string;
     options: CsvParserOptionsDto;
-  }): Promise<TextPath[]> {
+  }): Promise<SimpleTextPath[]> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환
     const text = await this.read(params);
 
     // 줄 단위로 분리
     const lines = text.split('\n');
-    const result: TextPath[] = [];
+    const result: SimpleTextPath[] = [];
 
     // 각 줄마다 처리
     lines.forEach((line, index) => {
@@ -68,7 +68,7 @@ export class CsvParserService extends BaseParserService<string, CsvParserOptions
    */
   public async applyTranslation(params: {
     source: string;
-    translations: TranslatedTextPath[];
+    translations: SimpleTranslatedTextPath[];
     options: CsvParserOptionsDto;
   }): Promise<string> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환

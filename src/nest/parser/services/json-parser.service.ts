@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 
-import { TextPath, TranslatedTextPath } from '../../../types/common';
+import { SimpleTextPath, SimpleTranslatedTextPath } from '../../../types/common';
 import { deepClone } from '../../../utils/deep-clone';
 import { deepFreeze } from '../../../utils/deep-freeze';
 import { isLanguage } from '../../../utils/language';
@@ -12,8 +12,8 @@ import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-opti
 export class JsonParserService extends BaseParserService<
   Record<string, unknown>,
   JsonParserOptionsDto,
-  TextPath,
-  TranslatedTextPath
+  SimpleTextPath,
+  SimpleTranslatedTextPath
 > {
   /**
    * 파일 경로로부터 JSON 파일을 읽어 객체로 변환합니다.
@@ -39,7 +39,7 @@ export class JsonParserService extends BaseParserService<
   public async getTranslationTargets(params: {
     source: string;
     options: JsonParserOptionsDto;
-  }): Promise<TextPath[]> {
+  }): Promise<SimpleTextPath[]> {
     // read 메서드를 사용하여 source를 TargetFormat(Record<string, unknown>)으로 변환
     const json = await this.read(params);
 
@@ -47,8 +47,12 @@ export class JsonParserService extends BaseParserService<
     return this.traverseJson(frozenJson, '', params.options);
   }
 
-  private traverseJson(json: unknown, basePath: string, options: JsonParserOptionsDto): TextPath[] {
-    const targets: TextPath[] = [];
+  private traverseJson(
+    json: unknown,
+    basePath: string,
+    options: JsonParserOptionsDto
+  ): SimpleTextPath[] {
+    const targets: SimpleTextPath[] = [];
 
     if (typeof json === 'string') {
       if (isLanguage(json, options.sourceLanguage)) {
@@ -164,7 +168,7 @@ export class JsonParserService extends BaseParserService<
 
   public async applyTranslation(params: {
     source: string;
-    translations: TranslatedTextPath[];
+    translations: SimpleTranslatedTextPath[];
     options: JsonParserOptionsDto;
   }): Promise<Record<string, unknown>> {
     // read 메서드를 사용하여 source를 TargetFormat(Record<string, unknown>)으로 변환
