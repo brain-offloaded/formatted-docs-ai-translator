@@ -3,15 +3,17 @@ import { ParseJsonRequestDto } from './request/parse-json-request.dto';
 import { ParsePlainTextRequestDto } from './request/parse-plain-text-request.dto';
 import { ApplyTranslationToPlainTextRequestDto } from './request/apply-translation-to-plain-text-request.dto';
 import { BaseApplyResponseDto } from './response/base-apply-response.dto';
-import { BaseParseResponseDto } from './response/base-parse-response.dto';
 import { ApplyTranslationToJsonRequestDto } from './request/apply-translation-to-json-request.dto';
 import { ParseCsvRequestDto } from './request/parse-csv-request.dto';
 import { ApplyTranslationToCsvRequestDto } from './request/apply-translation-to-csv-request.dto';
+import { ParseJsonResponseDto } from './response/parse-json-response.dto';
+import { ParsePlainTextResponseDto } from './response/parse-plain-text-response.dto';
+import { ParseCsvResponseDto } from './response/parse-csv-response.dto';
 
 export class ParserRequestResponse {
   [IpcChannel.ParseJson]: {
     Request: ParseJsonRequestDto;
-    Response: BaseParseResponseDto<unknown>;
+    Response: ParseJsonResponseDto;
   };
   [IpcChannel.ApplyTranslationToJson]: {
     Request: ApplyTranslationToJsonRequestDto;
@@ -19,7 +21,7 @@ export class ParserRequestResponse {
   };
   [IpcChannel.ParsePlainText]: {
     Request: ParsePlainTextRequestDto;
-    Response: BaseParseResponseDto<unknown>;
+    Response: ParsePlainTextResponseDto;
   };
   [IpcChannel.ApplyTranslationToPlainText]: {
     Request: ApplyTranslationToPlainTextRequestDto;
@@ -27,7 +29,7 @@ export class ParserRequestResponse {
   };
   [IpcChannel.ParseCsv]: {
     Request: ParseCsvRequestDto;
-    Response: BaseParseResponseDto<unknown>;
+    Response: ParseCsvResponseDto;
   };
   [IpcChannel.ApplyTranslationToCsv]: {
     Request: ApplyTranslationToCsvRequestDto;
