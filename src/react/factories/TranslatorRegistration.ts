@@ -87,7 +87,7 @@ function registerCsvTranslator(): void {
       inputLabel: 'CSV 입력:',
       inputPlaceholder: '',
       resultFileType: 'text/csv',
-      translationType: TranslationType.CsvFile,
+      translationType: TranslationType.Csv,
       fileExtension: '.csv',
       fileLabel: 'CSV',
     },
@@ -122,6 +122,6 @@ function registerCsvTranslator(): void {
   };
 
   // 번역기와 파싱 옵션 등록
-  TranslatorFactory.registerTranslator(TranslationType.CsvFile, csvTranslatorConfig);
-  ParseOptionsFactory.registerParseOptions(TranslationType.CsvFile, csvParseOptionsConfig);
+  TranslatorFactory.registerTranslator(TranslationType.Csv, csvTranslatorConfig);
+  ParseOptionsFactory.registerParseOptions(TranslationType.Csv, csvParseOptionsConfig);
 }

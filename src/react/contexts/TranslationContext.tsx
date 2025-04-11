@@ -10,7 +10,7 @@ export interface FileState {
 export enum TranslationType {
   Text = 'text',
   Json = 'json',
-  CsvFile = 'csv-file',
+  Csv = 'csv',
 }
 
 export interface TranslationResultState {

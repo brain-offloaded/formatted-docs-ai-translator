@@ -48,7 +48,7 @@ export type OptionFieldConfig<T> = {
 export interface TranslationTypeToOptionsMap {
   [TranslationType.Json]: JsonParserOptionsDto;
   [TranslationType.Text]: PlainTextParserOptionsDto;
-  [TranslationType.CsvFile]: CsvParserOptionsDto;
+  [TranslationType.Csv]: CsvParserOptionsDto;
 }
 
 // 옵션 컴포넌트 타입

@@ -7,7 +7,7 @@ import { getParserOptionComponent } from '../../constants/TranslationTypeMapping
 // 각 번역기 타입에 맞는 파싱 옵션 컴포넌트 생성
 export const JsonParseOption = getParserOptionComponent(TranslationType.Json);
 export const TextParseOption = getParserOptionComponent(TranslationType.Text);
-export const CsvFileParseOption = getParserOptionComponent(TranslationType.CsvFile);
+export const CsvParseOption = getParserOptionComponent(TranslationType.Csv);
 
 // 기본 옵션 export
 export { BaseParseOptions } from './BaseParseOptions';
