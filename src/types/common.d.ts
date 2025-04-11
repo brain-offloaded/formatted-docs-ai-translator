@@ -5,14 +5,12 @@ export interface CacheSearchParams {
   endDate: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface TextPath<TExtra = any> {
+export class TextPath<TExtra> {
   text: string;
   path: string;
   extra?: TExtra;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface TranslatedTextPath<TExtra = any> extends TextPath<TExtra> {
+export class TranslatedTextPath<TExtra> extends TextPath<TExtra> {
   translatedText: string;
 }
