@@ -5,11 +5,16 @@ export interface CacheSearchParams {
   endDate: string;
 }
 
-export interface TextPath {
+export class TextPath<TExtra> {
   text: string;
   path: string;
+  extra?: TExtra;
 }
 
-export interface TranslatedTextPath extends TextPath {
+export class SimpleTextPath extends TextPath<never> {}
+
+export class TranslatedTextPath<TExtra> extends TextPath<TExtra> {
   translatedText: string;
 }
+
+export class SimpleTranslatedTextPath extends TranslatedTextPath<never> {}

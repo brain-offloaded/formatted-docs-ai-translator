@@ -19,18 +19,6 @@ import { BaseParseResponseDto } from '@/nest/parser/dto/response/base-parse-resp
 import { BaseApplyResponseDto } from '@/nest/parser/dto/response/base-apply-response.dto';
 import { getDefaultValidatorByMode } from '../../constants/TranslationTypeMapping';
 
-// 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
-export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
-  // 입력을 파싱하는 함수
-  parseInput: (input: string, config: TranslatorConfig) => Promise<TParsed>;
-
-  // 파싱된 콘텐츠를 번역하는 함수
-  translateContent: (parsedContent: TParsed, config: TranslatorConfig) => Promise<TTranslated>;
-
-  // 번역 결과를 적용하는 함수
-  applyTranslation: (input: string, translatedContent: TTranslated) => Promise<TapplyResult>;
-}
-
 // 번역기 옵션 인터페이스 - UI 관련 설정만 포함
 export interface BaseTranslatorOptions {
   // 번역기 설정
@@ -151,7 +139,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   }, [isTranslating, isConfigValid, validateInput, input]);
 
   const parseInput = useCallback(
-    async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto> => {
+    async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto<unknown>> => {
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
       const effectiveOptions =
         parserOptions ||
@@ -171,14 +159,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       return (await window.electron.ipcRenderer.invoke(
         parseChannel,
         parsePayload
-      )) as BaseParseResponseDto;
+      )) as BaseParseResponseDto<unknown>;
     },
     [parseChannel, parserOptions, currentIsFileInput]
   );
 
   const translateContent = useCallback(
     async (
-      parsedContent: BaseParseResponseDto,
+      parsedContent: BaseParseResponseDto<unknown>,
       config: TranslatorConfig
     ): Promise<InvokeFunctionResponse<IpcChannel.TranslateTextArray>> => {
       const translatePayload: InvokeFunctionRequest<IpcChannel.TranslateTextArray> = {
@@ -197,12 +185,12 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const applyTranslation = useCallback(
     async (
       input: string,
-      translatedContent: TranslatedTextPath[],
+      translatedContent: TranslatedTextPath<unknown>[],
       config: TranslatorConfig
     ): Promise<BaseApplyResponseDto> => {
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
       const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
-      const applyPayload: BaseApplyRequestDto<T> = {
+      const applyPayload: BaseApplyRequestDto<unknown, T> = {
         content: input,
         translatedTextPaths: translatedContent,
         options: {

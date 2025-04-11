@@ -7,4 +7,4 @@ export const TextTranslator = getTranslatorComponent(TranslationType.Text);
 export const CsvTranslator = getTranslatorComponent(TranslationType.Csv);
 
 // 기본 번역기 타입 export
-export { BaseTranslator, BaseTranslatorOptions, TranslatorCore } from './BaseTranslator';
+export { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';

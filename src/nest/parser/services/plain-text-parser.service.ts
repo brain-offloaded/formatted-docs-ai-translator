@@ -1,4 +1,4 @@
-import { TextPath, TranslatedTextPath } from '@/types/common';
+import { SimpleTextPath, SimpleTranslatedTextPath } from '@/types/common';
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs/promises';
 
@@ -25,7 +25,7 @@ export class PlainTextParserService extends BaseParserService<string, PlainTextP
   public async getTranslationTargets(params: {
     source: string;
     options: PlainTextParserOptionsDto;
-  }): Promise<TextPath[]> {
+  }): Promise<SimpleTextPath[]> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환
     const source = await this.read(params);
 
@@ -34,7 +34,7 @@ export class PlainTextParserService extends BaseParserService<string, PlainTextP
 
   public async applyTranslation(params: {
     source: string;
-    translations: TranslatedTextPath[];
+    translations: SimpleTranslatedTextPath[];
     options: PlainTextParserOptionsDto;
   }): Promise<string> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환

@@ -2,18 +2,18 @@ import { AiModelName } from '../ai/model';
 import { SourceLanguage } from '../utils/language';
 import type { TextPath, TranslatedTextPath } from './common';
 
-export interface TranslatorRequest {
+export interface TranslatorRequest<TExtra> {
   sourceLanguage: SourceLanguage;
   sourceFilePath: string;
-  textPaths: TextPath[];
+  textPaths: TextPath<TExtra>[];
   maxOutputTokenCount: number;
   modelName: AiModelName;
   apiKey: string;
 }
 
-export interface TranslatorResponse {
+export interface TranslatorResponse<TExtra> {
   translatedFilePath: string;
-  textPaths: TranslatedTextPath[];
+  textPaths: TranslatedTextPath<TExtra>[];
 }
 
 export interface TranslationResult {
