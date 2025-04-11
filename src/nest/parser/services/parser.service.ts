@@ -16,45 +16,102 @@ export class ParserService {
     private readonly csvParserService: CsvParserService
   ) {}
 
-  public getJsonTranslationTargets(
-    json: Record<string, unknown>,
+  /**
+   * JSON 파일 또는 문자열에서 번역 대상을 추출합니다.
+   * @param content 파일 경로 또는 JSON 문자열
+   * @param options 파싱 옵션
+   */
+  public async getJsonTranslationTargets(
+    content: string,
     options: JsonParserOptionsDto
-  ): TextPath[] {
-    return this.jsonParserService.getTranslationTargets(json, options);
+  ): Promise<TextPath[]> {
+    return await this.jsonParserService.getTranslationTargets({
+      source: content,
+      options,
+    });
   }
 
-  public applyJsonTranslation(
-    json: Record<string, unknown>,
+  /**
+   * JSON 파일 또는 문자열에 번역을 적용합니다.
+   * @param content 파일 경로 또는 JSON 문자열
+   * @param translations 번역된 텍스트 목록
+   * @param options 번역 적용 옵션
+   */
+  public async applyJsonTranslation(
+    content: string,
     translations: TranslatedTextPath[],
     options: JsonParserOptionsDto
-  ): Record<string, unknown> {
-    return this.jsonParserService.applyTranslation(json, translations, options);
+  ): Promise<Record<string, unknown>> {
+    return await this.jsonParserService.applyTranslation({
+      source: content,
+      translations,
+      options,
+    });
   }
 
-  public getPlainTextTranslationTargets(
-    text: string,
+  /**
+   * 일반 텍스트 파일 또는 문자열에서 번역 대상을 추출합니다.
+   * @param content 파일 경로 또는 텍스트 문자열
+   * @param options 파싱 옵션
+   */
+  public async getPlainTextTranslationTargets(
+    content: string,
     options: PlainTextParserOptionsDto
-  ): TextPath[] {
-    return this.plainTextParserService.getTranslationTargets(text, options);
+  ): Promise<TextPath[]> {
+    return await this.plainTextParserService.getTranslationTargets({
+      source: content,
+      options,
+    });
   }
 
-  public applyPlainTextTranslation(
-    text: string,
+  /**
+   * 일반 텍스트 파일 또는 문자열에 번역을 적용합니다.
+   * @param content 파일 경로 또는 텍스트 문자열
+   * @param translations 번역된 텍스트 목록
+   * @param options 번역 적용 옵션
+   */
+  public async applyPlainTextTranslation(
+    content: string,
     translations: TranslatedTextPath[],
     options: PlainTextParserOptionsDto
-  ): string {
-    return this.plainTextParserService.applyTranslation(text, translations, options);
+  ): Promise<string> {
+    return await this.plainTextParserService.applyTranslation({
+      source: content,
+      translations,
+      options,
+    });
   }
 
-  public getCsvTranslationTargets(text: string, options: CsvParserOptionsDto): TextPath[] {
-    return this.csvParserService.getTranslationTargets(text, options);
+  /**
+   * CSV 파일 또는 문자열에서 번역 대상을 추출합니다.
+   * @param content 파일 경로 또는 CSV 문자열
+   * @param options 파싱 옵션
+   */
+  public async getCsvTranslationTargets(
+    content: string,
+    options: CsvParserOptionsDto
+  ): Promise<TextPath[]> {
+    return await this.csvParserService.getTranslationTargets({
+      source: content,
+      options,
+    });
   }
 
-  public applyCsvTranslation(
-    text: string,
+  /**
+   * CSV 파일 또는 문자열에 번역을 적용합니다.
+   * @param content 파일 경로 또는 CSV 문자열
+   * @param translations 번역된 텍스트 목록
+   * @param options 번역 적용 옵션
+   */
+  public async applyCsvTranslation(
+    content: string,
     translations: TranslatedTextPath[],
     options: CsvParserOptionsDto
-  ): string {
-    return this.csvParserService.applyTranslation(text, translations, options);
+  ): Promise<string> {
+    return await this.csvParserService.applyTranslation({
+      source: content,
+      translations,
+      options,
+    });
   }
 }

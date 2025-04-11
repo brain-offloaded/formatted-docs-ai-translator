@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
@@ -17,12 +17,7 @@ import { BaseParseRequestDto } from '@/nest/parser/dto/request/base-parse-reques
 import { BaseApplyRequestDto } from '@/nest/parser/dto/request/base-apply-request.dto';
 import { BaseParseResponseDto } from '@/nest/parser/dto/response/base-parse-response.dto';
 import { BaseApplyResponseDto } from '@/nest/parser/dto/response/base-apply-response.dto';
-import {
-  isFileInput,
-  isDownloadable,
-  getDefaultInitialInput,
-  getDefaultValidator,
-} from '../../constants/TranslationTypeMapping';
+import { getDefaultValidatorByMode } from '../../constants/TranslationTypeMapping';
 
 // 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
 export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
@@ -46,7 +41,7 @@ export interface BaseTranslatorOptions {
   // 유효성 검증
   validateInput?: (input: string | string[]) => boolean;
 
-  // 번역 타입 (파일 입력 또는 직접 입력 여부 결정)
+  // 번역 타입
   translationType: TranslationType;
 
   // 입력 필드 설정
@@ -59,10 +54,11 @@ export interface BaseTranslatorOptions {
 
 export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
   options: BaseTranslatorOptions;
-  parseChannel: IpcChannel;
+  // 채널 설정 - 파일 모드와 문자열 모드 통합
+  parseChannel?: IpcChannel;
   translateChannel?: IpcChannel;
-  applyChannel: IpcChannel;
-  formatOutput?: (output: string, isFileInput: boolean) => string;
+  applyChannel?: IpcChannel;
+  formatOutput?: (output: string, isFileMode: boolean) => string;
   // 옵션 관련 props
   parserOptions?: T | null;
 }
@@ -73,8 +69,8 @@ export interface CustomTranslatorProps<T extends BaseParseOptionsDto = BaseParse
 }
 
 // 기본 출력 포맷 함수
-const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
-  if (isFileInput) {
+const defaultFormatOutput = (output: string, isFileMode: boolean): string => {
+  if (isFileMode) {
     return '파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
   } else {
     return output;
@@ -82,7 +78,7 @@ const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
 };
 
 export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsDto>({
-  options,
+  options: initialOptions,
   parseChannel,
   translateChannel = IpcChannel.TranslateTextArray,
   applyChannel,
@@ -91,21 +87,20 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 }: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
   const configStore = ConfigStore.getInstance();
-  const [input, setInput] = useState<string | string[]>(
-    getDefaultInitialInput(options.translationType)
-  );
 
-  // 번역 타입에 따라 파일 입력 여부 확인
-  const currentIsFileInput = useMemo(
-    () => isFileInput(options.translationType),
-    [options.translationType]
-  );
+  // 내부 옵션 상태
+  const [options] = useState(initialOptions);
 
-  // 유효성 검증 함수
-  const validateInput = useMemo(
-    () => options.validateInput || getDefaultValidator(options.translationType),
-    [options.validateInput, options.translationType]
-  );
+  // 현재 파일 입력 모드인지 확인 (parserOptions의 isFile 값으로 결정)
+  const currentIsFileInput = useMemo(() => parserOptions?.isFile || false, [parserOptions]);
+
+  // 입력 상태 초기화
+  const [input, setInput] = useState<string | string[]>(currentIsFileInput ? [] : '');
+
+  // isFile 변경 시 입력 초기화
+  useEffect(() => {
+    setInput(currentIsFileInput ? [] : '');
+  }, [currentIsFileInput]);
 
   // Context에서 상태와 함수 가져오기
   const {
@@ -119,6 +114,12 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     showSnackbar,
     handleClearFiles,
   } = useTranslation();
+
+  // 유효성 검증 함수
+  const validateInput = useMemo(
+    () => options.validateInput || getDefaultValidatorByMode(options.translationType),
+    [options.validateInput, options.translationType]
+  );
 
   // 입력 변경 핸들러
   const handleInputChange = useCallback((value: string | string[]) => {
@@ -152,7 +153,9 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const parseInput = useCallback(
     async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto> => {
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
-      const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
+      const effectiveOptions =
+        parserOptions ||
+        ({ sourceLanguage: config.sourceLanguage, isFile: currentIsFileInput } as T);
       const parsePayload: BaseParseRequestDto<T> = {
         content: input,
         options: {
@@ -161,12 +164,16 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         },
       };
 
+      if (!parseChannel) {
+        throw new Error('파싱 채널이 정의되지 않았습니다.');
+      }
+
       return (await window.electron.ipcRenderer.invoke(
         parseChannel,
         parsePayload
       )) as BaseParseResponseDto;
     },
-    [parseChannel, parserOptions]
+    [parseChannel, parserOptions, currentIsFileInput]
   );
 
   const translateContent = useCallback(
@@ -204,6 +211,10 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         },
       };
 
+      if (!applyChannel) {
+        throw new Error('적용 채널이 정의되지 않았습니다.');
+      }
+
       return (await window.electron.ipcRenderer.invoke(
         applyChannel,
         applyPayload
@@ -232,7 +243,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         progressMessage: '번역 준비 중...',
       }));
 
-      // 파일 입력인 경우 다중 파일 처리
+      // 파일 모드인 경우 다중 파일 처리
       if (currentIsFileInput) {
         const filePaths = input as string[];
         const totalFiles = filePaths.length;
@@ -467,7 +478,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     if (resultState.translationResult && !resultState.translationResult.isError) {
       try {
         // 파일 타입에 따른 다운로드 처리
-        if (isFileInput(options.translationType)) {
+        if (currentIsFileInput) {
           // 파일 입력인 경우, zipBlob 사용
           if (resultState.zipBlob) {
             const url = URL.createObjectURL(resultState.zipBlob);
@@ -504,13 +515,10 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         showSnackbar('다운로드 중 오류가 발생했습니다.');
       }
     }
-  }, [resultState, options.translationType, options.resultFileType, showSnackbar]);
+  }, [resultState, options.resultFileType, showSnackbar, currentIsFileInput]);
 
   // 다운로드 버튼 표시 여부
-  const shouldShowDownloadButton = useMemo(
-    () => isDownloadable(options.translationType),
-    [options.translationType]
-  );
+  const shouldShowDownloadButton = useMemo(() => currentIsFileInput, [currentIsFileInput]);
 
   // 렌더링 - 텍스트 입력
   const renderTextInput = useCallback(() => {

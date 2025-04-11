@@ -11,7 +11,8 @@ export enum OptionType {
 
 // 설정 항목 인터페이스
 export interface OptionItem {
-  name: string;
+  key: string; // 내부적으로 사용할 키 (영어)
+  label: string; // UI에 표시될 이름
   type: OptionType;
   description: string;
 }
@@ -35,10 +36,10 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
   disabled = false,
 }) => {
   // 값 변경 핸들러
-  const handleValueChange = (name: string, value: string | number | boolean) => {
+  const handleValueChange = (key: string, value: string | number | boolean) => {
     onChange({
       ...values,
-      [name]: value,
+      [key]: value,
     });
   };
 
@@ -54,19 +55,19 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
       {options.map((option) => {
-        const { name, type, description } = option;
+        const { key, label, type, description } = option;
         const value =
-          values[name] ??
+          values[key] ??
           (type === OptionType.BOOLEAN ? false : type === OptionType.NUMBER ? 0 : '');
 
         switch (type) {
           case OptionType.SHORT_STRING:
             return (
               <TextField
-                key={name}
-                label={name}
+                key={key}
+                label={label}
                 value={value as string}
-                onChange={(e) => handleValueChange(name, e.target.value)}
+                onChange={(e) => handleValueChange(key, e.target.value)}
                 disabled={disabled}
                 size="small"
                 helperText={description}
@@ -75,10 +76,10 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
           case OptionType.LONG_STRING:
             return (
               <TextField
-                key={name}
-                label={name}
+                key={key}
+                label={label}
                 value={value as string}
-                onChange={(e) => handleValueChange(name, e.target.value)}
+                onChange={(e) => handleValueChange(key, e.target.value)}
                 disabled={disabled}
                 multiline
                 rows={4}
@@ -89,11 +90,11 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
           case OptionType.NUMBER:
             return (
               <TextField
-                key={name}
-                label={name}
+                key={key}
+                label={label}
                 type="number"
                 value={value as number}
-                onChange={(e) => handleValueChange(name, Number(e.target.value))}
+                onChange={(e) => handleValueChange(key, Number(e.target.value))}
                 disabled={disabled}
                 size="small"
                 helperText={description}
@@ -102,17 +103,17 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
           case OptionType.BOOLEAN:
             return (
               <FormControlLabel
-                key={name}
+                key={key}
                 control={
                   <Switch
                     checked={value as boolean}
-                    onChange={(e) => handleValueChange(name, e.target.checked)}
+                    onChange={(e) => handleValueChange(key, e.target.checked)}
                     disabled={disabled}
                   />
                 }
                 label={
                   <>
-                    {name}
+                    {label}
                     <Typography variant="caption" display="block" color="text.secondary">
                       {description}
                     </Typography>

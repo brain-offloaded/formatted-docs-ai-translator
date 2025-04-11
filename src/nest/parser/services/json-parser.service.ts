@@ -1,23 +1,50 @@
 import { Injectable } from '@nestjs/common';
+import * as fs from 'fs/promises';
 
 import { TextPath, TranslatedTextPath } from '../../../types/common';
 import { deepClone } from '../../../utils/deep-clone';
 import { deepFreeze } from '../../../utils/deep-freeze';
 import { isLanguage } from '../../../utils/language';
-import { IParserService } from './i-parser-service';
+import { BaseParserService } from './base-parser-service';
 import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
 
 @Injectable()
-export class JsonParserService
-  implements
-    IParserService<Record<string, unknown>, JsonParserOptionsDto, TextPath, TranslatedTextPath>
-{
-  public getTranslationTargets(
-    json: Record<string, unknown>,
+export class JsonParserService extends BaseParserService<
+  Record<string, unknown>,
+  JsonParserOptionsDto,
+  TextPath,
+  TranslatedTextPath
+> {
+  /**
+   * 파일 경로로부터 JSON 파일을 읽어 객체로 변환합니다.
+   */
+  public async readFile(
+    filePath: string,
     options: JsonParserOptionsDto
-  ): TextPath[] {
+  ): Promise<Record<string, unknown>> {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return this.readString(content, options);
+  }
+
+  /**
+   * JSON 문자열을 객체로 변환합니다.
+   */
+  public async readString(
+    content: string,
+    _options: JsonParserOptionsDto
+  ): Promise<Record<string, unknown>> {
+    return JSON.parse(content);
+  }
+
+  public async getTranslationTargets(params: {
+    source: string;
+    options: JsonParserOptionsDto;
+  }): Promise<TextPath[]> {
+    // read 메서드를 사용하여 source를 TargetFormat(Record<string, unknown>)으로 변환
+    const json = await this.read(params);
+
     const frozenJson = deepFreeze(deepClone(json));
-    return this.traverseJson(frozenJson, '', options);
+    return this.traverseJson(frozenJson, '', params.options);
   }
 
   private traverseJson(json: unknown, basePath: string, options: JsonParserOptionsDto): TextPath[] {
@@ -135,16 +162,19 @@ export class JsonParserService
     }
   }
 
-  public applyTranslation(
-    json: Record<string, unknown>,
-    translatedTextPaths: TranslatedTextPath[],
-    _options: JsonParserOptionsDto
-  ): Record<string, unknown> {
+  public async applyTranslation(params: {
+    source: string;
+    translations: TranslatedTextPath[];
+    options: JsonParserOptionsDto;
+  }): Promise<Record<string, unknown>> {
+    // read 메서드를 사용하여 source를 TargetFormat(Record<string, unknown>)으로 변환
+    const json = await this.read(params);
+
     // 원본 JSON이 수정되지 않도록 깊은 복사 수행
     const result = deepClone(json);
 
     // 각 번역된 텍스트에 대해 처리
-    for (const { path, translatedText } of translatedTextPaths) {
+    for (const { path, translatedText } of params.translations) {
       // 경로에 특수 문자가 포함되어 있지만 실제 객체 키인 경우 직접 접근
       if (Object.prototype.hasOwnProperty.call(result, path)) {
         result[path] = translatedText;

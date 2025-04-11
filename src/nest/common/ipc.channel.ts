@@ -8,8 +8,6 @@ export enum IpcChannel {
   DeleteLogs = 'delete-logs',
   DeleteAllLogs = 'delete-all-logs',
   TranslateTextArray = 'translate-text-array',
-  ApplyTranslationToJsonString = 'apply-translation-to-json-string',
-  ApplyTranslationToJsonFile = 'apply-translation-to-json-file',
   GetDbPath = 'get-db-path',
   CheckForUpdates = 'check-for-updates',
   DownloadUpdate = 'download-update',
@@ -23,10 +21,12 @@ export enum IpcChannel {
   DeleteExamplePreset = 'delete-example-preset',
   ExportTranslations = 'export-translations',
   ImportTranslations = 'import-translations',
-  ParseJsonFile = 'parse-json-file',
-  ParseJsonString = 'parse-json-string',
+
+  // 통합 채널 - 파일과 문자열을 함께 처리
+  ParseJson = 'parse-json',
+  ApplyTranslationToJson = 'apply-translation-to-json',
   ParsePlainText = 'parse-plain-text',
   ApplyTranslationToPlainText = 'apply-translation-to-plain-text',
-  ParseCsvFile = 'parse-csv-file',
-  ApplyTranslationToCsvFile = 'apply-translation-to-csv-file',
+  ParseCsv = 'parse-csv',
+  ApplyTranslationToCsv = 'apply-translation-to-csv',
 }

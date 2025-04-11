@@ -1,5 +1,3 @@
-import { readFile } from 'fs/promises';
-
 import { Injectable } from '@nestjs/common';
 import { IpcMainInvokeEvent } from 'electron';
 
@@ -8,7 +6,6 @@ import { IpcHandler, HandleIpc } from '../common/ipc.handler';
 import { IpcChannel } from '../common/ipc.channel';
 import { LoggerService } from '../logger/logger.service';
 import { ParserService } from './services/parser.service';
-import { deepClone } from '../../utils/deep-clone';
 
 @Injectable()
 export class ParserIpcHandler extends IpcHandler {
@@ -19,21 +16,20 @@ export class ParserIpcHandler extends IpcHandler {
     super();
   }
 
-  @HandleIpc(IpcChannel.ParseJsonString)
-  async parseJsonString(
+  @HandleIpc(IpcChannel.ParseJson)
+  async parseJson(
     event: IpcMainInvokeEvent,
-    { content, options }: InvokeFunctionRequest<IpcChannel.ParseJsonString>
-  ): Promise<InvokeFunctionResponse<IpcChannel.ParseJsonString>> {
+    { content, options }: InvokeFunctionRequest<IpcChannel.ParseJson>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ParseJson>> {
     try {
-      const jsonObject = JSON.parse(content);
-      const targets = this.parserService.getJsonTranslationTargets(deepClone(jsonObject), options);
+      const targets = await this.parserService.getJsonTranslationTargets(content, options);
       return {
         success: true,
         targets,
         message: 'JSON 파싱 성공',
       };
     } catch (error) {
-      this.logger.error('JSON 문자열을 파싱하는 중 오류가 발생했습니다:', { error });
+      this.logger.error('JSON을 파싱하는 중 오류가 발생했습니다:', { error });
       return {
         success: false,
         message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
@@ -42,18 +38,18 @@ export class ParserIpcHandler extends IpcHandler {
     }
   }
 
-  @HandleIpc(IpcChannel.ApplyTranslationToJsonString)
-  async applyTranslationToJsonString(
+  @HandleIpc(IpcChannel.ApplyTranslationToJson)
+  async applyTranslationToJson(
     event: IpcMainInvokeEvent,
     {
       content,
       translatedTextPaths,
       options,
-    }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToJsonString>
-  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToJsonString>> {
+    }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToJson>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToJson>> {
     try {
-      const result = this.parserService.applyJsonTranslation(
-        JSON.parse(content),
+      const result = await this.parserService.applyJsonTranslation(
+        content,
         translatedTextPaths,
         options
       );
@@ -72,22 +68,20 @@ export class ParserIpcHandler extends IpcHandler {
     }
   }
 
-  @HandleIpc(IpcChannel.ParseJsonFile)
-  async parseJsonFile(
+  @HandleIpc(IpcChannel.ParseCsv)
+  async parseCsv(
     event: IpcMainInvokeEvent,
-    { content, options }: InvokeFunctionRequest<IpcChannel.ParseJsonFile>
-  ): Promise<InvokeFunctionResponse<IpcChannel.ParseJsonFile>> {
+    { content, options }: InvokeFunctionRequest<IpcChannel.ParseCsv>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ParseCsv>> {
     try {
-      const json = await readFile(content, 'utf8');
-      const jsonObject = JSON.parse(json);
-      const targets = this.parserService.getJsonTranslationTargets(deepClone(jsonObject), options);
+      const targets = await this.parserService.getCsvTranslationTargets(content, options);
       return {
         success: true,
         targets,
-        message: 'JSON 파싱 성공',
+        message: 'CSV 파싱 성공',
       };
     } catch (error) {
-      this.logger.error('JSON 파일을 파싱하는 중 오류가 발생했습니다:', { error });
+      this.logger.error('CSV 파싱 중 오류가 발생했습니다:', { error });
       return {
         success: false,
         message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
@@ -96,30 +90,28 @@ export class ParserIpcHandler extends IpcHandler {
     }
   }
 
-  @HandleIpc(IpcChannel.ApplyTranslationToJsonFile)
-  async applyTranslationToJsonFile(
+  @HandleIpc(IpcChannel.ApplyTranslationToCsv)
+  async applyTranslationToCsv(
     event: IpcMainInvokeEvent,
     {
       content,
       translatedTextPaths,
       options,
-    }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToJsonFile>
-  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToJsonFile>> {
+    }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToCsv>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToCsv>> {
     try {
-      const json = await readFile(content, 'utf8');
-      const jsonObject = JSON.parse(json);
-      const result = this.parserService.applyJsonTranslation(
-        jsonObject,
+      const result = await this.parserService.applyCsvTranslation(
+        content,
         translatedTextPaths,
         options
       );
       return {
         success: true,
-        result: JSON.stringify(result),
-        message: 'JSON 번역 적용 성공',
+        result,
+        message: 'CSV 번역 적용 성공',
       };
     } catch (error) {
-      this.logger.error('JSON 번역 적용 중 오류가 발생했습니다:', { error });
+      this.logger.error('CSV 번역 적용 중 오류가 발생했습니다:', { error });
       return {
         success: false,
         message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
@@ -134,7 +126,7 @@ export class ParserIpcHandler extends IpcHandler {
     { content, options }: InvokeFunctionRequest<IpcChannel.ParsePlainText>
   ): Promise<InvokeFunctionResponse<IpcChannel.ParsePlainText>> {
     try {
-      const targets = this.parserService.getPlainTextTranslationTargets(content, options);
+      const targets = await this.parserService.getPlainTextTranslationTargets(content, options);
       return {
         success: true,
         targets,
@@ -160,7 +152,7 @@ export class ParserIpcHandler extends IpcHandler {
     }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToPlainText>
   ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToPlainText>> {
     try {
-      const result = this.parserService.applyPlainTextTranslation(
+      const result = await this.parserService.applyPlainTextTranslation(
         content,
         translatedTextPaths,
         options
@@ -172,60 +164,6 @@ export class ParserIpcHandler extends IpcHandler {
       };
     } catch (error) {
       this.logger.error('텍스트 번역 적용 중 오류가 발생했습니다:', { error });
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
-        result: '',
-      };
-    }
-  }
-
-  @HandleIpc(IpcChannel.ParseCsvFile)
-  async parseCsvFile(
-    event: IpcMainInvokeEvent,
-    { content, options }: InvokeFunctionRequest<IpcChannel.ParseCsvFile>
-  ): Promise<InvokeFunctionResponse<IpcChannel.ParseCsvFile>> {
-    try {
-      const fileContent = await readFile(content, 'utf8');
-      const targets = this.parserService.getCsvTranslationTargets(fileContent, options);
-      return {
-        success: true,
-        targets,
-        message: 'CSV 파싱 성공',
-      };
-    } catch (error) {
-      this.logger.error('CSV 파일을 파싱하는 중 오류가 발생했습니다:', { error });
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
-        targets: [],
-      };
-    }
-  }
-
-  @HandleIpc(IpcChannel.ApplyTranslationToCsvFile)
-  async applyTranslationToCsvFile(
-    event: IpcMainInvokeEvent,
-    {
-      content,
-      translatedTextPaths,
-      options,
-    }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToCsvFile>
-  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToCsvFile>> {
-    try {
-      const fileContent = await readFile(content, 'utf8');
-      const result = this.parserService.applyCsvTranslation(
-        fileContent,
-        translatedTextPaths,
-        options
-      );
-      return {
-        success: true,
-        result,
-        message: 'CSV 번역 적용 성공',
-      };
-    } catch (error) {
-      this.logger.error('CSV 번역 적용 중 오류가 발생했습니다:', { error });
       return {
         success: false,
         message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
