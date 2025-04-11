@@ -5,4 +5,5 @@ export class BaseApplyRequestDto<TOptions extends BaseParseOptionsDto = BasePars
   content: string;
   translatedTextPaths: TranslatedTextPath[];
   options: TOptions;
+  isFile: boolean;
 }
