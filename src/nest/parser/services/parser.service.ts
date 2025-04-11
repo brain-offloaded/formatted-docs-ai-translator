@@ -3,14 +3,17 @@ import { Injectable } from '@nestjs/common';
 import { TextPath, TranslatedTextPath } from '../../../types/common';
 import { JsonParserService } from './json-parser.service';
 import { PlainTextParserService } from './plain-text-parser.service';
+import { CsvParserService } from './csv-parser.service';
 import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
 import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
+import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 
 @Injectable()
 export class ParserService {
   constructor(
     private readonly jsonParserService: JsonParserService,
-    private readonly plainTextParserService: PlainTextParserService
+    private readonly plainTextParserService: PlainTextParserService,
+    private readonly csvParserService: CsvParserService
   ) {}
 
   public getJsonTranslationTargets(
@@ -41,5 +44,17 @@ export class ParserService {
     options: PlainTextParserOptionsDto
   ): string {
     return this.plainTextParserService.applyTranslation(text, translations, options);
+  }
+
+  public getCsvTranslationTargets(text: string, options: CsvParserOptionsDto): TextPath[] {
+    return this.csvParserService.getTranslationTargets(text, options);
+  }
+
+  public applyCsvTranslation(
+    text: string,
+    translations: TranslatedTextPath[],
+    options: CsvParserOptionsDto
+  ): string {
+    return this.csvParserService.applyTranslation(text, translations, options);
   }
 }

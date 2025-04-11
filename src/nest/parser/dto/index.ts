@@ -7,6 +7,8 @@ import { ApplyTranslationToPlainTextRequestDto } from './request/apply-translati
 import { BaseApplyResponseDto } from './response/base-apply-response.dto';
 import { BaseParseResponseDto } from './response/base-parse-response.dto';
 import { ApplyTranslationToJsonFileRequestDto } from './request/apply-translation-to-json-file-request.dto';
+import { ParseCsvFileRequestDto } from './request/parse-csv-file-request.dto';
+import { ApplyTranslationToCsvFileRequestDto } from './request/apply-translation-to-csv-file-request.dto';
 
 export class ParserRequestResponse {
   [IpcChannel.ParseJsonFile]: {
@@ -31,6 +33,14 @@ export class ParserRequestResponse {
   };
   [IpcChannel.ApplyTranslationToJsonFile]: {
     Request: ApplyTranslationToJsonFileRequestDto;
+    Response: BaseApplyResponseDto;
+  };
+  [IpcChannel.ParseCsvFile]: {
+    Request: ParseCsvFileRequestDto;
+    Response: BaseParseResponseDto;
+  };
+  [IpcChannel.ApplyTranslationToCsvFile]: {
+    Request: ApplyTranslationToCsvFileRequestDto;
     Response: BaseApplyResponseDto;
   };
 }

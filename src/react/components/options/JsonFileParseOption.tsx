@@ -1,11 +1,17 @@
 import React from 'react';
-import BaseParseOptions, { BaseParseOptionsProps } from './BaseParseOptions';
+import { BaseParseOptions } from './BaseParseOptions';
+import { TranslationType } from '../../contexts/TranslationContext';
+import { OptionComponentType } from '../../types/translation-types';
 
-interface JsonFileParseOptionProps extends BaseParseOptionsProps {}
-
-const JsonFileParseOption: React.FC<JsonFileParseOptionProps> = (props) => {
-  // JsonParserOptions는 sourceLanguage 외에 옵션이 없으므로 기본 옵션만 사용
-  return <BaseParseOptions {...props} />;
+// OptionComponentType 사용
+const JsonFileParseOption: OptionComponentType<TranslationType.JsonFile> = (props) => {
+  return (
+    <BaseParseOptions
+      {...props}
+      translationType={TranslationType.JsonFile}
+      label="JSON 파일 파싱 옵션"
+    />
+  );
 };
 
 export default JsonFileParseOption;

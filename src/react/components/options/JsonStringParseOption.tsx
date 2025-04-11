@@ -1,11 +1,17 @@
 import React from 'react';
-import BaseParseOptions, { BaseParseOptionsProps } from './BaseParseOptions';
+import { BaseParseOptions } from './BaseParseOptions';
+import { TranslationType } from '../../contexts/TranslationContext';
+import { OptionComponentType } from '../../types/translation-types';
 
-interface JsonStringParseOptionProps extends BaseParseOptionsProps {}
-
-const JsonStringParseOption: React.FC<JsonStringParseOptionProps> = (props) => {
-  // JsonParserOptions는 sourceLanguage 외에 옵션이 없으므로 기본 옵션만 사용
-  return <BaseParseOptions {...props} />;
+// OptionComponentType 사용
+const JsonStringParseOption: OptionComponentType<TranslationType.JsonString> = (props) => {
+  return (
+    <BaseParseOptions
+      {...props}
+      translationType={TranslationType.JsonString}
+      label="JSON 문자열 파싱 옵션"
+    />
+  );
 };
 
 export default JsonStringParseOption;

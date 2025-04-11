@@ -1,11 +1,13 @@
 import React from 'react';
-import BaseParseOptions, { BaseParseOptionsProps } from './BaseParseOptions';
+import { BaseParseOptions } from './BaseParseOptions';
+import { TranslationType } from '../../contexts/TranslationContext';
+import { OptionComponentType } from '../../types/translation-types';
 
-interface TextParseOptionProps extends BaseParseOptionsProps {}
-
-const TextParseOption: React.FC<TextParseOptionProps> = (props) => {
-  // 텍스트 번역에는 특별한 파싱 옵션이 없으므로 기본 옵션만 사용
-  return <BaseParseOptions {...props} />;
+// OptionComponentType 사용
+const TextParseOption: OptionComponentType<TranslationType.Text> = (props) => {
+  return (
+    <BaseParseOptions {...props} translationType={TranslationType.Text} label="텍스트 파싱 옵션" />
+  );
 };
 
 export default TextParseOption;

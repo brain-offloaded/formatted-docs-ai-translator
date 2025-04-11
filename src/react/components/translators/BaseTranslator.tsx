@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Box, Typography, useTheme, TextField, Tooltip, IconButton } from '@mui/material';
-import { Settings as SettingsIcon } from '@mui/icons-material';
+import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { TranslatorConfig } from '../../../types/config';
@@ -18,24 +17,12 @@ import { BaseParseRequestDto } from '@/nest/parser/dto/request/base-parse-reques
 import { BaseApplyRequestDto } from '@/nest/parser/dto/request/base-apply-request.dto';
 import { BaseParseResponseDto } from '@/nest/parser/dto/response/base-parse-response.dto';
 import { BaseApplyResponseDto } from '@/nest/parser/dto/response/base-apply-response.dto';
-
-/**
- * 입력 타입이 파일 기반인지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 파일 기반 입력인 경우 true, 아닌 경우 false
- */
-export const isFileInput = (translationType: TranslationType): boolean => {
-  return translationType === TranslationType.JsonFile;
-};
-
-/**
- * 출력 결과를 다운로드할 수 있는지 확인하는 함수
- * @param translationType 번역 타입
- * @returns 다운로드 가능한 경우 true, 아닌 경우 false
- */
-export const isDownloadable = (translationType: TranslationType): boolean => {
-  return isFileInput(translationType);
-};
+import {
+  isFileInput,
+  isDownloadable,
+  getDefaultInitialInput,
+  getDefaultValidator,
+} from '../../constants/TranslationTypeMapping';
 
 // 번역기 핵심 인터페이스 - 파싱/번역/적용 파이프라인을 정의
 export interface TranslatorCore<TParsed, TTranslated, TapplyResult> {
@@ -70,77 +57,43 @@ export interface BaseTranslatorOptions {
   fileLabel?: string;
 }
 
-export interface BaseTranslatorProps {
+export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
   options: BaseTranslatorOptions;
   parseChannel: IpcChannel;
   translateChannel?: IpcChannel;
   applyChannel: IpcChannel;
   formatOutput?: (output: string, isFileInput: boolean) => string;
-  OptionComponent?: React.ComponentType<{
-    isTranslating: boolean;
-    onOptionsChange?: (options: BaseParseOptionsDto) => void;
-  }>;
+  // 옵션 관련 props
+  parserOptions?: T | null;
 }
 
-// 기본 초기 입력값 생성 함수
-const getDefaultInitialInput = (translationType: TranslationType): string | string[] => {
-  if (isFileInput(translationType)) {
-    return [] as unknown as string[];
-  } else {
-    return '' as unknown as string;
-  }
-};
-
-// 기본 유효성 검사 함수
-const getDefaultValidator = (
-  translationType: TranslationType
-): ((input: string | string[]) => boolean) => {
-  if (isFileInput(translationType)) {
-    return (input) => (input as string[])?.length > 0;
-  } else if (translationType === TranslationType.JsonString) {
-    return (input) => {
-      try {
-        JSON.parse((input as string).trim());
-        return true;
-      } catch (e) {
-        return false;
-      }
-    };
-  } else {
-    return (input) => (input as string)?.trim().length > 0;
-  }
-};
+// 모든 번역기 컴포넌트가 공유하는 공통 Props 타입 정의
+export interface CustomTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
+  parserOptions?: T | null;
+}
 
 // 기본 출력 포맷 함수
-const defaultFormatOutput = <TapplyResult,>(output: TapplyResult, isFileInput: boolean): string => {
+const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
   if (isFileInput) {
     return '파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
   } else {
-    return typeof output === 'string'
-      ? output
-      : typeof output === 'object' && output !== null && 'translatedText' in output
-        ? (output as { translatedText: string }).translatedText
-        : JSON.stringify(output, null, 2);
+    return output;
   }
 };
 
-export function BaseTranslator({
+export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsDto>({
   options,
   parseChannel,
   translateChannel = IpcChannel.TranslateTextArray,
   applyChannel,
   formatOutput = defaultFormatOutput,
-  OptionComponent,
-}: BaseTranslatorProps): React.ReactElement {
+  parserOptions,
+}: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
   const configStore = ConfigStore.getInstance();
   const [input, setInput] = useState<string | string[]>(
     getDefaultInitialInput(options.translationType)
   );
-  const [showSettings, setShowSettings] = useState(false);
-  const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto>({
-    sourceLanguage: configStore.getConfig().sourceLanguage,
-  });
 
   // 번역 타입에 따라 파일 입력 여부 확인
   const currentIsFileInput = useMemo(
@@ -189,16 +142,6 @@ export function BaseTranslator({
     handleClearFiles();
   }, [handleInputChange, handleClearFiles]);
 
-  // JSON 설정 패널 토글
-  const toggleJsonSettings = useCallback(() => {
-    setShowSettings((prev) => !prev);
-  }, []);
-
-  // 파서 옵션 변경 핸들러
-  const handleParserOptionsChange = useCallback((options: BaseParseOptionsDto) => {
-    setParserOptions(options);
-  }, []);
-
   // 번역 버튼 활성화 여부 계산
   const isTranslateButtonDisabled = useMemo(() => {
     if (isTranslating) return true;
@@ -208,17 +151,16 @@ export function BaseTranslator({
 
   const parseInput = useCallback(
     async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto> => {
-      console.log('from parseInput:');
-      // 단순화된 입력 구조로 로그 출력
-      console.log(input);
-
-      const parsePayload: BaseParseRequestDto<BaseParseOptionsDto> = {
+      // parserOptions가 없는 경우 최소한의 기본 옵션 사용
+      const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
+      const parsePayload: BaseParseRequestDto<T> = {
         content: input,
         options: {
-          ...parserOptions,
-          sourceLanguage: config.sourceLanguage, // 최신 sourceLanguage 값 사용
+          ...effectiveOptions,
+          sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
       };
+
       return (await window.electron.ipcRenderer.invoke(
         parseChannel,
         parsePayload
@@ -251,17 +193,17 @@ export function BaseTranslator({
       translatedContent: TranslatedTextPath[],
       config: TranslatorConfig
     ): Promise<BaseApplyResponseDto> => {
-      console.log('from applyTranslation:');
-      console.log(input);
-      console.log(translatedContent);
-      const applyPayload: BaseApplyRequestDto<BaseParseOptionsDto> = {
+      // parserOptions가 없는 경우 최소한의 기본 옵션 사용
+      const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
+      const applyPayload: BaseApplyRequestDto<T> = {
         content: input,
         translatedTextPaths: translatedContent,
         options: {
-          ...parserOptions,
-          sourceLanguage: config.sourceLanguage, // 최신 sourceLanguage 값 사용
+          ...effectiveOptions,
+          sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
         },
       };
+
       return (await window.electron.ipcRenderer.invoke(
         applyChannel,
         applyPayload
@@ -613,27 +555,6 @@ export function BaseTranslator({
   const renderFileInput = useCallback(() => {
     return (
       <>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="body1">{options.inputLabel}</Typography>
-          <Tooltip title="번역 옵션">
-            <IconButton
-              size="small"
-              onClick={toggleJsonSettings}
-              color={showSettings ? 'primary' : 'default'}
-            >
-              <SettingsIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {/* 옵션 컴포넌트 렌더링 */}
-        {showSettings && OptionComponent && (
-          <OptionComponent
-            isTranslating={isTranslating}
-            onOptionsChange={handleParserOptionsChange}
-          />
-        )}
-
         {/* 파일 업로더 */}
         <FileUploader
           isDisabled={isTranslating}
@@ -651,16 +572,12 @@ export function BaseTranslator({
     );
   }, [
     options,
-    showSettings,
-    toggleJsonSettings,
-    OptionComponent,
     isTranslating,
     input,
     handleFileChange,
     handleClearFilesLocal,
     uiState.dragActive,
     setUIState,
-    handleParserOptionsChange,
   ]);
 
   // 알맞은 입력 컨트롤 선택
