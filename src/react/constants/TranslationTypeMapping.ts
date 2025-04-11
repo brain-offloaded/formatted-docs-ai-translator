@@ -48,6 +48,16 @@ export const getDefaultOptions = (
   }
 };
 
+// Translator Component Map
+const translatorComponentMap: {
+  [K in TranslationType]: TranslatorComponentType<K>;
+} = {
+  [TranslationType.JsonFile]: JsonFileTranslator,
+  [TranslationType.JsonString]: JsonStringTranslator,
+  [TranslationType.Text]: TextTranslator,
+  [TranslationType.CsvFile]: CsvFileTranslator,
+};
+
 /**
  * TranslationType에 따라 적절한 컴포넌트를 반환하는 함수
  * @param type 번역 유형
@@ -56,19 +66,24 @@ export const getDefaultOptions = (
 export function getTranslatorComponent<T extends TranslationType>(
   type: T
 ): TranslatorComponentType<T> {
-  switch (type) {
-    case TranslationType.JsonFile:
-      return JsonFileTranslator as unknown as TranslatorComponentType<T>;
-    case TranslationType.JsonString:
-      return JsonStringTranslator as unknown as TranslatorComponentType<T>;
-    case TranslationType.Text:
-      return TextTranslator as unknown as TranslatorComponentType<T>;
-    case TranslationType.CsvFile:
-      return CsvFileTranslator as unknown as TranslatorComponentType<T>;
-    default:
-      throw new Error('Invalid translation type');
+  const component = translatorComponentMap[type];
+  if (!component) {
+    // 이론적으로는 도달할 수 없지만, 안전을 위해 추가
+    throw new Error(`Invalid translation type: ${type}`);
   }
+  // 이제 TypeScript는 component의 타입이 TranslatorComponentType<T>임을 정확히 추론합니다.
+  return component;
 }
+
+// Parser Option Component Map
+const parserOptionComponentMap: {
+  [K in TranslationType]: OptionComponentType<K>;
+} = {
+  [TranslationType.JsonFile]: JsonFileParseOption,
+  [TranslationType.JsonString]: JsonStringParseOption,
+  [TranslationType.Text]: TextParseOption,
+  [TranslationType.CsvFile]: CsvFileParseOption,
+};
 
 /**
  * TranslationType에 따라 적절한 옵션 컴포넌트를 반환하는 함수
@@ -78,18 +93,13 @@ export function getTranslatorComponent<T extends TranslationType>(
 export function getParserOptionComponent<T extends TranslationType>(
   type: T
 ): OptionComponentType<T> {
-  switch (type) {
-    case TranslationType.JsonFile:
-      return JsonFileParseOption as unknown as OptionComponentType<T>;
-    case TranslationType.JsonString:
-      return JsonStringParseOption as unknown as OptionComponentType<T>;
-    case TranslationType.Text:
-      return TextParseOption as unknown as OptionComponentType<T>;
-    case TranslationType.CsvFile:
-      return CsvFileParseOption as unknown as OptionComponentType<T>;
-    default:
-      throw new Error('Invalid translation type');
+  const component = parserOptionComponentMap[type];
+  if (!component) {
+    // 이론적으로는 도달할 수 없지만, 안전을 위해 추가
+    throw new Error(`Invalid translation type: ${type}`);
   }
+  // TypeScript는 component의 타입이 OptionComponentType<T>임을 정확히 추론합니다.
+  return component;
 }
 
 /**
@@ -119,9 +129,9 @@ export const isDownloadable = (translationType: TranslationType): boolean => {
  */
 export const getDefaultInitialInput = (translationType: TranslationType): string | string[] => {
   if (isFileInput(translationType)) {
-    return [] as unknown as string[];
+    return []; // 파일 입력은 빈 배열로 초기화
   } else {
-    return '' as unknown as string;
+    return ''; // 문자열 입력은 빈 문자열로 초기화
   }
 };
 
@@ -134,18 +144,24 @@ export const getDefaultValidator = (
   translationType: TranslationType
 ): ((input: string | string[]) => boolean) => {
   if (isFileInput(translationType)) {
-    return (input) => (input as string[])?.length > 0;
+    // 입력이 배열이고 요소가 있는지 확인
+    return (input) => Array.isArray(input) && input.length > 0;
   } else if (translationType === TranslationType.JsonString) {
+    // 입력이 문자열이고 유효한 JSON인지 확인
     return (input) => {
+      if (typeof input !== 'string') return false;
       try {
-        JSON.parse((input as string).trim());
-        return true;
+        JSON.parse(input.trim());
+        // 빈 JSON 문자열도 유효하다고 간주할 수 있으나, 여기서는 비어있지 않은지만 확인
+        // 필요하다면 `input.trim() === '{}'` 또는 `input.trim() === '[]'` 같은 추가 검사 가능
+        return input.trim().length > 0;
       } catch (e) {
         return false;
       }
     };
   } else {
-    return (input) => (input as string)?.trim().length > 0;
+    // 입력이 문자열이고 공백 제거 후 비어있지 않은지 확인
+    return (input) => typeof input === 'string' && input.trim().length > 0;
   }
 };
 
@@ -174,24 +190,13 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
  * @returns TranslationType 배열
  */
 export const getTranslationTypes = (): { value: TranslationType; label: string }[] => {
-  return [
-    {
-      value: TranslationType.JsonFile,
-      label: getTranslationTypeLabel(TranslationType.JsonFile),
-    },
-    {
-      value: TranslationType.JsonString,
-      label: getTranslationTypeLabel(TranslationType.JsonString),
-    },
-    {
-      value: TranslationType.Text,
-      label: getTranslationTypeLabel(TranslationType.Text),
-    },
-    {
-      value: TranslationType.CsvFile,
-      label: getTranslationTypeLabel(TranslationType.CsvFile),
-    },
-  ];
+  // Object.values 사용 시 enum의 숫자 값과 문자열 키가 모두 포함될 수 있으므로 필터링
+  return Object.values(TranslationType)
+    .filter((value): value is TranslationType => typeof value === 'number')
+    .map((type) => ({
+      value: type,
+      label: getTranslationTypeLabel(type),
+    }));
 };
 
 /**
