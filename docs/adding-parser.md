@@ -1,6 +1,6 @@
 # 새 파서 추가 가이드
 
-이 문서는 프로젝트에 새로운 파서를 추가하는 방법에 대해 설명합니다.
+이 문서는 프로젝트에 새로운 파서를 추가하는 방법에 대해 설명합니다. 모든 과정을 따라야만 합니다.
 
 ## 목차
 
@@ -8,9 +8,9 @@
   - [목차](#목차)
   - [IPC 채널 추가](#ipc-채널-추가)
   - [DTO 파일 만들기](#dto-파일-만들기)
-    - [옵션 DTO 생성 (필수)](#옵션-dto-생성-필수)
-    - [Request DTO 생성 (필수)](#request-dto-생성-필수)
-    - [Apply DTO 생성 (필수)](#apply-dto-생성-필수)
+    - [옵션 DTO 생성](#옵션-dto-생성)
+    - [Request DTO 생성](#request-dto-생성)
+    - [Apply DTO 생성](#apply-dto-생성)
     - [index.ts에 등록](#indexts에-등록)
   - [파서 구현체 작성](#파서-구현체-작성)
     - [파서 서비스 생성](#파서-서비스-생성)
@@ -45,7 +45,7 @@ export enum IpcChannel {
 
 새 파서를 위한 DTO(Data Transfer Object) 파일을 만드는 과정입니다.
 
-### 옵션 DTO 생성 (필수)
+### 옵션 DTO 생성
 
 먼저 파서 옵션 DTO를 생성해야 합니다. 모든 옵션 DTO는 `BaseParseOptionsDto`를 상속해야 합니다. `BaseParseOptionsDto`는 `sourceLanguage`와 `isFile` 옵션을 기본으로 제공합니다.
 
@@ -60,7 +60,7 @@ export class NewFormatParserOptionsDto extends BaseParseOptionsDto {
 }
 ```
 
-### Request DTO 생성 (필수)
+### Request DTO 생성
 
 `src/nest/parser/dto/request` 디렉토리에 새 요청 DTO 파일을 생성합니다. 모든 파싱 요청 DTO는 `BaseParseRequestDto`를 상속합니다. `BaseParseRequestDto`는 `content` (파싱 대상)와 `options` (파서 옵션) 속성을 가집니다.
 
@@ -72,7 +72,7 @@ import { BaseParseRequestDto } from '@/nest/parser/dto/request/base-parse-reques
 export class ParseNewFormatRequestDto extends BaseParseRequestDto<NewFormatParserOptionsDto> {}
 ```
 
-### Apply DTO 생성 (필수)
+### Apply DTO 생성
 
 모든 파싱 요청 DTO에는 반드시 대응되는 번역 적용 DTO가 있어야 합니다. `src/nest/parser/dto/request` 디렉토리에 새 번역 적용 DTO 파일을 생성합니다. 모든 번역 적용 DTO는 `BaseApplyRequestDto`를 상속합니다. `BaseApplyRequestDto`는 `content` (원본 내용), `translatedTextPaths` (번역 결과), `options` (파서 옵션) 속성을 가집니다.
 
