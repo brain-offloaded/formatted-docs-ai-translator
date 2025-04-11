@@ -25,7 +25,6 @@ export class PlainTextParserService extends BaseParserService<string, PlainTextP
   public async getTranslationTargets(params: {
     source: string;
     options: PlainTextParserOptionsDto;
-    isFile: boolean;
   }): Promise<TextPath[]> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환
     const source = await this.read(params);
@@ -37,7 +36,6 @@ export class PlainTextParserService extends BaseParserService<string, PlainTextP
     source: string;
     translations: TranslatedTextPath[];
     options: PlainTextParserOptionsDto;
-    isFile: boolean;
   }): Promise<string> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환
     const source = await this.read(params);

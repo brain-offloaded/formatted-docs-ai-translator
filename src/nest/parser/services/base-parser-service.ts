@@ -17,12 +17,8 @@ export abstract class BaseParserService<
     return content as TargetFormat;
   }
 
-  public async read(params: {
-    source: string;
-    options: ParserOptions;
-    isFile: boolean;
-  }): Promise<TargetFormat> {
-    if (params.isFile) {
+  public async read(params: { source: string; options: ParserOptions }): Promise<TargetFormat> {
+    if (params.options.isFile) {
       return await this.readFile(params.source, params.options);
     }
     return await this.readString(params.source, params.options);
@@ -31,13 +27,11 @@ export abstract class BaseParserService<
   public abstract getTranslationTargets(params: {
     source: string;
     options: ParserOptions;
-    isFile: boolean;
   }): Promise<ParsedInformation[]>;
 
   public abstract applyTranslation(params: {
     source: string;
     translations: TranslatedInformation[];
     options: ParserOptions;
-    isFile: boolean;
   }): Promise<TargetFormat>;
 }

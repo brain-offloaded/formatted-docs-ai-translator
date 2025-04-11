@@ -39,7 +39,6 @@ export class JsonParserService extends BaseParserService<
   public async getTranslationTargets(params: {
     source: string;
     options: JsonParserOptionsDto;
-    isFile: boolean;
   }): Promise<TextPath[]> {
     // read 메서드를 사용하여 source를 TargetFormat(Record<string, unknown>)으로 변환
     const json = await this.read(params);
@@ -167,7 +166,6 @@ export class JsonParserService extends BaseParserService<
     source: string;
     translations: TranslatedTextPath[];
     options: JsonParserOptionsDto;
-    isFile: boolean;
   }): Promise<Record<string, unknown>> {
     // read 메서드를 사용하여 source를 TargetFormat(Record<string, unknown>)으로 변환
     const json = await this.read(params);

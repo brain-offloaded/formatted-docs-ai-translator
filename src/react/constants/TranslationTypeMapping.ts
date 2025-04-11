@@ -64,33 +64,36 @@ export function getParserOptionComponent<T extends TranslationType>(
 
 /**
  * 파일 모드에 따른 기본 유효성 검사 함수를 반환하는 함수
- * @param isFileInput 파일 입력 모드 여부
  * @param translationType 번역 타입 (JSON 문자열 여부 등 확인용)
  * @returns 해당 모드에 맞는 유효성 검사 함수
  */
 export const getDefaultValidatorByMode = (
-  isFileInput: boolean,
   translationType: TranslationType
 ): ((input: string | string[]) => boolean) => {
-  if (isFileInput) {
-    // 입력이 배열이고 요소가 있는지 확인
-    return (input) => Array.isArray(input) && input.length > 0;
-  } else if (translationType === TranslationType.Json) {
-    // 입력이 문자열이고 유효한 JSON인지 확인
-    return (input) => {
-      if (typeof input !== 'string') return false;
-      try {
-        JSON.parse(input.trim());
-        // 빈 JSON 문자열도 유효하다고 간주할 수 있으나, 여기서는 비어있지 않은지만 확인
+  // 입력 타입에 따라 유효성 검사 함수 분기
+  return (input) => {
+    if (Array.isArray(input)) {
+      // 파일 입력 모드: 입력이 배열이고 요소가 있는지 확인
+      return input.length > 0;
+    } else if (typeof input === 'string') {
+      // 텍스트 입력 모드
+      if (translationType === TranslationType.Json) {
+        // 입력이 문자열이고 유효한 JSON인지 확인
+        try {
+          JSON.parse(input.trim());
+          // 빈 JSON 문자열도 유효하다고 간주할 수 있으나, 여기서는 비어있지 않은지만 확인
+          return input.trim().length > 0;
+        } catch (e) {
+          return false;
+        }
+      } else {
+        // 입력이 문자열이고 공백 제거 후 비어있지 않은지 확인
         return input.trim().length > 0;
-      } catch (e) {
-        return false;
       }
-    };
-  } else {
-    // 입력이 문자열이고 공백 제거 후 비어있지 않은지 확인
-    return (input) => typeof input === 'string' && input.trim().length > 0;
-  }
+    }
+    // 그 외의 경우 (undefined, null 등)는 유효하지 않음
+    return false;
+  };
 };
 
 /**

@@ -184,10 +184,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   // 유효성 검증 함수
   const validateInput = useMemo(
-    () =>
-      options.validateInput ||
-      getDefaultValidatorByMode(currentIsFileInput, options.translationType),
-    [options.validateInput, currentIsFileInput, options.translationType]
+    () => options.validateInput || getDefaultValidatorByMode(options.translationType),
+    [options.validateInput, options.translationType]
   );
 
   // 입력 변경 핸들러
@@ -222,14 +220,16 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const parseInput = useCallback(
     async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto> => {
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
-      const effectiveOptions = parserOptions || ({ sourceLanguage: config.sourceLanguage } as T);
+      const effectiveOptions =
+        parserOptions ||
+        ({ sourceLanguage: config.sourceLanguage, isFile: currentIsFileInput } as T);
       const parsePayload: BaseParseRequestDto<T> = {
         content: input,
         options: {
           ...effectiveOptions,
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
+          isFile: currentIsFileInput,
         },
-        isFile: currentIsFileInput,
       };
 
       if (!parseChannel) {
@@ -276,8 +276,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         options: {
           ...effectiveOptions,
           sourceLanguage: config.sourceLanguage, // 항상 최신 sourceLanguage 사용
+          isFile: currentIsFileInput,
         },
-        isFile: currentIsFileInput,
       };
 
       if (!applyChannel) {

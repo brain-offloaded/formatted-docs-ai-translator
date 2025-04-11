@@ -29,7 +29,6 @@ export class CsvParserService extends BaseParserService<string, CsvParserOptions
   public async getTranslationTargets(params: {
     source: string;
     options: CsvParserOptionsDto;
-    isFile: boolean;
   }): Promise<TextPath[]> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환
     const text = await this.read(params);
@@ -71,7 +70,6 @@ export class CsvParserService extends BaseParserService<string, CsvParserOptions
     source: string;
     translations: TranslatedTextPath[];
     options: CsvParserOptionsDto;
-    isFile: boolean;
   }): Promise<string> {
     // read 메서드를 사용하여 source를 TargetFormat(string)으로 변환
     const text = await this.read(params);

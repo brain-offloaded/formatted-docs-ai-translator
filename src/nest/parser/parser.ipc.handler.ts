@@ -19,10 +19,10 @@ export class ParserIpcHandler extends IpcHandler {
   @HandleIpc(IpcChannel.ParseJson)
   async parseJson(
     event: IpcMainInvokeEvent,
-    { content, options, isFile }: InvokeFunctionRequest<IpcChannel.ParseJson>
+    { content, options }: InvokeFunctionRequest<IpcChannel.ParseJson>
   ): Promise<InvokeFunctionResponse<IpcChannel.ParseJson>> {
     try {
-      const targets = await this.parserService.getJsonTranslationTargets(content, options, isFile);
+      const targets = await this.parserService.getJsonTranslationTargets(content, options);
       return {
         success: true,
         targets,
@@ -45,15 +45,13 @@ export class ParserIpcHandler extends IpcHandler {
       content,
       translatedTextPaths,
       options,
-      isFile,
     }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToJson>
   ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToJson>> {
     try {
       const result = await this.parserService.applyJsonTranslation(
         content,
         translatedTextPaths,
-        options,
-        isFile
+        options
       );
       return {
         success: true,
@@ -73,10 +71,10 @@ export class ParserIpcHandler extends IpcHandler {
   @HandleIpc(IpcChannel.ParseCsv)
   async parseCsv(
     event: IpcMainInvokeEvent,
-    { content, options, isFile }: InvokeFunctionRequest<IpcChannel.ParseCsv>
+    { content, options }: InvokeFunctionRequest<IpcChannel.ParseCsv>
   ): Promise<InvokeFunctionResponse<IpcChannel.ParseCsv>> {
     try {
-      const targets = await this.parserService.getCsvTranslationTargets(content, options, isFile);
+      const targets = await this.parserService.getCsvTranslationTargets(content, options);
       return {
         success: true,
         targets,
@@ -99,15 +97,13 @@ export class ParserIpcHandler extends IpcHandler {
       content,
       translatedTextPaths,
       options,
-      isFile,
     }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToCsv>
   ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToCsv>> {
     try {
       const result = await this.parserService.applyCsvTranslation(
         content,
         translatedTextPaths,
-        options,
-        isFile
+        options
       );
       return {
         success: true,
@@ -127,14 +123,10 @@ export class ParserIpcHandler extends IpcHandler {
   @HandleIpc(IpcChannel.ParsePlainText)
   async parsePlainText(
     event: IpcMainInvokeEvent,
-    { content, options, isFile }: InvokeFunctionRequest<IpcChannel.ParsePlainText>
+    { content, options }: InvokeFunctionRequest<IpcChannel.ParsePlainText>
   ): Promise<InvokeFunctionResponse<IpcChannel.ParsePlainText>> {
     try {
-      const targets = await this.parserService.getPlainTextTranslationTargets(
-        content,
-        options,
-        isFile
-      );
+      const targets = await this.parserService.getPlainTextTranslationTargets(content, options);
       return {
         success: true,
         targets,
@@ -157,15 +149,13 @@ export class ParserIpcHandler extends IpcHandler {
       content,
       translatedTextPaths,
       options,
-      isFile,
     }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToPlainText>
   ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToPlainText>> {
     try {
       const result = await this.parserService.applyPlainTextTranslation(
         content,
         translatedTextPaths,
-        options,
-        isFile
+        options
       );
       return {
         success: true,

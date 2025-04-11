@@ -9,8 +9,4 @@ export class BaseParseRequestDto<TOptions extends BaseParseOptionsDto = BasePars
    * @description 파싱 옵션
    */
   options: TOptions;
-  /**
-   * @description content가 파일 경로인지 여부. true면 파일 경로, false면 문자열 내용
-   */
-  isFile: boolean;
 }
