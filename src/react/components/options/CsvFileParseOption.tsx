@@ -1,12 +1,11 @@
 import React, { useMemo } from 'react';
-import { BaseParseOptions, BaseParseOptionsProps } from './BaseParseOptions';
-import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
+import { BaseParseOptions } from './BaseParseOptions';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { OptionItem, OptionType } from './DynamicOptions';
+import { OptionComponentType } from '../../types/translation-types';
 
-interface CsvFileParseOptionProps extends BaseParseOptionsProps<CsvParserOptionsDto> {}
-
-const CsvFileParseOption: React.FC<CsvFileParseOptionProps> = (props) => {
+// OptionComponentType 사용
+const CsvFileParseOption: OptionComponentType<TranslationType.CsvFile> = (props) => {
   // CSV 파서 설정 항목 정의
   const csvOptionItems: OptionItem[] = useMemo(
     () => [

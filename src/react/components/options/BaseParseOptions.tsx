@@ -6,24 +6,7 @@ import { getDefaultOptions } from '../../constants/TranslationTypeMapping';
 import { OptionItem, OptionsValues, DynamicOptions } from './DynamicOptions';
 import { Box, Tooltip, IconButton, Typography } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
-
-export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
-  isTranslating: boolean;
-  onOptionsChange?: (options: T) => void;
-  initialOptions?: T;
-  translationType?: TranslationType;
-  optionItems?: OptionItem[]; // 동적 옵션 항목 배열
-  // UI 관련 속성 추가
-  label?: string;
-}
-
-export type OptionFieldConfig<T> = {
-  key: keyof T;
-  label?: string;
-  helperText?: string;
-  type?: 'text' | 'switch' | 'select';
-  options?: { value: string; label: string }[];
-};
+import { BaseParseOptionsProps } from '../../types/translation-types';
 
 // 로컬 스토리지 키 생성 함수
 const getLocalStorageKey = (translationType?: TranslationType): string => {

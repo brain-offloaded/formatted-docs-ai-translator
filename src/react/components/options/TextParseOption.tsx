@@ -1,21 +1,12 @@
-import React, { useMemo } from 'react';
-import { BaseParseOptions, BaseParseOptionsProps } from './BaseParseOptions';
-import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
+import React from 'react';
+import { BaseParseOptions } from './BaseParseOptions';
 import { TranslationType } from '../../contexts/TranslationContext';
-import { OptionItem } from './DynamicOptions';
+import { OptionComponentType } from '../../types/translation-types';
 
-interface TextParseOptionProps extends BaseParseOptionsProps<PlainTextParserOptionsDto> {}
-
-const TextParseOption: React.FC<TextParseOptionProps> = (props) => {
-  // 텍스트 번역에는 특별한 파싱 옵션이 없으므로 빈 배열 전달
-  const textOptionItems: OptionItem[] = useMemo(() => [], []);
-
+// OptionComponentType 사용
+const TextParseOption: OptionComponentType<TranslationType.Text> = (props) => {
   return (
-    <BaseParseOptions
-      {...props}
-      translationType={TranslationType.Text}
-      optionItems={textOptionItems}
-    />
+    <BaseParseOptions {...props} translationType={TranslationType.Text} label="텍스트 파싱 옵션" />
   );
 };
 

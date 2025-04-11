@@ -1,4 +1,3 @@
-import React from 'react';
 import { TranslationType } from '../contexts/TranslationContext';
 
 // 나중에 생성할 컴포넌트 타입 가져오기
@@ -15,35 +14,14 @@ import CsvFileParseOption from '../components/options/CsvFileParseOption';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { SourceLanguage } from '@/utils/language';
-import { BaseParseOptionsProps } from '../components/options/BaseParseOptions';
-import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
-import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
 
-/**
- * 컴포넌트에서 사용할 파서 옵션 타입
- */
-export type ParserOptionType = BaseParseOptionsDto;
-
-/**
- * 각 TranslationType에 대한 옵션 타입 매핑
- */
-export interface TranslationTypeToOptionsMap {
-  [TranslationType.JsonFile]: JsonParserOptionsDto;
-  [TranslationType.JsonString]: JsonParserOptionsDto;
-  [TranslationType.Text]: PlainTextParserOptionsDto;
-  [TranslationType.CsvFile]: CsvParserOptionsDto;
-}
-
-// 옵션 컴포넌트 타입
-export type OptionComponentType<T extends TranslationType> = React.ComponentType<
-  BaseParseOptionsProps<TranslationTypeToOptionsMap[T]>
->;
-
-// 번역기 컴포넌트 타입
-export type TranslatorComponentType<T extends TranslationType> = React.ComponentType<{
-  parserOptions?: TranslationTypeToOptionsMap[T] | null;
-  onOptionsChange?: (options: TranslationTypeToOptionsMap[T]) => void;
-}>;
+// 공통 타입 가져오기
+import {
+  ParserOptionType,
+  OptionComponentType,
+  TranslatorComponentType,
+  TranslatorWithOptions,
+} from '../types/translation-types';
 
 /**
  * 번역 타입에 따른 기본 옵션을 반환하는 함수
@@ -215,12 +193,6 @@ export const getTranslationTypes = (): { value: TranslationType; label: string }
     },
   ];
 };
-
-// 특정 TranslationType에 해당하는 번역기와 옵션 컴포넌트 타입
-export interface TranslatorWithOptions<T extends TranslationType> {
-  TranslatorComponent: TranslatorComponentType<T>;
-  OptionComponent: OptionComponentType<T>;
-}
 
 /**
  * TranslationType에 따라 번역기 컴포넌트와 옵션 컴포넌트를 함께 반환하는 함수

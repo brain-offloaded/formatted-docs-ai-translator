@@ -3,16 +3,11 @@ import { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
 import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
+import { TranslatorComponentType } from '../../types/translation-types';
 
-// Props 타입 정의
-interface JsonStringTranslatorProps {
-  parserOptions?: JsonParserOptionsDto | null;
-  onOptionsChange?: (options: JsonParserOptionsDto) => void;
-}
-
-const JsonStringTranslator: React.FC<JsonStringTranslatorProps> = ({
+// TranslatorComponentType 사용
+const JsonStringTranslator: TranslatorComponentType<TranslationType.JsonString> = ({
   parserOptions,
-  onOptionsChange,
 }) => {
   // 번역기 옵션 설정
   const jsonStringTranslatorOptions: BaseTranslatorOptions = {
@@ -39,7 +34,6 @@ const JsonStringTranslator: React.FC<JsonStringTranslatorProps> = ({
       applyChannel={IpcChannel.ApplyTranslationToJsonString}
       formatOutput={formatOutput}
       parserOptions={parserOptions}
-      onOptionsChange={onOptionsChange}
     />
   );
 };

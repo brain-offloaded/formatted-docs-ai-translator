@@ -67,6 +67,11 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   parserOptions?: T | null;
 }
 
+// 모든 번역기 컴포넌트가 공유하는 공통 Props 타입 정의
+export interface CustomTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
+  parserOptions?: T | null;
+}
+
 // 기본 출력 포맷 함수
 const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
   if (isFileInput) {
