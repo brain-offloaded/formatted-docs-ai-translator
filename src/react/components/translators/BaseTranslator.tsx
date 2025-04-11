@@ -52,9 +52,6 @@ export interface BaseTranslatorOptions {
   // 번역 타입
   translationType: TranslationType;
 
-  // 파일 입력 모드 여부
-  isFileInput: boolean;
-
   // 입력 필드 설정
   inputFieldRows?: number;
 
@@ -69,7 +66,7 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   parseChannel?: IpcChannel;
   translateChannel?: IpcChannel;
   applyChannel?: IpcChannel;
-  formatOutput?: (output: string, isFileInput: boolean) => string;
+  formatOutput?: (output: string, inputMode: InputMode) => string;
   // 옵션 관련 props
   parserOptions?: T | null;
 }
@@ -80,11 +77,39 @@ export interface CustomTranslatorProps<T extends BaseParseOptionsDto = BaseParse
 }
 
 // 입력 모드 타입 정의
-type InputMode = 'text' | 'file';
+export enum InputMode {
+  TEXT = 'text',
+  FILE = 'file',
+}
+
+// 로컬 스토리지 키
+const INPUT_MODE_STORAGE_KEY = 'translator_input_mode';
+
+// 로컬 스토리지에서 입력 모드 가져오기
+const getSavedInputMode = (): InputMode => {
+  try {
+    const savedMode = localStorage.getItem(INPUT_MODE_STORAGE_KEY);
+    if (savedMode === InputMode.TEXT || savedMode === InputMode.FILE) {
+      return savedMode as InputMode;
+    }
+  } catch (e) {
+    console.error('입력 모드를 로컬 스토리지에서 불러오는 중 오류 발생:', e);
+  }
+  return InputMode.FILE; // 기본값은 FILE
+};
+
+// 로컬 스토리지에 입력 모드 저장
+const saveInputMode = (mode: InputMode): void => {
+  try {
+    localStorage.setItem(INPUT_MODE_STORAGE_KEY, mode);
+  } catch (e) {
+    console.error('입력 모드를 로컬 스토리지에 저장하는 중 오류 발생:', e);
+  }
+};
 
 // 기본 출력 포맷 함수
-const defaultFormatOutput = (output: string, isFileInput: boolean): string => {
-  if (isFileInput) {
+const defaultFormatOutput = (output: string, inputMode: InputMode): string => {
+  if (inputMode === InputMode.FILE) {
     return '파일 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
   } else {
     return output;
@@ -102,26 +127,22 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const theme = useTheme();
   const configStore = ConfigStore.getInstance();
 
-  // 내부 상태로 옵션 복사 (모드 변경을 위해)
-  const [options, setOptions] = useState(initialOptions);
+  // 내부 옵션 상태
+  const [options] = useState(initialOptions);
 
-  // 입력 모드 상태 관리
-  const [inputMode, setInputMode] = useState<InputMode>(
-    initialOptions.isFileInput ? 'file' : 'text'
-  );
-
-  // 입력 모드가 변경될 때마다 options.isFileInput 업데이트
-  useEffect(() => {
-    setOptions((prev) => ({
-      ...prev,
-      isFileInput: inputMode === 'file',
-    }));
-  }, [inputMode]);
-
-  const [input, setInput] = useState<string | string[]>(initialOptions.isFileInput ? [] : '');
+  // 입력 모드 상태 관리 - 로컬 스토리지에서 가져오기
+  const [inputMode, setInputMode] = useState<InputMode>(getSavedInputMode());
 
   // 현재 파일 입력 모드인지 확인
-  const currentIsFileInput = useMemo(() => options.isFileInput, [options.isFileInput]);
+  const currentIsFileInput = useMemo(() => inputMode === InputMode.FILE, [inputMode]);
+
+  // 입력 상태 초기화
+  const [input, setInput] = useState<string | string[]>(currentIsFileInput ? [] : '');
+
+  // 입력 모드 변경 시 로컬 스토리지에 저장
+  useEffect(() => {
+    saveInputMode(inputMode);
+  }, [inputMode]);
 
   // Context에서 상태와 함수 가져오기
   const {
@@ -141,7 +162,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     (_event: React.MouseEvent<HTMLElement>, newMode: InputMode | null) => {
       if (newMode !== null) {
         // 새 모드에 필요한 채널이 있는지 확인
-        const isFileMode = newMode === 'file';
+        const isFileMode = newMode === InputMode.FILE;
 
         if (isFileMode && !parseChannel) {
           showSnackbar('이 번역기는 파일 입력 모드를 지원하지 않습니다.');
@@ -154,7 +175,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         }
 
         // 모드 변경 시 입력 초기화
-        setInput(newMode === 'file' ? [] : '');
+        setInput(newMode === InputMode.FILE ? [] : '');
         setInputMode(newMode);
       }
     },
@@ -470,7 +491,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         }));
 
         // 결과 포맷팅
-        const formattedResult = formatOutput(applyResponse.result as string, currentIsFileInput);
+        const formattedResult = formatOutput(applyResponse.result as string, inputMode);
 
         // 결과 설정
         setResultState({
@@ -519,6 +540,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     applyTranslation,
     formatOutput,
     currentIsFileInput,
+    inputMode,
   ]);
 
   // 결과 다운로드 핸들러
@@ -675,13 +697,13 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
           size="small"
           disabled={isTranslating}
         >
-          <ToggleButton value="text" aria-label="텍스트 입력">
+          <ToggleButton value={InputMode.TEXT} aria-label="텍스트 입력">
             <TextFieldsIcon fontSize="small" />
             <Typography variant="caption" sx={{ ml: 0.5 }}>
               텍스트
             </Typography>
           </ToggleButton>
-          <ToggleButton value="file" aria-label="파일 입력">
+          <ToggleButton value={InputMode.FILE} aria-label="파일 입력">
             <FileIcon fontSize="small" />
             <Typography variant="caption" sx={{ ml: 0.5 }}>
               파일

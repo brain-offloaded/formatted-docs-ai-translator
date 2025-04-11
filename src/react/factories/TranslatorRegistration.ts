@@ -29,7 +29,6 @@ function registerJsonTranslator(): void {
       inputPlaceholder: '{ "key": "번역할 텍스트" }',
       resultFileType: 'application/json',
       translationType: TranslationType.Json,
-      isFileInput: false, // 기본값은 텍스트 입력 모드
       inputFieldRows: 10,
       fileExtension: '.json',
       fileLabel: 'JSON 파일',
@@ -61,7 +60,6 @@ function registerTextTranslator(): void {
       inputPlaceholder: '번역할 텍스트를 입력하세요...',
       resultFileType: 'text/plain',
       translationType: TranslationType.Text,
-      isFileInput: false, // 파일 입력 모드 비활성화
       inputFieldRows: 10,
     },
     parseChannel: IpcChannel.ParsePlainText,
@@ -90,7 +88,6 @@ function registerCsvFileTranslator(): void {
       inputPlaceholder: '',
       resultFileType: 'text/csv',
       translationType: TranslationType.CsvFile,
-      isFileInput: true, // 파일 입력 모드 활성화
       fileExtension: '.csv',
       fileLabel: 'CSV 파일',
     },

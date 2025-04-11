@@ -1,5 +1,9 @@
 import React from 'react';
-import { BaseTranslator, BaseTranslatorOptions } from '../components/translators/BaseTranslator';
+import {
+  BaseTranslator,
+  BaseTranslatorOptions,
+  InputMode,
+} from '../components/translators/BaseTranslator';
 import { TranslationType } from '../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
 import { TranslationTypeToOptionsMap, TranslatorComponentType } from '../types/translation-types';
@@ -16,7 +20,7 @@ export interface TranslatorConfig {
   translateChannel?: IpcChannel;
   applyChannel?: IpcChannel;
   // 출력 포맷 함수 (선택 사항)
-  formatOutput?: (output: string, isFileInput: boolean) => string;
+  formatOutput?: (output: string, inputMode: InputMode) => string;
   // 기본 옵션 아이템 (선택 사항)
   optionItems?: OptionItem[];
 }

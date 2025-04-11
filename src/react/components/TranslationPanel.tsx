@@ -83,7 +83,7 @@ export default function TranslationPanel(): React.ReactElement {
             )}
 
             {/* 번역기 컴포넌트 렌더링 - 옵션은 props로 전달 */}
-            <TranslatorComponent parserOptions={parserOptions} />
+            <TranslatorComponent key={translationType} parserOptions={parserOptions} />
           </Box>
         </CardContent>
       </Card>
