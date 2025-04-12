@@ -1,6 +1,6 @@
 {
   "name": "formatted-docs-ai-translator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Formatted Docs such as Json Translation Tool using Artificial Intelligence",
   "main": "dist/main.js",
   "author": "leejs1030",
