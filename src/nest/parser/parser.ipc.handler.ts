@@ -171,4 +171,56 @@ export class ParserIpcHandler extends IpcHandler {
       };
     }
   }
+
+  @HandleIpc(IpcChannel.ParseSubtitle)
+  async parseSubtitle(
+    event: IpcMainInvokeEvent,
+    { content, options }: InvokeFunctionRequest<IpcChannel.ParseSubtitle>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ParseSubtitle>> {
+    try {
+      const targets = await this.parserService.getSubtitleTranslationTargets(content, options);
+      return {
+        success: true,
+        targets,
+        message: '자막 파싱 성공',
+      };
+    } catch (error) {
+      this.logger.error('자막 파싱 중 오류가 발생했습니다:', { error });
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+        targets: [],
+      };
+    }
+  }
+
+  @HandleIpc(IpcChannel.ApplyTranslationToSubtitle)
+  async applyTranslationToSubtitle(
+    event: IpcMainInvokeEvent,
+    {
+      content,
+      translatedTextPaths,
+      options,
+    }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToSubtitle>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToSubtitle>> {
+    try {
+      const result = await this.parserService.applySubtitleTranslation(
+        content,
+        translatedTextPaths,
+        options
+      );
+      return {
+        success: true,
+        result,
+        message: '자막 번역 적용 성공',
+      };
+    } catch (error) {
+      this.logger.error('자막 번역 적용 중 오류가 발생했습니다:', { error });
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
+        result: '',
+      };
+    }
+  }
 }

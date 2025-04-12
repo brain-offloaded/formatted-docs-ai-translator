@@ -9,6 +9,9 @@ import { ApplyTranslationToCsvRequestDto } from './request/apply-translation-to-
 import { ParseJsonResponseDto } from './response/parse-json-response.dto';
 import { ParsePlainTextResponseDto } from './response/parse-plain-text-response.dto';
 import { ParseCsvResponseDto } from './response/parse-csv-response.dto';
+import { ParseSubtitleRequestDto } from './request/parse-subtitle-request.dto';
+import { ParseSubtitleResponseDto } from './response/parse-subtitle-response.dto';
+import { ApplyTranslationToSubtitleRequestDto } from './request/apply-translation-to-subtitle-request.dto';
 
 export class ParserRequestResponse {
   [IpcChannel.ParseJson]: {
@@ -33,6 +36,14 @@ export class ParserRequestResponse {
   };
   [IpcChannel.ApplyTranslationToCsv]: {
     Request: ApplyTranslationToCsvRequestDto;
+    Response: BaseApplyResponseDto;
+  };
+  [IpcChannel.ParseSubtitle]: {
+    Request: ParseSubtitleRequestDto;
+    Response: ParseSubtitleResponseDto;
+  };
+  [IpcChannel.ApplyTranslationToSubtitle]: {
+    Request: ApplyTranslationToSubtitleRequestDto;
     Response: BaseApplyResponseDto;
   };
 }
