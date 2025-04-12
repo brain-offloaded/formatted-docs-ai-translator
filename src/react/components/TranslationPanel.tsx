@@ -7,7 +7,7 @@ import {
 } from '../constants/TranslationTypeMapping';
 import ExamplePresetSelector from './translation/ExamplePresetSelector';
 import TranslationTypeSelector from './common/TranslationTypeSelector';
-import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
+import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 
 export default function TranslationPanel(): React.ReactElement {
   // Context에서 상태와 함수 가져오기 - 필요한 것만 선택적으로 가져옵니다

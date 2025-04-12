@@ -1,4 +1,4 @@
-import { BaseParseOptionsDto } from '../base-parse-options.dto';
+import { BaseParseOptionsDto } from '../options/base-parse-options.dto';
 
 export class BaseParseRequestDto<TOptions extends BaseParseOptionsDto = BaseParseOptionsDto> {
   /**
