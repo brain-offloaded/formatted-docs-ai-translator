@@ -3,6 +3,7 @@ import { SimpleTextPath, SimpleTranslatedTextPath } from '@/types/common';
 import { BaseParserService } from './base-parser-service';
 import { SubtitleParserOptionsDto } from '@/nest/parser/dto/options/subtitle-parser-options.dto';
 import { SubtitleFormatEnum } from '@/nest/parser/dto/options/subtitle-format.enum';
+import { SubtitleBlock } from '../models/subtitle-block.interface';
 
 /**
  * SRT/VTT 자막 파일을 파싱하는 서비스
@@ -23,10 +24,12 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
     const blocks = this.parseSubtitleBlocks(content, format);
 
     // 각 블록에서 텍스트 부분만 추출하여 번역 대상 목록 생성
-    return blocks.map((block, index) => ({
-      text: block.text,
-      path: `subtitle.${index}`,
-    }));
+    return blocks
+      .filter((block) => block.text.trim().length > 0) // 빈 텍스트 블록 제외
+      .map((block, index) => ({
+        text: block.text,
+        path: `subtitle.${index}`,
+      }));
   }
 
   /**
@@ -44,8 +47,14 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
     const blocks = this.parseSubtitleBlocks(content, format);
 
     // 번역된 텍스트를 원본 자막 블록에 적용
-    const translatedBlocks = blocks.map((block, index) => {
-      const translation = params.translations.find((t) => t.path === `subtitle.${index}`);
+    let translationIndex = 0;
+    const translatedBlocks = blocks.map((block) => {
+      // 빈 텍스트 블록은 그대로 유지
+      if (block.text.trim().length === 0) {
+        return block;
+      }
+
+      const translation = params.translations[translationIndex++];
       if (translation) {
         return {
           ...block,
@@ -64,9 +73,9 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
    */
   private detectFormat(
     content: string,
-    formatOption?: SubtitleFormatEnum
+    formatOption: SubtitleFormatEnum
   ): SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT {
-    if (formatOption && formatOption !== SubtitleFormatEnum.AUTO) {
+    if (formatOption !== SubtitleFormatEnum.AUTO) {
       return formatOption as SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT;
     }
 
@@ -107,7 +116,7 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
       const lines = block.split('\n');
 
       // 첫 번째 줄은 인덱스, 두 번째 줄은 시간 정보
-      const id = lines[0].trim();
+      const id = lines[0]?.trim() || '';
       const timeInfo = lines[1]?.trim() || '';
 
       // 나머지 줄은 텍스트
@@ -200,18 +209,4 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
 
     return header + content;
   }
-}
-
-/**
- * 자막 블록 구조체
- */
-interface SubtitleBlock {
-  /** 자막 ID 또는 인덱스 */
-  id: string;
-  /** 시간 정보 (00:00:00,000 --> 00:00:00,000) */
-  timeInfo: string;
-  /** 자막 텍스트 */
-  text: string;
-  /** 자막 형식 */
-  format: SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT;
 }
