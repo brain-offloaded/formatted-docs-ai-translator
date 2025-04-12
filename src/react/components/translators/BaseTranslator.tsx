@@ -634,11 +634,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     setUIState,
   ]);
 
-  // 알맞은 입력 컨트롤 선택 - 메모이제이션
-  const renderInputControl = useMemo(() => {
-    return currentIsFileInput ? renderFileInput : renderTextInput;
-  }, [currentIsFileInput, renderFileInput, renderTextInput]);
-
   // 진행 정보 렌더링
   const renderProgressInfo = useMemo(() => {
     if (!isTranslating) return null;
@@ -674,8 +669,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   return (
     <>
-      {/* 입력 컨트롤 렌더링 */}
-      {renderInputControl}
+      {/* 입력 컨트롤 렌더링 - 조건부로 직접 적절한 컴포넌트 렌더링 */}
+      {currentIsFileInput ? renderFileInput : renderTextInput}
 
       {/* 번역 버튼 */}
       <TranslationButton
