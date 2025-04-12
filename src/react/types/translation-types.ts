@@ -1,6 +1,6 @@
 import React from 'react';
 import { TranslationType } from '../contexts/TranslationContext';
-import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
+import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
 import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';

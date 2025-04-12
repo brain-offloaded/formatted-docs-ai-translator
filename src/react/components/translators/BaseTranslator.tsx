@@ -12,7 +12,7 @@ import JSZip from 'jszip';
 import { InvokeFunctionRequest, InvokeFunctionResponse } from '@/types/electron';
 import { IpcChannel } from '@/nest/common/ipc.channel';
 import { TranslatedTextPath } from '@/types/common';
-import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
+import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 import { BaseParseRequestDto } from '@/nest/parser/dto/request/base-parse-request.dto';
 import { BaseApplyRequestDto } from '@/nest/parser/dto/request/base-apply-request.dto';
 import { BaseParseResponseDto } from '@/nest/parser/dto/response/base-parse-response.dto';

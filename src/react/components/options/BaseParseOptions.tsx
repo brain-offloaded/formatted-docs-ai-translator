@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { ConfigStore } from '../../config/config-store';
-import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
+import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { getDefaultOptions } from '../../constants/TranslationTypeMapping';
 import { OptionsValues, DynamicOptions } from './DynamicOptions';

@@ -1,5 +1,5 @@
 import { SimpleTextPath, SimpleTranslatedTextPath } from '../../../types/common';
-import { BaseParseOptionsDto } from '../dto/base-parse-options.dto';
+import { BaseParseOptionsDto } from '../dto/options/base-parse-options.dto';
 import * as fs from 'fs/promises';
 
 export abstract class BaseParserService<
