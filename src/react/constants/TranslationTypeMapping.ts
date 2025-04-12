@@ -111,8 +111,13 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
       return '텍스트 번역';
     case TranslationType.Csv:
       return 'CSV 번역';
+    case TranslationType.Subtitle:
+      return '자막 번역 (SRT/VTT)';
     default:
-      throw new Error('Invalid translation type');
+      // never 타입을 사용하여 컴파일 타임에 모든 케이스를 처리했는지 확인
+      // eslint-disable-next-line no-case-declarations
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Invalid translation type: ${_exhaustiveCheck}`);
   }
 };
 
