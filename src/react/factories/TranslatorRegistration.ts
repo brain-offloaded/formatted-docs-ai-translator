@@ -166,12 +166,6 @@ function registerSubtitleTranslator(): void {
           { value: SubtitleFormatEnum.VTT, label: 'VTT (WebVTT)' },
         ],
       },
-      {
-        key: 'excludeMetadata',
-        label: '메타데이터 제외',
-        type: OptionType.BOOLEAN,
-        description: '번역 시 ID, 시간 정보 등 메타데이터 제외',
-      },
     ],
   };
 

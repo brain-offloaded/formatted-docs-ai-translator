@@ -13,11 +13,4 @@ export class SubtitleParserOptionsDto extends BaseParseOptionsDto {
    * @default SubtitleFormatEnum.AUTO
    */
   format: SubtitleFormatEnum = SubtitleFormatEnum.AUTO;
-
-  /**
-   * 번역 시 ID, 시간 정보 등 메타데이터를 제외할지 여부
-   * true로 설정 시 실제 자막 텍스트만 번역 대상에 포함
-   * @default true
-   */
-  excludeMetadata: boolean = true;
 }
