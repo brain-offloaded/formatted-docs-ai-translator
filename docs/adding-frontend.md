@@ -136,7 +136,7 @@ export interface TranslationTypeToOptionsMap {
 
 ```typescript
 // src/react/components/options/CustomNewFormatOptions.tsx
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, memo } from 'react';
 import { Box, Switch, FormControlLabel, TextField, Select, MenuItem } from '@mui/material';
 import { NewFormatParserOptionsDto } from '@/nest/parser/dto/options/new-format-parser-options.dto';
 import { ConfigStore } from '../../config/config-store';
@@ -145,8 +145,8 @@ import { CustomOptionComponentProps } from '../../types/translation-types';
 // 커스텀 옵션 컴포넌트 props 타입
 interface CustomNewFormatOptionsProps extends CustomOptionComponentProps<NewFormatParserOptionsDto> {}
 
-// 커스텀 옵션 컴포넌트 구현
-export const CustomNewFormatOptions: React.FC<CustomNewFormatOptionsProps> = ({
+// 커스텀 옵션 컴포넌트 구현 
+const CustomNewFormatOptionsBase: React.FC<CustomNewFormatOptionsProps> = ({
   isTranslating,
   onOptionsChange,
   initialOptions,
@@ -229,6 +229,9 @@ export const CustomNewFormatOptions: React.FC<CustomNewFormatOptionsProps> = ({
     </Box>
   );
 };
+
+// memo로 감싸서 내보내기 (성능 최적화)
+export const CustomNewFormatOptions = memo(CustomNewFormatOptionsBase);
 ```
 
 그런 다음 커스텀 옵션 컴포넌트를 등록하는 방식을 수정합니다:
@@ -265,7 +268,7 @@ function registerNewFormatTranslator(): void {
 
 ```typescript
 // src/react/components/translators/CustomNewFormatTranslator.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { Box, TextField, Button } from '@mui/material';
 import { IpcChannel } from '@/nest/common/ipc.channel';
 import { useTranslation } from '../../contexts/TranslationContext';
@@ -276,7 +279,7 @@ import { CustomTranslatorProps } from './BaseTranslator';
 interface CustomNewFormatTranslatorProps extends CustomTranslatorProps<NewFormatParserOptionsDto> {}
 
 // 커스텀 번역기 컴포넌트 구현
-export const CustomNewFormatTranslator: React.FC<CustomNewFormatTranslatorProps> = ({
+const CustomNewFormatTranslatorBase: React.FC<CustomNewFormatTranslatorProps> = ({
   parserOptions
 }) => {
   const [input, setInput] = useState('');
@@ -340,7 +343,13 @@ export const CustomNewFormatTranslator: React.FC<CustomNewFormatTranslatorProps>
   );
 };
 
-// 그런 다음 이 커스텀 번역기를 등록합니다:
+// memo로 감싸서 내보내기 (성능 최적화)
+export const CustomNewFormatTranslator = memo(CustomNewFormatTranslatorBase);
+```
+
+그런 다음 이 커스텀 번역기를 등록합니다:
+
+```typescript
 function registerNewFormatTranslator(): void {
   // ...기존 설정
 
@@ -366,4 +375,5 @@ function registerNewFormatTranslator(): void {
 2. **레지스트리 패턴**: 프로젝트는 싱글톤 레지스트리 패턴을 사용하여 번역기와 옵션 컴포넌트를 관리합니다. 기존 패턴을 따라 구현하세요.
 3. **초기화 타이밍**: 모든 번역기는 앱 시작 시 한 번만 등록됩니다(`registerAllTranslators` 함수를 통해). 동적으로 번역기를 추가하거나 제거할 수 없습니다.
 4. **옵션 저장**: 사용자가 설정한 옵션은 자동으로 로컬 스토리지에 저장되므로, 페이지를 새로고침해도 유지됩니다.
-5. **채널 설정**: IPC 채널은 `adding-parser.md`에 설명된 대로 미리 백엔드에 구현되어 있어야 합니다. 
+5. **채널 설정**: IPC 채널은 `adding-parser.md`에 설명된 대로 미리 백엔드에 구현되어 있어야 합니다.
+6. **성능 최적화**: 커스텀 컴포넌트를 만들 때는 `React.memo`를 사용하여 불필요한 리렌더링을 방지하는 것이 좋습니다. 기본 번역기 컴포넌트는 이미 최적화되어 있습니다. 
