@@ -29,4 +29,6 @@ export enum IpcChannel {
   ApplyTranslationToPlainText = 'apply-translation-to-plain-text',
   ParseCsv = 'parse-csv',
   ApplyTranslationToCsv = 'apply-translation-to-csv',
+  ParseSubtitle = 'parse-subtitle',
+  ApplyTranslationToSubtitle = 'apply-translation-to-subtitle',
 }
