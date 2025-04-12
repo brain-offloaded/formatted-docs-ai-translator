@@ -11,6 +11,7 @@
     - [번역기 설정 구성](#번역기-설정-구성)
     - [번역기 등록 함수 추가](#번역기-등록-함수-추가)
     - [파싱 옵션 설정 구성](#파싱-옵션-설정-구성)
+  - [번역 유형 레이블 추가](#번역-유형-레이블-추가)
   - [사용자 정의 옵션 (선택 사항)](#사용자-정의-옵션-선택-사항)
   - [커스텀 번역기 동작 (선택 사항)](#커스텀-번역기-동작-선택-사항)
   - [주의사항](#주의사항)
@@ -126,6 +127,30 @@ export interface TranslationTypeToOptionsMap {
   // 새 번역 유형에 대한 옵션 DTO 매핑 추가
   [TranslationType.NewFormat]: NewFormatParserOptionsDto;
 }
+```
+
+## 번역 유형 레이블 추가
+
+새로운 번역 유형을 추가했다면, 사용자가 UI에서 선택할 수 있도록 해당 유형에 대한 레이블을 추가해야 합니다. `src/react/constants/TranslationTypeMapping.ts` 파일의 `getTranslationTypeLabel` 함수에 새 번역 유형에 대한 case를 추가합니다:
+
+```typescript
+export const getTranslationTypeLabel = (type: TranslationType): string => {
+  switch (type) {
+    case TranslationType.Json:
+      return 'JSON 번역';
+    case TranslationType.Text:
+      return '텍스트 번역';
+    case TranslationType.Csv:
+      return 'CSV 번역';
+    // 새 번역 유형 레이블 추가
+    case TranslationType.NewFormat:
+      return '새 포맷 번역';
+    default:
+      // never 타입을 사용하여 컴파일 타임에 모든 케이스를 처리했는지 확인
+      const _exhaustiveCheck: never = type;
+      throw new Error(`Invalid translation type: ${_exhaustiveCheck}`);
+  }
+};
 ```
 
 ## 사용자 정의 옵션 (선택 사항)
