@@ -6,14 +6,15 @@ import { ExamplePresetRequestResponse } from '@/nest/translation/example/dto';
 import { LoggerRequestResponse } from '@/nest/logger/dto';
 import { UpdaterRequestResponse } from '@/nest/common/updater/dto';
 import { DbRequestResponse } from '@/nest/db/dto';
-
+import { CommonRequestResponse } from '@/nest/common/dto';
 type IpcRequestResponse = ParserRequestResponse &
   CacheRequestResponse &
   TranslatorRequestResponse &
   ExamplePresetRequestResponse &
   LoggerRequestResponse &
   UpdaterRequestResponse &
-  DbRequestResponse;
+  DbRequestResponse &
+  CommonRequestResponse;
 
 type invokeFunctionType = {
   <T extends IpcChannel>(
@@ -35,9 +36,6 @@ interface IpcRenderer {
 
 interface ElectronAPI {
   ipcRenderer: IpcRenderer;
-  shell: {
-    openExternal: (url: string) => Promise<void>;
-  };
 }
 
 declare global {
