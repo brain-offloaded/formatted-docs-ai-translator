@@ -42,6 +42,133 @@ interface DynamicOptionsProps {
   disabled?: boolean;
 }
 
+// 각 옵션 타입별 렌더링 컴포넌트
+interface OptionItemProps {
+  option: OptionItem;
+  value: string | number | boolean;
+  onChange: (key: string, value: string | number | boolean) => void;
+  disabled: boolean;
+}
+
+// 짧은 문자열 입력 옵션
+const ShortStringOption: React.FC<OptionItemProps> = ({ option, value, onChange, disabled }) => (
+  <TextField
+    key={option.key}
+    label={option.label}
+    value={value as string}
+    onChange={(e) => onChange(option.key, e.target.value)}
+    disabled={disabled}
+    size="small"
+    helperText={option.description}
+  />
+);
+
+// 긴 문자열 입력 옵션
+const LongStringOption: React.FC<OptionItemProps> = ({ option, value, onChange, disabled }) => (
+  <TextField
+    key={option.key}
+    label={option.label}
+    value={value as string}
+    onChange={(e) => onChange(option.key, e.target.value)}
+    disabled={disabled}
+    multiline
+    rows={4}
+    fullWidth
+    helperText={option.description}
+  />
+);
+
+// 숫자 입력 옵션
+const NumberOption: React.FC<OptionItemProps> = ({ option, value, onChange, disabled }) => (
+  <TextField
+    key={option.key}
+    label={option.label}
+    type="number"
+    value={value as number}
+    onChange={(e) => onChange(option.key, Number(e.target.value))}
+    disabled={disabled}
+    size="small"
+    helperText={option.description}
+  />
+);
+
+// 불리언 입력 옵션
+const BooleanOption: React.FC<OptionItemProps> = ({ option, value, onChange, disabled }) => (
+  <FormControlLabel
+    key={option.key}
+    control={
+      <Switch
+        checked={value as boolean}
+        onChange={(e) => onChange(option.key, e.target.checked)}
+        disabled={disabled}
+      />
+    }
+    label={
+      <>
+        {option.label}
+        <Typography variant="caption" display="block" color="text.secondary">
+          {option.description}
+        </Typography>
+      </>
+    }
+  />
+);
+
+// 열거형 선택 옵션
+const EnumOption: React.FC<OptionItemProps> = ({ option, value, onChange, disabled }) => (
+  <FormControl key={option.key} fullWidth size="small">
+    <InputLabel id={`${option.key}-label`}>{option.label}</InputLabel>
+    <Select
+      labelId={`${option.key}-label`}
+      value={value as string}
+      onChange={(e) => onChange(option.key, e.target.value)}
+      disabled={disabled}
+      label={option.label}
+    >
+      {option.enumOptions?.map((opt) => (
+        <MenuItem key={opt.value} value={opt.value}>
+          {opt.label}
+        </MenuItem>
+      ))}
+    </Select>
+    <FormHelperText>{option.description}</FormHelperText>
+  </FormControl>
+);
+
+// 옵션 타입에 따라 적절한 컴포넌트 반환
+const getOptionComponent = (props: OptionItemProps) => {
+  const { option } = props;
+
+  switch (option.type) {
+    case OptionType.SHORT_STRING:
+      return <ShortStringOption {...props} />;
+    case OptionType.LONG_STRING:
+      return <LongStringOption {...props} />;
+    case OptionType.NUMBER:
+      return <NumberOption {...props} />;
+    case OptionType.BOOLEAN:
+      return <BooleanOption {...props} />;
+    case OptionType.ENUM:
+      return <EnumOption {...props} />;
+    default:
+      return null;
+  }
+};
+
+// 옵션 타입에 따른 기본값 반환
+const getDefaultValue = (option: OptionItem) => {
+  switch (option.type) {
+    case OptionType.BOOLEAN:
+      return false;
+    case OptionType.NUMBER:
+      return 0;
+    case OptionType.ENUM:
+      return option.enumOptions?.[0]?.value || '';
+    default:
+      return '';
+  }
+};
+
 export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
   options,
   values,
@@ -68,101 +195,18 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
       {options.map((option) => {
-        const { key, label, type, description, enumOptions } = option;
-        const value =
-          values[key] ??
-          (type === OptionType.BOOLEAN
-            ? false
-            : type === OptionType.NUMBER
-              ? 0
-              : type === OptionType.ENUM && enumOptions && enumOptions.length > 0
-                ? enumOptions[0].value
-                : '');
+        const value = values[option.key] ?? getDefaultValue(option);
 
-        switch (type) {
-          case OptionType.SHORT_STRING:
-            return (
-              <TextField
-                key={key}
-                label={label}
-                value={value as string}
-                onChange={(e) => handleValueChange(key, e.target.value)}
-                disabled={disabled}
-                size="small"
-                helperText={description}
-              />
-            );
-          case OptionType.LONG_STRING:
-            return (
-              <TextField
-                key={key}
-                label={label}
-                value={value as string}
-                onChange={(e) => handleValueChange(key, e.target.value)}
-                disabled={disabled}
-                multiline
-                rows={4}
-                fullWidth
-                helperText={description}
-              />
-            );
-          case OptionType.NUMBER:
-            return (
-              <TextField
-                key={key}
-                label={label}
-                type="number"
-                value={value as number}
-                onChange={(e) => handleValueChange(key, Number(e.target.value))}
-                disabled={disabled}
-                size="small"
-                helperText={description}
-              />
-            );
-          case OptionType.BOOLEAN:
-            return (
-              <FormControlLabel
-                key={key}
-                control={
-                  <Switch
-                    checked={value as boolean}
-                    onChange={(e) => handleValueChange(key, e.target.checked)}
-                    disabled={disabled}
-                  />
-                }
-                label={
-                  <>
-                    {label}
-                    <Typography variant="caption" display="block" color="text.secondary">
-                      {description}
-                    </Typography>
-                  </>
-                }
-              />
-            );
-          case OptionType.ENUM:
-            return (
-              <FormControl key={key} fullWidth size="small">
-                <InputLabel id={`${key}-label`}>{label}</InputLabel>
-                <Select
-                  labelId={`${key}-label`}
-                  value={value as string}
-                  onChange={(e) => handleValueChange(key, e.target.value)}
-                  disabled={disabled}
-                  label={label}
-                >
-                  {enumOptions?.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-                <FormHelperText>{description}</FormHelperText>
-              </FormControl>
-            );
-          default:
-            return null;
-        }
+        return (
+          <Box key={option.key}>
+            {getOptionComponent({
+              option,
+              value,
+              onChange: handleValueChange,
+              disabled,
+            })}
+          </Box>
+        );
       })}
     </Box>
   );
