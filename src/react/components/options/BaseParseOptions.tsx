@@ -200,29 +200,27 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   }, []);
 
   return (
-    <>
+    <Box
+      sx={{
+        border: '1px solid #e0e0e0',
+        borderRadius: 2,
+        p: 2,
+        bgcolor: '#f5f5f5',
+        mb: 2,
+      }}
+    >
       {/* Settings Icon and Label */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         {label && <Typography variant="body1">{label}</Typography>}
         <Tooltip title="번역 옵션">
           <IconButton
             size="small"
-            onClick={onToggleSettings} // 전달받은 onToggleSettings 사용
-            color={showSettings ? 'primary' : 'default'} // 전달받은 showSettings 사용
+            onClick={onToggleSettings}
+            color={showSettings ? 'primary' : 'default'}
           >
             <SettingsIcon />
           </IconButton>
         </Tooltip>
-      </Box>
-
-      {/* isFile 스위치 (항상 표시) */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <FormControlLabel
-          control={
-            <Switch checked={isFileChecked} onChange={handleFileToggle} disabled={isTranslating} />
-          }
-          label="파일 경로 모드"
-        />
       </Box>
 
       {/* Settings Panel */}
@@ -230,13 +228,23 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
         <Box sx={{ mb: 2 }}>
           <DynamicOptions
             options={combinedOptionItems}
-            values={optionsValues} // Pass the derived value based on parent's state
-            onChange={handleDynamicOptionsChange} // Call handler that updates parent state
-            disabled={isTranslating || !initialOptions} // Disable if translating or parent state not yet initialized
+            values={optionsValues}
+            onChange={handleDynamicOptionsChange}
+            disabled={isTranslating || !initialOptions}
           />
         </Box>
       )}
-    </>
+
+      {/* isFile 스위치 (설정 패널 아래로 이동) */}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <FormControlLabel
+          control={
+            <Switch checked={isFileChecked} onChange={handleFileToggle} disabled={isTranslating} />
+          }
+          label="파일 경로 모드"
+        />
+      </Box>
+    </Box>
   );
 };
 
