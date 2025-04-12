@@ -3,6 +3,7 @@ import { IpcChannel } from '@/nest/common/ipc.channel';
 import { TranslatorFactory, TranslatorConfig } from './TranslatorFactory';
 import { ParseOptionsFactory, ParseOptionsConfig } from './ParseOptionsFactory';
 import { OptionType } from '../components/options/DynamicOptions';
+import { SubtitleFormatEnum } from '@/nest/parser/dto/options/subtitle-format.enum';
 
 /**
  * 모든 번역기와 파싱 옵션을 등록하는 함수
@@ -16,6 +17,9 @@ export function registerAllTranslators(): void {
 
   // CSV 파일 번역기 등록
   registerCsvTranslator();
+
+  // 자막 번역기 등록
+  registerSubtitleTranslator();
 }
 
 /**
@@ -121,4 +125,57 @@ function registerCsvTranslator(): void {
   // 번역기와 파싱 옵션 등록
   TranslatorFactory.registerTranslator(TranslationType.Csv, csvTranslatorConfig);
   ParseOptionsFactory.registerParseOptions(TranslationType.Csv, csvParseOptionsConfig);
+}
+
+/**
+ * 자막(SRT/VTT) 번역기 등록
+ */
+function registerSubtitleTranslator(): void {
+  // 번역기 설정
+  const subtitleTranslatorConfig: TranslatorConfig = {
+    options: {
+      inputLabel: '자막 입력:',
+      inputPlaceholder: '번역할 자막을 입력하거나 파일을 업로드하세요...',
+      translationType: TranslationType.Subtitle,
+      inputFieldRows: 10,
+      fileExtension: '.srt,.vtt',
+      fileLabel: '자막 파일 (SRT/VTT)',
+    },
+    parseChannel: IpcChannel.ParseSubtitle,
+    applyChannel: IpcChannel.ApplyTranslationToSubtitle,
+    formatOutput: (output: string, isFileMode: boolean): string => {
+      if (isFileMode) {
+        return '자막 번역이 완료되었습니다. 다운로드 버튼을 클릭하여 결과를 받으세요.';
+      }
+      return output;
+    },
+  };
+
+  // 파싱 옵션 설정
+  const subtitleParseOptionsConfig: ParseOptionsConfig = {
+    label: '자막 파싱 옵션',
+    optionItems: [
+      {
+        key: 'format',
+        label: '자막 형식',
+        type: OptionType.ENUM,
+        description: '자막 파일 형식 (자동 감지, SRT, VTT)',
+        enumOptions: [
+          { value: SubtitleFormatEnum.AUTO, label: '자동 감지' },
+          { value: SubtitleFormatEnum.SRT, label: 'SRT' },
+          { value: SubtitleFormatEnum.VTT, label: 'VTT (WebVTT)' },
+        ],
+      },
+      {
+        key: 'excludeMetadata',
+        label: '메타데이터 제외',
+        type: OptionType.BOOLEAN,
+        description: '번역 시 ID, 시간 정보 등 메타데이터 제외',
+      },
+    ],
+  };
+
+  // 번역기와 파싱 옵션 등록
+  TranslatorFactory.registerTranslator(TranslationType.Subtitle, subtitleTranslatorConfig);
+  ParseOptionsFactory.registerParseOptions(TranslationType.Subtitle, subtitleParseOptionsConfig);
 }

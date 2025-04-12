@@ -1,5 +1,16 @@
 import React from 'react';
-import { Box, Switch, FormControlLabel, TextField, Typography } from '@mui/material';
+import {
+  Box,
+  Switch,
+  FormControlLabel,
+  TextField,
+  Typography,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  FormHelperText,
+} from '@mui/material';
 
 // 설정 항목 타입 정의
 export enum OptionType {
@@ -7,6 +18,7 @@ export enum OptionType {
   LONG_STRING = 'long_string',
   NUMBER = 'number',
   BOOLEAN = 'boolean',
+  ENUM = 'enum',
 }
 
 // 설정 항목 인터페이스
@@ -15,6 +27,7 @@ export interface OptionItem {
   label: string; // UI에 표시될 이름
   type: OptionType;
   description: string;
+  enumOptions?: Array<{ value: string; label: string }>; // ENUM 타입에 사용될 옵션 목록
 }
 
 // 설정 값 타입
@@ -55,10 +68,16 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
       {options.map((option) => {
-        const { key, label, type, description } = option;
+        const { key, label, type, description, enumOptions } = option;
         const value =
           values[key] ??
-          (type === OptionType.BOOLEAN ? false : type === OptionType.NUMBER ? 0 : '');
+          (type === OptionType.BOOLEAN
+            ? false
+            : type === OptionType.NUMBER
+              ? 0
+              : type === OptionType.ENUM && enumOptions && enumOptions.length > 0
+                ? enumOptions[0].value
+                : '');
 
         switch (type) {
           case OptionType.SHORT_STRING:
@@ -120,6 +139,26 @@ export const DynamicOptions: React.FC<DynamicOptionsProps> = ({
                   </>
                 }
               />
+            );
+          case OptionType.ENUM:
+            return (
+              <FormControl key={key} fullWidth size="small">
+                <InputLabel id={`${key}-label`}>{label}</InputLabel>
+                <Select
+                  labelId={`${key}-label`}
+                  value={value as string}
+                  onChange={(e) => handleValueChange(key, e.target.value)}
+                  disabled={disabled}
+                  label={label}
+                >
+                  {enumOptions?.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>{description}</FormHelperText>
+              </FormControl>
             );
           default:
             return null;
