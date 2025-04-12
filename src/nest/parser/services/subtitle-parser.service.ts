@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SimpleTextPath, SimpleTranslatedTextPath } from '@/types/common';
 import { BaseParserService } from './base-parser-service';
 import { SubtitleParserOptionsDto } from '@/nest/parser/dto/options/subtitle-parser-options.dto';
+import { SubtitleFormatEnum } from '@/nest/parser/dto/options/subtitle-format.enum';
 
 /**
  * SRT/VTT 자막 파일을 파싱하는 서비스
@@ -61,28 +62,34 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
   /**
    * 자막 형식을 자동으로 감지합니다.
    */
-  private detectFormat(content: string, formatOption?: 'auto' | 'srt' | 'vtt'): 'srt' | 'vtt' {
-    if (formatOption && formatOption !== 'auto') {
-      return formatOption;
+  private detectFormat(
+    content: string,
+    formatOption?: SubtitleFormatEnum
+  ): SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT {
+    if (formatOption && formatOption !== SubtitleFormatEnum.AUTO) {
+      return formatOption as SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT;
     }
 
     // 자동 감지: VTT 헤더 확인
     if (content.trim().startsWith('WEBVTT')) {
-      return 'vtt';
+      return SubtitleFormatEnum.VTT;
     }
 
     // 기본값은 SRT 형식으로 간주
-    return 'srt';
+    return SubtitleFormatEnum.SRT;
   }
 
   /**
    * 자막 파일을 블록 단위로 분리합니다.
    */
-  private parseSubtitleBlocks(content: string, format: 'srt' | 'vtt'): SubtitleBlock[] {
+  private parseSubtitleBlocks(
+    content: string,
+    format: SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT
+  ): SubtitleBlock[] {
     // 개행 문자 정규화
     const normalizedContent = content.replace(/\r\n/g, '\n');
 
-    if (format === 'vtt') {
+    if (format === SubtitleFormatEnum.VTT) {
       return this.parseVttBlocks(normalizedContent);
     } else {
       return this.parseSrtBlocks(normalizedContent);
@@ -110,7 +117,7 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
         id,
         timeInfo,
         text,
-        format: 'srt' as const,
+        format: SubtitleFormatEnum.SRT,
       };
     });
   }
@@ -147,7 +154,7 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
         id,
         timeInfo,
         text,
-        format: 'vtt' as const,
+        format: SubtitleFormatEnum.VTT,
       };
     });
   }
@@ -155,8 +162,11 @@ export class SubtitleParserService extends BaseParserService<string, SubtitlePar
   /**
    * 번역된 블록을 자막 형식으로 조합합니다.
    */
-  private formatSubtitleBlocks(blocks: SubtitleBlock[], format: 'srt' | 'vtt'): string {
-    if (format === 'vtt') {
+  private formatSubtitleBlocks(
+    blocks: SubtitleBlock[],
+    format: SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT
+  ): string {
+    if (format === SubtitleFormatEnum.VTT) {
       return this.formatVttBlocks(blocks);
     } else {
       return this.formatSrtBlocks(blocks);
@@ -203,5 +213,5 @@ interface SubtitleBlock {
   /** 자막 텍스트 */
   text: string;
   /** 자막 형식 */
-  format: 'srt' | 'vtt';
+  format: SubtitleFormatEnum.SRT | SubtitleFormatEnum.VTT;
 }
