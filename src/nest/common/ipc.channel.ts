@@ -31,4 +31,5 @@ export enum IpcChannel {
   ApplyTranslationToCsv = 'apply-translation-to-csv',
   ParseSubtitle = 'parse-subtitle',
   ApplyTranslationToSubtitle = 'apply-translation-to-subtitle',
+  OpenExternalUrl = 'open-external-url',
 }

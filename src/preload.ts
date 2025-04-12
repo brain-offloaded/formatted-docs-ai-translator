@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, shell } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 import { IpcChannel } from './nest/common/ipc.channel';
 
 contextBridge.exposeInMainWorld('electron', {
@@ -22,8 +22,5 @@ contextBridge.exposeInMainWorld('electron', {
 
       throw new Error(`IPC 채널 "${channel}"은(는) 허용되지 않습니다.`);
     },
-  },
-  shell: {
-    openExternal: (url: string) => shell.openExternal(url),
   },
 });

@@ -53,9 +53,15 @@ const BugReportPanel: React.FC = () => {
     setSnackbarOpen(true);
   };
 
-  const handleOpenUrl = (url: string) => {
+  const handleOpenUrl = async (url: string) => {
     try {
-      window.electron.shell.openExternal(url);
+      const result = await window.electron.ipcRenderer.invoke(IpcChannel.OpenExternalUrl, {
+        url,
+      });
+      if (!result || !result.success) {
+        console.error('링크를 외부 브라우저에서 열지 못했습니다:', result?.message);
+        showSnackbar('링크를 외부 브라우저에서 열지 못했습니다.');
+      }
     } catch (error) {
       console.error('링크를 외부 브라우저에서 열지 못했습니다:', error);
       showSnackbar('링크를 외부 브라우저에서 열지 못했습니다.');
