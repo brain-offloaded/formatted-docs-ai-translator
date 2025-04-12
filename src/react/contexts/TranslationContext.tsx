@@ -71,7 +71,7 @@ const TranslationContext = createContext<TranslationContextType | undefined>(und
 // TranslationProvider 컴포넌트
 export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 상태 정의
-  const [translationType, setTranslationType] = useState<TranslationType>(TranslationType.Json);
+  const [translationType, setTranslationType] = useState<TranslationType>(TranslationType.Text);
   const [isTranslating, setIsTranslating] = useState(false);
   const [fileState, setFileState] = useState<FileState>({
     selectedFiles: null,
