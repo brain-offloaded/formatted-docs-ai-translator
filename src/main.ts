@@ -72,6 +72,9 @@ function createWindow() {
     useContentSize: true,
   });
 
+  // 창을 최대화 상태로 시작
+  mainWindow.maximize();
+
   // 한글 IME 입력 문제 해결
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.key === 'Process' && input.type === 'keyDown') {
