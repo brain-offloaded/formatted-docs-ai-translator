@@ -100,6 +100,9 @@ export class ParseOptionsRegistry {
       }
     );
 
+    // displayName 속성 추가
+    OptionComponent.displayName = `${type}ParseOptions`;
+
     // 캐시에 저장
     this.componentCache.set(type, OptionComponent);
 

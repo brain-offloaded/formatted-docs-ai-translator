@@ -102,6 +102,9 @@ export class TranslatorRegistry {
       }
     );
 
+    // displayName 속성 추가
+    TranslatorComponent.displayName = `${type}Translator`;
+
     // 캐시에 저장
     this.componentCache.set(type, TranslatorComponent);
 
