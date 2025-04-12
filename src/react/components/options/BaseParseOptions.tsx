@@ -212,7 +212,7 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
       {/* Settings Icon and Label */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         {label && <Typography variant="body1">{label}</Typography>}
-        <Tooltip title="번역 옵션">
+        <Tooltip title="파싱(텍스트 추출) 옵션">
           <IconButton
             size="small"
             onClick={onToggleSettings}
