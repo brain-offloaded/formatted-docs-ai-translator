@@ -28,6 +28,7 @@ export class TranslatorRegistry {
   private static instance: TranslatorRegistry;
   private registry: Map<TranslationType, TranslatorConfig> = new Map();
   // 캐시된 번역기 컴포넌트 저장
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private componentCache: Map<TranslationType, TranslatorComponentType<any>> = new Map();
 
   private constructor() {}
@@ -102,9 +103,9 @@ export class TranslatorRegistry {
     );
 
     // 캐시에 저장
-    this.componentCache.set(type, TranslatorComponent as TranslatorComponentType<any>);
+    this.componentCache.set(type, TranslatorComponent);
 
-    return TranslatorComponent as TranslatorComponentType<T>;
+    return TranslatorComponent;
   }
 }
 

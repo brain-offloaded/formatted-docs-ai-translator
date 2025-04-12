@@ -26,6 +26,7 @@ export class ParseOptionsRegistry {
   private static instance: ParseOptionsRegistry;
   private registry: Map<TranslationType, ParseOptionsConfig> = new Map();
   // 캐시된 옵션 컴포넌트 저장
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private componentCache: Map<TranslationType, OptionComponentType<any>> = new Map();
 
   private constructor() {}
@@ -100,9 +101,9 @@ export class ParseOptionsRegistry {
     );
 
     // 캐시에 저장
-    this.componentCache.set(type, OptionComponent as OptionComponentType<any>);
+    this.componentCache.set(type, OptionComponent);
 
-    return OptionComponent as OptionComponentType<T>;
+    return OptionComponent;
   }
 }
 
