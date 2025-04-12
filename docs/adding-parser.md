@@ -10,6 +10,7 @@
   - [DTO 파일 만들기](#dto-파일-만들기)
     - [옵션 DTO 생성](#옵션-dto-생성)
     - [Request DTO 생성](#request-dto-생성)
+    - [Response DTO 생성](#response-dto-생성)
     - [Apply DTO 생성](#apply-dto-생성)
     - [index.ts에 등록](#indexts에-등록)
   - [파서 구현체 작성](#파서-구현체-작성)
@@ -51,7 +52,7 @@ export enum IpcChannel {
 
 ```typescript
 // src/nest/parser/dto/options/new-format-parser-options.dto.ts
-import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
+import { BaseParseOptionsDto } from '../options/base-parse-options.dto';
 
 export class NewFormatParserOptionsDto extends BaseParseOptionsDto {
   // 파서에 필요한 추가 옵션들 (예: sourceLanguage, isFile 외)
@@ -72,46 +73,62 @@ import { BaseParseRequestDto } from '@/nest/parser/dto/request/base-parse-reques
 export class ParseNewFormatRequestDto extends BaseParseRequestDto<NewFormatParserOptionsDto> {}
 ```
 
+### Response DTO 생성
+
+각 파서는 전용 응답 DTO를 가져야 합니다. 모든 파싱 응답 DTO는 `BaseParseResponseDto`를 상속받아 만듭니다. `BaseParseResponseDto`는 `success`, `message`, `targets` 속성을 가지고 있으며, 여기서 `targets`는 파싱된 번역 대상 목록입니다. 일반적으로 `never` 타입을 제네릭 파라미터로 사용합니다. 이는 extra 데이터가 없음을 의미합니다. 필요할 경우 extra를 위한 dto를 직접 구현하여 사용합니다.
+
+```typescript
+// src/nest/parser/dto/response/parse-new-format-response.dto.ts
+import { BaseParseResponseDto } from '@/nest/parser/dto/response/base-parse-response.dto';
+
+export class ParseNewFormatResponseDto extends BaseParseResponseDto<never> {}
+```
+
 ### Apply DTO 생성
 
 모든 파싱 요청 DTO에는 반드시 대응되는 번역 적용 DTO가 있어야 합니다. `src/nest/parser/dto/request` 디렉토리에 새 번역 적용 DTO 파일을 생성합니다. 모든 번역 적용 DTO는 `BaseApplyRequestDto`를 상속합니다. `BaseApplyRequestDto`는 `content` (원본 내용), `translatedTextPaths` (번역 결과), `options` (파서 옵션) 속성을 가집니다.
+
+`TExtra` 타입 파라미터는 TextPath, TranslatedTextPath에서 사용되는 추가 메타데이터의 타입입니다. 대부분의 경우 `never` 타입을 사용하여 추가 메타데이터가 없음을 나타냅니다.
 
 ```typescript
 // src/nest/parser/dto/request/apply-translation-to-new-format-request.dto.ts
 import { NewFormatParserOptionsDto } from '@/nest/parser/dto/options/new-format-parser-options.dto';
 import { BaseApplyRequestDto } from '@/nest/parser/dto/request/base-apply-request.dto';
 
-export class ApplyTranslationToNewFormatRequestDto extends BaseApplyRequestDto<NewFormatParserOptionsDto> {}
+export class ApplyTranslationToNewFormatRequestDto extends BaseApplyRequestDto<
+  never,
+  NewFormatParserOptionsDto
+> {}
 ```
 
 > 중요: Request DTO와 Apply DTO는 반드시 동일한 옵션 DTO 타입(`NewFormatParserOptionsDto`)을 사용해야 합니다. 이는 파싱과 번역 적용 과정에서 일관된 옵션을 사용하기 위함입니다.
 
 ### index.ts에 등록
 
-`src/nest/parser/dto/index.ts` 파일에 새로 만든 Request DTO와 Apply DTO를 등록합니다. `Response` 타입으로는 각각 `BaseParseResponseDto`와 `BaseApplyResponseDto`를 사용합니다.
+`src/nest/parser/dto/index.ts` 파일에 새로 만든 Request DTO, Response DTO, Apply DTO를 등록합니다.
 
 ```typescript
 // src/nest/parser/dto/index.ts
-
-// import 추가
+import { IpcChannel } from '@/nest/common/ipc.channel';
+// 기존 imports...
 import { ParseNewFormatRequestDto } from './request/parse-new-format-request.dto';
+import { ParseNewFormatResponseDto } from './response/parse-new-format-response.dto';
 import { ApplyTranslationToNewFormatRequestDto } from './request/apply-translation-to-new-format-request.dto';
-import { BaseParseResponseDto } from './response/base-parse-response.dto';
 import { BaseApplyResponseDto } from './response/base-apply-response.dto';
 
 export class ParserRequestResponse {
-  // 기존 파서들
+  // 기존 파서들...
 
   // 새 파서 추가 - 반드시 Apply와 함께 추가
   [IpcChannel.ParseNewFormat]: {
     Request: ParseNewFormatRequestDto;
-    Response: BaseParseResponseDto; // BaseParseResponseDto 사용
+    Response: ParseNewFormatResponseDto; // 특화된 응답 DTO 사용
   };
 
   // Apply 추가 - 반드시 Parse와 쌍으로 추가
   [IpcChannel.ApplyTranslationToNewFormat]: {
     Request: ApplyTranslationToNewFormatRequestDto;
-    Response: BaseApplyResponseDto; // BaseApplyResponseDto 사용
+    Response: BaseApplyResponseDto; // Apply는 BaseApplyResponseDto 사용
   };
 }
 ```
@@ -127,44 +144,41 @@ export class ParserRequestResponse {
 `BaseParserService`는 다음과 같은 제네릭 타입을 받습니다:
 -   `TargetFormat`: 파싱 결과로 변환될 데이터의 형태 (예: `string`, `Record<string, unknown>`)
 -   `ParserOptions`: 해당 파서에서 사용할 옵션 DTO 타입 (예: `NewFormatParserOptionsDto`)
--   `ParsedInformation`: `getTranslationTargets` 메서드가 반환할 번역 대상 정보의 타입 (기본값: `TextPath`)
--   `TranslatedInformation`: `applyTranslation` 메서드가 받을 번역 결과 정보의 타입 (기본값: `TranslatedTextPath`)
+-   `ParsedInformation`: `getTranslationTargets` 메서드가 반환할 번역 대상 정보의 타입 (기본값: `SimpleTextPath` = `TextPath<never>`)
+-   `TranslatedInformation`: `applyTranslation` 메서드가 받을 번역 결과 정보의 타입 (기본값: `SimpleTranslatedTextPath` = `TranslatedTextPath<never>`)
 
-`BaseParserService`는 `readFile`, `readString`, `read` 메서드의 기본 구현을 제공합니다. 필요에 따라 이 메서드들을 오버라이드할 수 있습니다.
-`getTranslationTargets`와 `applyTranslation` 추상 메서드는 반드시 구현해야 합니다.
+간단한 파서의 경우 첫 두 개의 타입 매개변수만 지정하고, 나머지는 기본값을 사용할 수 있습니다:
 
 ```typescript
 // src/nest/parser/services/new-format-parser.service.ts
 import { Injectable } from '@nestjs/common';
 import { BaseParserService } from './base-parser-service';
 import { NewFormatParserOptionsDto } from '@/nest/parser/dto/options/new-format-parser-options.dto';
-import { TextPath, TranslatedTextPath } from '@/types/common'; // 필요한 타입 import
+import { SimpleTextPath, SimpleTranslatedTextPath } from '@/types/common'; // 필요한 타입 import
 
 @Injectable()
 export class NewFormatParserService extends BaseParserService<
-  string, // 예시: 파싱 결과가 문자열 형태일 경우
-  NewFormatParserOptionsDto,
-  TextPath, // 기본값 사용 시 생략 가능
-  TranslatedTextPath // 기본값 사용 시 생략 가능
+  string, // 파싱 결과가 문자열 형태일 경우
+  NewFormatParserOptionsDto
 > {
   // BaseParserService의 추상 메서드 구현 (필수)
 
   async getTranslationTargets(params: {
     source: string; // content (파일 경로 또는 문자열)
     options: NewFormatParserOptionsDto;
-  }): Promise<TextPath[]> {
+  }): Promise<SimpleTextPath[]> {
     // 1. params.source와 params.options.isFile을 사용하여 데이터를 읽음 (this.read(params) 사용 권장)
     const targetData: string = await this.read(params);
 
     // 2. targetData에서 번역 대상(TextPath) 목록 추출 로직 구현
-    const targets: TextPath[] = [];
+    const targets: SimpleTextPath[] = [];
     // ... 로직 구현 ...
     return targets;
   }
 
   async applyTranslation(params: {
     source: string; // original content (파일 경로 또는 문자열)
-    translations: TranslatedTextPath[]; // 번역된 텍스트 목록
+    translations: SimpleTranslatedTextPath[]; // 번역된 텍스트 목록
     options: NewFormatParserOptionsDto;
   }): Promise<string> { // TargetFormat과 동일한 타입 반환
     // 1. params.source와 params.options.isFile을 사용하여 원본 데이터를 읽음 (this.read(params) 사용 권장)
@@ -184,6 +198,8 @@ export class NewFormatParserService extends BaseParserService<
   // }
 }
 ```
+
+`SimpleTextPath`와 `SimpleTranslatedTextPath`는 각각 `TextPath<never>`와 `TranslatedTextPath<never>`의 별칭으로, 추가 메타데이터가 없는 단순한 경우에 사용됩니다.
 
 ### 파서 모듈에 서비스 등록
 
@@ -221,7 +237,7 @@ export class ParserModule {}
 import { Injectable } from '@nestjs/common';
 import { NewFormatParserService } from './new-format-parser.service'; // 새 서비스 import
 import { NewFormatParserOptionsDto } from '@/nest/parser/dto/options/new-format-parser-options.dto'; // 새 옵션 DTO import
-import { TextPath, TranslatedTextPath } from '@/types/common';
+import { SimpleTextPath, SimpleTranslatedTextPath } from '@/types/common';
 // 기타 imports...
 
 @Injectable()
@@ -237,7 +253,7 @@ export class ParserService {
   public async getNewFormatTranslationTargets(
     content: string,
     options: NewFormatParserOptionsDto
-  ): Promise<TextPath[]> {
+  ): Promise<SimpleTextPath[]> {
     return await this.newFormatParserService.getTranslationTargets({
       source: content,
       options,
@@ -247,7 +263,7 @@ export class ParserService {
   // 새 파서를 위한 applyTranslation 메서드 추가
   public async applyNewFormatTranslation(
     content: string,
-    translations: TranslatedTextPath[],
+    translations: SimpleTranslatedTextPath[],
     options: NewFormatParserOptionsDto
   ): Promise<string> { // NewFormatParserService의 TargetFormat과 일치시켜야 함
     return await this.newFormatParserService.applyTranslation({
@@ -267,15 +283,15 @@ export class ParserService {
 // src/nest/parser/parser.ipc.handler.ts
 import { Injectable } from '@nestjs/common';
 import { IpcMainInvokeEvent } from 'electron';
-import { InvokeFunctionRequest, InvokeFunctionResponse } from '../../types/electron'; // 경로 확인 필요
-import { IpcHandler, HandleIpc } from '../common/ipc.handler'; // 경로 확인 필요
-import { IpcChannel } from '../common/ipc.channel'; // 경로 확인 필요
-import { LoggerService } from '../logger/logger.service'; // 경로 확인 필요
+import { InvokeFunctionRequest, InvokeFunctionResponse } from '../../types/electron';
+import { IpcHandler, HandleIpc } from '../common/ipc.handler';
+import { IpcChannel } from '../common/ipc.channel';
+import { LoggerService } from '../logger/logger.service';
 import { ParserService } from './services/parser.service';
 // 필요한 DTO import 추가
 import { ParseNewFormatRequestDto } from './dto/request/parse-new-format-request.dto';
+import { ParseNewFormatResponseDto } from './dto/response/parse-new-format-response.dto';
 import { ApplyTranslationToNewFormatRequestDto } from './dto/request/apply-translation-to-new-format-request.dto';
-import { BaseParseResponseDto } from './dto/response/base-parse-response.dto';
 import { BaseApplyResponseDto } from './dto/response/base-apply-response.dto';
 
 @Injectable()
@@ -294,7 +310,7 @@ export class ParserIpcHandler extends IpcHandler {
   async parseNewFormat(
     event: IpcMainInvokeEvent,
     { content, options }: InvokeFunctionRequest<IpcChannel.ParseNewFormat> // Request DTO 사용
-  ): Promise<InvokeFunctionResponse<IpcChannel.ParseNewFormat>> { // Response DTO 사용 (BaseParseResponseDto 기반)
+  ): Promise<InvokeFunctionResponse<IpcChannel.ParseNewFormat>> { // Response DTO 사용
     try {
       const targets = await this.parserService.getNewFormatTranslationTargets(content, options);
       return {
@@ -317,7 +333,7 @@ export class ParserIpcHandler extends IpcHandler {
   async applyTranslationToNewFormat(
     event: IpcMainInvokeEvent,
     { content, translatedTextPaths, options }: InvokeFunctionRequest<IpcChannel.ApplyTranslationToNewFormat> // Request DTO 사용
-  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToNewFormat>> { // Response DTO 사용 (BaseApplyResponseDto 기반)
+  ): Promise<InvokeFunctionResponse<IpcChannel.ApplyTranslationToNewFormat>> { // Response DTO 사용
     try {
       const result = await this.parserService.applyNewFormatTranslation(
         content,
@@ -339,10 +355,7 @@ export class ParserIpcHandler extends IpcHandler {
     }
   }
 }
-
 ```
-
-> 참고: 위 코드의 `InvokeFunctionRequest` 및 `InvokeFunctionResponse` 타입 경로는 실제 프로젝트 구조에 맞게 조정해야 할 수 있습니다. `BaseResponseDto`를 상속하는 `BaseParseResponseDto`, `BaseApplyResponseDto`가 실제 응답 구조를 정의합니다.
 
 ## Invoke 호출
 
@@ -403,11 +416,12 @@ if (applyResult.success) {
 1.  **IPC 채널 추가:** `ipc.channel.ts`에 Parse, Apply 채널 쌍 추가
 2.  **옵션 DTO 생성:** `dto/options/`에 `BaseParseOptionsDto` 상속 DTO 생성
 3.  **Request DTO 생성:** `dto/request/`에 `BaseParseRequestDto` 상속 DTO 생성
-4.  **Apply DTO 생성:** `dto/request/`에 `BaseApplyRequestDto` 상속 DTO 생성
-5.  **dto/index.ts 등록:** 생성한 DTO들을 `ParserRequestResponse`에 등록
-6.  **파서 서비스 생성:** `services/`에 `BaseParserService` 상속 서비스 생성 (`getTranslationTargets`, `applyTranslation` 구현)
-7.  **파서 모듈 등록:** `parser.module.ts`의 `providers`에 새 파서 서비스 등록
-8.  **ParserService 수정:** `services/parser.service.ts`에 새 파서 서비스 주입 및 관련 메서드 추가
-9.  **IPC 핸들러 수정:** `parser.ipc.handler.ts`에 `@HandleIpc` 데코레이터로 새 채널 핸들러 추가 (ParserService 호출)
+4.  **Response DTO 생성:** `dto/response/`에 `BaseParseResponseDto` 상속 DTO 생성
+5.  **Apply DTO 생성:** `dto/request/`에 `BaseApplyRequestDto` 상속 DTO 생성
+6.  **dto/index.ts 등록:** 생성한 DTO들을 `ParserRequestResponse`에 등록
+7.  **파서 서비스 생성:** `services/`에 `BaseParserService` 상속 서비스 생성 (`getTranslationTargets`, `applyTranslation` 구현)
+8.  **파서 모듈 등록:** `parser.module.ts`의 `providers`에 새 파서 서비스 등록
+9.  **ParserService 수정:** `services/parser.service.ts`에 새 파서 서비스 주입 및 관련 메서드 추가
+10. **IPC 핸들러 수정:** `parser.ipc.handler.ts`에 `@HandleIpc` 데코레이터로 새 채널 핸들러 추가 (ParserService 호출)
 
 이렇게 하면 새로운 파서가 프로젝트에 완전히 통합됩니다. 
