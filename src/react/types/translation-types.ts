@@ -23,6 +23,9 @@ export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParse
   optionItems?: OptionItem[]; // 동적 옵션 항목 배열
   // UI 관련 속성 추가
   label?: string;
+  // 설정 패널 표시 여부 상태 (상태 끌어올리기)
+  showSettings?: boolean;
+  onToggleSettings?: () => void;
 }
 
 /**

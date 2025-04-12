@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { BaseTranslator, BaseTranslatorOptions } from '../components/translators/BaseTranslator';
 import { TranslationType } from '../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
@@ -27,6 +27,8 @@ export interface TranslatorConfig {
 export class TranslatorRegistry {
   private static instance: TranslatorRegistry;
   private registry: Map<TranslationType, TranslatorConfig> = new Map();
+  // 캐시된 번역기 컴포넌트 저장
+  private componentCache: Map<TranslationType, TranslatorComponentType<any>> = new Map();
 
   private constructor() {}
 
@@ -44,6 +46,8 @@ export class TranslatorRegistry {
    */
   public register(type: TranslationType, config: TranslatorConfig): void {
     this.registry.set(type, config);
+    // 등록 시 캐시 초기화
+    this.componentCache.delete(type);
   }
 
   /**
@@ -62,6 +66,46 @@ export class TranslatorRegistry {
   public getAllTypes(): TranslationType[] {
     return Array.from(this.registry.keys());
   }
+
+  /**
+   * 캐시된 번역기 컴포넌트 가져오기 또는 생성
+   * @param type 번역 타입
+   * @returns 번역기 컴포넌트
+   */
+  public getOrCreateComponent<T extends TranslationType>(type: T): TranslatorComponentType<T> {
+    // 캐시에서 확인
+    const cachedComponent = this.componentCache.get(type) as TranslatorComponentType<T>;
+    if (cachedComponent) {
+      return cachedComponent;
+    }
+
+    // 없으면 생성
+    const config = this.getConfig(type);
+    if (!config) {
+      throw new Error(`번역기 설정을 찾을 수 없습니다: ${type}`);
+    }
+
+    // 메모이제이션된 번역기 컴포넌트 생성
+    const TranslatorComponent = memo(
+      (props: { parserOptions?: TranslationTypeToOptionsMap[T] | null }) => {
+        return (
+          <BaseTranslator
+            options={config.options}
+            parseChannel={config.parseChannel}
+            translateChannel={config.translateChannel || IpcChannel.TranslateTextArray}
+            applyChannel={config.applyChannel}
+            formatOutput={config.formatOutput}
+            parserOptions={props.parserOptions as TranslationTypeToOptionsMap[T]}
+          />
+        );
+      }
+    );
+
+    // 캐시에 저장
+    this.componentCache.set(type, TranslatorComponent as TranslatorComponentType<any>);
+
+    return TranslatorComponent as TranslatorComponentType<T>;
+  }
 }
 
 /**
@@ -76,26 +120,7 @@ export class TranslatorFactory {
    * @returns 번역기 컴포넌트
    */
   public static createTranslator<T extends TranslationType>(type: T): TranslatorComponentType<T> {
-    const config = this.registry.getConfig(type);
-    if (!config) {
-      throw new Error(`번역기 설정을 찾을 수 없습니다: ${type}`);
-    }
-
-    // 번역기 컴포넌트 생성 함수
-    const TranslatorComponent: TranslatorComponentType<T> = ({ parserOptions }) => {
-      return (
-        <BaseTranslator
-          options={config.options}
-          parseChannel={config.parseChannel}
-          translateChannel={config.translateChannel || IpcChannel.TranslateTextArray}
-          applyChannel={config.applyChannel}
-          formatOutput={config.formatOutput}
-          parserOptions={parserOptions as TranslationTypeToOptionsMap[T]}
-        />
-      );
-    };
-
-    return TranslatorComponent;
+    return this.registry.getOrCreateComponent(type);
   }
 
   /**

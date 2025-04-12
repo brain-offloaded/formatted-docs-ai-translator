@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
@@ -30,7 +30,7 @@ const loadOptionsFromLocalStorage = <T extends BaseParseOptionsDto>(
   return null;
 };
 
-// 로컬 스토리지에 옵션 저장
+// 로컬 스토리지에 옵션 저장 (디바운스 포함)
 const saveOptionsToLocalStorage = <T extends BaseParseOptionsDto>(
   options: T,
   translationType?: TranslationType
@@ -50,16 +50,33 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   isTranslating,
   optionItems,
   label,
+  showSettings, // props로 showSettings 받기
+  onToggleSettings, // props로 onToggleSettings 받기
 }: BaseParseOptionsProps<T>): React.ReactElement => {
-  // ConfigStore and sourceLanguage
+  // ConfigStore and sourceLanguage - 메모이제이션
   const configStore = useMemo(() => ConfigStore.getInstance(), []);
   const sourceLanguage = useMemo(() => configStore.getConfig().sourceLanguage, [configStore]);
 
-  // Settings panel visibility
-  const [showSettings, setShowSettings] = useState(false);
-  const toggleSettings = useCallback(() => setShowSettings((prev) => !prev), []);
+  // 이전 옵션 저장을 위한 ref 사용
+  const prevOptionsRef = useRef<T | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 결합된 옵션 아이템 - 항상 isFile 옵션 포함
+  // 디바운스된 저장 함수
+  const debouncedSaveOptions = useCallback(
+    (options: T) => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      saveTimeoutRef.current = setTimeout(() => {
+        saveOptionsToLocalStorage(options, translationType);
+        saveTimeoutRef.current = null;
+      }, 300);
+    },
+    [translationType]
+  );
+
+  // 결합된 옵션 아이템 - 항상 isFile 옵션 포함, 메모이제이션으로 불필요한 계산 방지
   const combinedOptionItems = useMemo(() => {
     const baseItems = optionItems || [];
     // isFile 옵션이 기존 아이템에 있다면 제거
@@ -70,6 +87,16 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   useEffect(() => {
     // Ensure callbacks and type are available
     if (!onOptionsChange || !translationType) {
+      return;
+    }
+
+    // 이전 옵션과 새 옵션이 동일한 경우 불필요한 업데이트 방지
+    if (
+      initialOptions &&
+      prevOptionsRef.current &&
+      JSON.stringify(initialOptions) === JSON.stringify(prevOptionsRef.current) &&
+      initialOptions.sourceLanguage === sourceLanguage
+    ) {
       return;
     }
 
@@ -90,26 +117,34 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
 
       if (optionsToSet) {
         onOptionsChange(optionsToSet); // Update parent state
-        // No need to save here, as loading/defaulting handles the initial state
-        // saveOptionsToLocalStorage(optionsToSet, translationType);
+        prevOptionsRef.current = optionsToSet;
       }
     } else if (initialOptions.sourceLanguage !== sourceLanguage) {
       // Parent state exists, but sourceLanguage needs update
       const updatedOptions = { ...initialOptions, sourceLanguage };
       onOptionsChange(updatedOptions);
+      prevOptionsRef.current = updatedOptions;
       // Save the update with the correct sourceLanguage
-      saveOptionsToLocalStorage(updatedOptions, translationType);
+      debouncedSaveOptions(updatedOptions);
     }
-    // We depend on initialOptions being potentially null/defined,
-    // and its sourceLanguage value vs the current sourceLanguage.
-    // translationType and onOptionsChange are also dependencies.
-  }, [translationType, initialOptions, onOptionsChange, sourceLanguage]);
+  }, [translationType, initialOptions, onOptionsChange, sourceLanguage, debouncedSaveOptions]);
 
   // Handler for changes from DynamicOptions
   const handleDynamicOptionsChange = useCallback(
     (changedValues: OptionsValues) => {
       // Ensure parent state exists before updating
       if (onOptionsChange && initialOptions) {
+        // 변경된 값이 실제로 변경되었는지 확인
+        let hasChanged = false;
+        for (const [key, value] of Object.entries(changedValues)) {
+          if (initialOptions[key as keyof T] !== value) {
+            hasChanged = true;
+            break;
+          }
+        }
+
+        if (!hasChanged) return;
+
         const updatedOptions = {
           ...initialOptions,
           ...changedValues, // Apply changes from DynamicOptions
@@ -117,28 +152,33 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
         } as T;
 
         onOptionsChange(updatedOptions); // Update parent state
-        saveOptionsToLocalStorage(updatedOptions, translationType); // Save changes
+        prevOptionsRef.current = updatedOptions;
+        debouncedSaveOptions(updatedOptions); // 디바운스된 저장 사용
       }
-      // If initialOptions is null, the useEffect above should handle initialization shortly.
-      // We avoid updating based on potentially stale state here.
     },
-    [onOptionsChange, initialOptions, translationType, sourceLanguage]
+    [onOptionsChange, initialOptions, sourceLanguage, debouncedSaveOptions]
   );
 
   // isFile 토글 핸들러
   const handleFileToggle = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (onOptionsChange && initialOptions) {
+        const isFile = event.target.checked;
+
+        // 현재 값과 동일하면 불필요한 업데이트 방지
+        if (initialOptions.isFile === isFile) return;
+
         const updatedOptions = {
           ...initialOptions,
-          isFile: event.target.checked,
+          isFile,
         } as T;
 
         onOptionsChange(updatedOptions);
-        saveOptionsToLocalStorage(updatedOptions, translationType);
+        prevOptionsRef.current = updatedOptions;
+        debouncedSaveOptions(updatedOptions);
       }
     },
-    [onOptionsChange, initialOptions, translationType]
+    [onOptionsChange, initialOptions, debouncedSaveOptions]
   );
 
   // Prepare values for DynamicOptions - use parent's state or empty object if null
@@ -146,6 +186,18 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
     // Provide an empty object if initialOptions is null to avoid errors in DynamicOptions
     return initialOptions ? { ...(initialOptions as unknown as OptionsValues) } : {};
   }, [initialOptions]);
+
+  // 메모이제이션된 isFile 값
+  const isFileChecked = useMemo(() => initialOptions?.isFile || false, [initialOptions?.isFile]);
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -155,8 +207,8 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
         <Tooltip title="번역 옵션">
           <IconButton
             size="small"
-            onClick={toggleSettings}
-            color={showSettings ? 'primary' : 'default'}
+            onClick={onToggleSettings} // 전달받은 onToggleSettings 사용
+            color={showSettings ? 'primary' : 'default'} // 전달받은 showSettings 사용
           >
             <SettingsIcon />
           </IconButton>
@@ -167,25 +219,23 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         <FormControlLabel
           control={
-            <Switch
-              checked={initialOptions?.isFile || false}
-              onChange={handleFileToggle}
-              disabled={isTranslating}
-            />
+            <Switch checked={isFileChecked} onChange={handleFileToggle} disabled={isTranslating} />
           }
           label="파일 경로 모드"
         />
       </Box>
 
       {/* Settings Panel */}
-      <Box sx={{ display: showSettings ? 'block' : 'none', mb: 2 }}>
-        <DynamicOptions
-          options={combinedOptionItems}
-          values={optionsValues} // Pass the derived value based on parent's state
-          onChange={handleDynamicOptionsChange} // Call handler that updates parent state
-          disabled={isTranslating || !initialOptions} // Disable if translating or parent state not yet initialized
-        />
-      </Box>
+      {showSettings && (
+        <Box sx={{ mb: 2 }}>
+          <DynamicOptions
+            options={combinedOptionItems}
+            values={optionsValues} // Pass the derived value based on parent's state
+            onChange={handleDynamicOptionsChange} // Call handler that updates parent state
+            disabled={isTranslating || !initialOptions} // Disable if translating or parent state not yet initialized
+          />
+        </Box>
+      )}
     </>
   );
 };

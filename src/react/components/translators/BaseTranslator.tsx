@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
@@ -73,21 +73,32 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   parserOptions,
 }: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
-  const configStore = ConfigStore.getInstance();
+  const configStore = useMemo(() => ConfigStore.getInstance(), []);
 
-  // 내부 옵션 상태
-  const [options] = useState(initialOptions);
+  // 이전 입력값 참조 저장용 ref
+  const prevInputRef = useRef<string | string[]>('');
+  const prevParserOptionsRef = useRef<T | null>(null);
 
-  // 현재 파일 입력 모드인지 확인 (parserOptions의 isFile 값으로 결정)
-  const currentIsFileInput = useMemo(() => parserOptions?.isFile || false, [parserOptions]);
+  // 현재 파일 입력 모드인지 확인 (parserOptions의 isFile 값으로 결정) - 메모이제이션
+  const currentIsFileInput = useMemo(() => parserOptions?.isFile || false, [parserOptions?.isFile]);
 
   // 입력 상태 초기화
   const [input, setInput] = useState<string | string[]>(currentIsFileInput ? [] : '');
 
   // isFile 변경 시 입력 초기화
   useEffect(() => {
-    setInput(currentIsFileInput ? [] : '');
-  }, [currentIsFileInput]);
+    // parserOptions가 달라진 경우에만 입력 초기화
+    if (
+      prevParserOptionsRef.current?.isFile !== parserOptions?.isFile ||
+      JSON.stringify(prevParserOptionsRef.current) !== JSON.stringify(parserOptions)
+    ) {
+      setInput(currentIsFileInput ? [] : '');
+      // null은 허용하지만 undefined는 허용하지 않도록 수정
+      if (parserOptions !== undefined) {
+        prevParserOptionsRef.current = parserOptions;
+      }
+    }
+  }, [currentIsFileInput, parserOptions]);
 
   // Context에서 상태와 함수 가져오기
   const {
@@ -102,23 +113,44 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     handleClearFiles,
   } = useTranslation();
 
-  // 유효성 검증 함수
+  // 유효성 검증 함수 - 메모이제이션
   const validateInput = useMemo(
-    () => options.validateInput || getDefaultValidatorByMode(options.translationType),
-    [options.validateInput, options.translationType]
+    () => initialOptions.validateInput || getDefaultValidatorByMode(initialOptions.translationType),
+    [initialOptions.validateInput, initialOptions.translationType]
   );
 
-  // 입력 변경 핸들러
+  // 입력 변경 핸들러 - 불필요한 렌더링 방지
   const handleInputChange = useCallback((value: string | string[]) => {
-    setInput(value);
+    setInput((prevInput) => {
+      // 배열이면 길이와 내용 비교
+      if (Array.isArray(value) && Array.isArray(prevInput)) {
+        if (
+          value.length === prevInput.length &&
+          value.every((val, index) => val === prevInput[index])
+        ) {
+          return prevInput;
+        }
+      } else if (value === prevInput) {
+        // 문자열이면 단순 비교
+        return prevInput;
+      }
+
+      prevInputRef.current = value;
+      return value;
+    });
   }, []);
 
   // 파일 입력 변경 핸들러
   const handleFileChange = useCallback(
     (files: File[] | null) => {
-      // 파일 경로 배열로 변환하거나 저장하는 로직을 구현
-      // 여기서는 간단하게 파일명 배열을 사용
+      // 파일 경로 배열로 변환
       const filePaths = files ? files.map((file) => file.path) : [];
+
+      // 이전 입력값과 같으면 업데이트하지 않음
+      if (JSON.stringify(filePaths) === JSON.stringify(prevInputRef.current)) {
+        return;
+      }
+
       handleInputChange(filePaths as string[]);
     },
     [handleInputChange]
@@ -130,13 +162,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     handleClearFiles();
   }, [handleInputChange, handleClearFiles]);
 
-  // 번역 버튼 활성화 여부 계산
+  // 번역 버튼 활성화 여부 계산 - 메모이제이션
   const isTranslateButtonDisabled = useMemo(() => {
     if (isTranslating) return true;
     if (!isConfigValid) return true;
     return !validateInput(input);
   }, [isTranslating, isConfigValid, validateInput, input]);
 
+  // parseInput 함수 - 메모이제이션
   const parseInput = useCallback(
     async (input: string, config: TranslatorConfig): Promise<BaseParseResponseDto<unknown>> => {
       // parserOptions가 없는 경우 최소한의 기본 옵션 사용
@@ -163,6 +196,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     [parseChannel, parserOptions, currentIsFileInput]
   );
 
+  // translateContent 함수 - 메모이제이션
   const translateContent = useCallback(
     async (
       parsedContent: BaseParseResponseDto<unknown>,
@@ -181,6 +215,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     [translateChannel]
   );
 
+  // applyTranslation 함수 - 메모이제이션
   const applyTranslation = useCallback(
     async (
       input: string,
@@ -210,7 +245,24 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     [applyChannel, parserOptions]
   );
 
-  // 번역 처리 함수
+  // 단일 파일 추출 및 다운로드 함수 제거
+  // 대신 더 간단한 파일 다운로드 함수만 유지
+  const downloadFile = useCallback(
+    (blob: Blob, fileName: string) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSnackbar(`'${fileName}' 파일 다운로드가 시작되었습니다.`);
+    },
+    [showSnackbar]
+  );
+
+  // 번역 처리 함수 - 메모이제이션
   const handleTranslate = useCallback(async () => {
     if (isTranslating) return;
 
@@ -477,24 +529,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     currentIsFileInput,
   ]);
 
-  // 단일 파일 추출 및 다운로드 함수 제거
-  // 대신 더 간단한 파일 다운로드 함수만 유지
-  const downloadFile = useCallback(
-    (blob: Blob, fileName: string) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showSnackbar(`'${fileName}' 파일 다운로드가 시작되었습니다.`);
-    },
-    [showSnackbar]
-  );
-
-  // 결과 다운로드 핸들러 전체 수정
+  // 결과 다운로드 핸들러
   const handleDownload = useCallback(async () => {
     if (!resultState.translationResult || resultState.translationResult.isError) {
       return;
@@ -526,21 +561,21 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     }
   }, [resultState, showSnackbar, currentIsFileInput, downloadFile]);
 
-  // 다운로드 버튼 표시 여부
+  // 다운로드 버튼 표시 여부 - 메모이제이션
   const shouldShowDownloadButton = useMemo(() => currentIsFileInput, [currentIsFileInput]);
 
-  // 렌더링 - 텍스트 입력
-  const renderTextInput = useCallback(() => {
+  // 텍스트 입력 렌더링 - 메모이제이션
+  const renderTextInput = useMemo(() => {
     return (
       <Box sx={{ my: 2 }}>
         <TextField
-          label={options.inputLabel}
+          label={initialOptions.inputLabel}
           multiline
           fullWidth
-          rows={options.inputFieldRows || 10}
+          rows={initialOptions.inputFieldRows || 10}
           value={input as string}
           onChange={(e) => handleInputChange(e.target.value as string)}
-          placeholder={options.inputPlaceholder}
+          placeholder={initialOptions.inputPlaceholder}
           disabled={isTranslating}
           sx={{
             '& .MuiOutlinedInput-root': {
@@ -561,49 +596,46 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     );
   }, [
     input,
-    options,
+    initialOptions.inputLabel,
+    initialOptions.inputFieldRows,
+    initialOptions.inputPlaceholder,
     isTranslating,
     theme.palette.mode,
     theme.palette.primary.main,
     handleInputChange,
   ]);
 
-  // 렌더링 - 파일 입력
-  const renderFileInput = useCallback(() => {
+  // 파일 입력 렌더링 - 메모이제이션
+  const renderFileInput = useMemo(() => {
+    const selectedFiles = Array.isArray(input)
+      ? (input as string[]).map((path) => new File([], path))
+      : [];
+
     return (
-      <>
-        {/* 파일 업로더 */}
-        <FileUploader
-          isDisabled={isTranslating}
-          selectedFiles={
-            Array.isArray(input) ? (input as string[]).map((path) => new File([], path)) : []
-          }
-          onFileChange={handleFileChange}
-          onClearFiles={handleClearFilesLocal}
-          fileExtension={options.fileExtension || '.json'}
-          label={options.fileLabel || 'JSON 파일'}
-          dragActive={uiState.dragActive}
-          setDragActive={(active) => setUIState((prev) => ({ ...prev, dragActive: active }))}
-        />
-      </>
+      <FileUploader
+        isDisabled={isTranslating}
+        selectedFiles={selectedFiles}
+        onFileChange={handleFileChange}
+        onClearFiles={handleClearFilesLocal}
+        fileExtension={initialOptions.fileExtension || '.json'}
+        label={initialOptions.fileLabel || 'JSON 파일'}
+        dragActive={uiState.dragActive}
+        setDragActive={(active) => setUIState((prev) => ({ ...prev, dragActive: active }))}
+      />
     );
   }, [
-    options,
-    isTranslating,
     input,
+    initialOptions.fileExtension,
+    initialOptions.fileLabel,
+    isTranslating,
     handleFileChange,
     handleClearFilesLocal,
     uiState.dragActive,
     setUIState,
   ]);
 
-  // 알맞은 입력 컨트롤 선택
-  const renderInputControl = useMemo(() => {
-    return currentIsFileInput ? renderFileInput() : renderTextInput();
-  }, [currentIsFileInput, renderFileInput, renderTextInput]);
-
-  // 렌더링 - 진행 정보
-  const renderProgressInfo = useCallback(() => {
+  // 진행 정보 렌더링
+  const renderProgressInfo = useMemo(() => {
     if (!isTranslating) return null;
 
     // 파일 처리 진행 정보
@@ -612,20 +644,33 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       : uiState.progressMessage;
 
     return (
-      <>
-        <TranslationProgress
-          current={uiState.translationProgress}
-          total={100}
-          message={progressText}
-        />
-      </>
+      <TranslationProgress
+        current={uiState.translationProgress}
+        total={100}
+        message={progressText}
+      />
     );
   }, [isTranslating, currentIsFileInput, uiState, input]);
 
+  // 결과 렌더링
+  const renderResult = useMemo(() => {
+    if (!resultState.translationResult) return null;
+
+    return resultState.translationResult.isError ? (
+      <TranslationError error={resultState.translationResult.text} />
+    ) : (
+      <TranslationResult
+        result={resultState.translationResult.text}
+        onDownload={shouldShowDownloadButton ? handleDownload : undefined}
+        downloadDisabled={!resultState.translationResult.text}
+      />
+    );
+  }, [resultState.translationResult, shouldShowDownloadButton, handleDownload]);
+
   return (
     <>
-      {/* 입력 컨트롤 렌더링 */}
-      {renderInputControl}
+      {/* 입력 컨트롤 렌더링 - 조건부로 직접 적절한 컴포넌트 렌더링 */}
+      {currentIsFileInput ? renderFileInput : renderTextInput}
 
       {/* 번역 버튼 */}
       <TranslationButton
@@ -635,19 +680,10 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       />
 
       {/* 진행 정보 */}
-      {renderProgressInfo()}
+      {renderProgressInfo}
 
       {/* 결과 표시 */}
-      {resultState.translationResult &&
-        (resultState.translationResult.isError ? (
-          <TranslationError error={resultState.translationResult.text} />
-        ) : (
-          <TranslationResult
-            result={resultState.translationResult.text}
-            onDownload={shouldShowDownloadButton ? handleDownload : undefined}
-            downloadDisabled={!resultState.translationResult.text}
-          />
-        ))}
+      {renderResult}
     </>
   );
 }

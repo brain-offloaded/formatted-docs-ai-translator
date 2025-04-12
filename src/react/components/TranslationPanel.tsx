@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
 import { TranslationType, useTranslation } from '../contexts/TranslationContext';
 import {
@@ -10,7 +10,7 @@ import TranslationTypeSelector from './common/TranslationTypeSelector';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/base-parse-options.dto';
 
 export default function TranslationPanel(): React.ReactElement {
-  // Context에서 상태와 함수 가져오기
+  // Context에서 상태와 함수 가져오기 - 필요한 것만 선택적으로 가져옵니다
   const {
     translationType,
     setTranslationType,
@@ -22,16 +22,31 @@ export default function TranslationPanel(): React.ReactElement {
 
   // 옵션 상태 관리
   const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
+  // 설정 패널 표시 여부 상태 관리
+  const [showSettings, setShowSettings] = useState(false);
 
-  // 옵션 변경 핸들러
+  // 옵션 변경 핸들러 - 메모이제이션
   const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
-    setParserOptions(options);
+    setParserOptions((prevOptions) => {
+      // 이전 옵션과 새 옵션이 동일하면 상태 업데이트 방지
+      if (JSON.stringify(prevOptions) === JSON.stringify(options)) {
+        return prevOptions;
+      }
+      return options;
+    });
   }, []);
 
-  // 번역 타입 변경 핸들러
+  // 설정 토글 핸들러 - 메모이제이션
+  const toggleSettings = useCallback(() => {
+    setShowSettings((prev) => !prev);
+  }, []);
+
+  // 번역 타입 변경 핸들러 - 메모이제이션
   const handleTranslationTypeChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newType = e.target.value as TranslationType;
+      if (newType === translationType) return; // 변경이 없으면 처리하지 않음
+
       setTranslationType(newType);
       // 파일 선택 초기화
       handleClearFiles();
@@ -44,20 +59,30 @@ export default function TranslationPanel(): React.ReactElement {
       });
       // 옵션 초기화
       setParserOptions(null);
+      // 설정 패널도 초기화
+      setShowSettings(false);
     },
-    [setTranslationType, handleClearFiles, setResultState]
+    [setTranslationType, handleClearFiles, setResultState, translationType]
   );
 
-  // TranslationType에 따라 적절한 컴포넌트 가져오기
-  const { TranslatorComponent, OptionComponent } =
-    getTranslatorWithOptions<typeof translationType>(translationType);
+  // TranslationType에 따라 적절한 컴포넌트 가져오기 - 메모이제이션
+  const { TranslatorComponent, OptionComponent } = useMemo(
+    () => getTranslatorWithOptions<typeof translationType>(translationType),
+    [translationType]
+  );
+
+  // 번역 타입 라벨 - 메모이제이션
+  const translationTypeLabel = useMemo(
+    () => getTranslationTypeLabel(translationType),
+    [translationType]
+  );
 
   return (
     <Box sx={{ position: 'relative' }}>
       <Card sx={{ borderRadius: '12px', p: 2 }}>
         <CardContent>
           <Typography variant="h6" mb={2} fontWeight="medium">
-            {getTranslationTypeLabel(translationType)}
+            {translationTypeLabel}
           </Typography>
           <Divider sx={{ my: 2 }} />
 
@@ -78,7 +103,9 @@ export default function TranslationPanel(): React.ReactElement {
                 onOptionsChange={handleOptionsChange}
                 initialOptions={parserOptions || undefined}
                 translationType={translationType}
-                label={getTranslationTypeLabel(translationType) + ' 옵션'}
+                label={translationTypeLabel + ' 옵션'}
+                showSettings={showSettings}
+                onToggleSettings={toggleSettings}
               />
             )}
 
