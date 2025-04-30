@@ -1,7 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule as NestTypeOrmModule } from '@nestjs/typeorm';
 
-import { Translation, FileInfo, TranslationHistory, Log, ExamplePreset } from './entities';
+import {
+  Translation,
+  FileInfo,
+  TranslationHistory,
+  Log,
+  ExamplePreset,
+  PromptPreset,
+} from './entities'; // PromptPreset 추가
 import { getNestTypeOrmOptions } from './get-options';
 import { TypeOrmService } from './typeorm.service';
 
@@ -13,7 +20,14 @@ import { TypeOrmService } from './typeorm.service';
         return getNestTypeOrmOptions();
       },
     }),
-    NestTypeOrmModule.forFeature([Translation, FileInfo, TranslationHistory, Log, ExamplePreset]),
+    NestTypeOrmModule.forFeature([
+      Translation,
+      FileInfo,
+      TranslationHistory,
+      Log,
+      ExamplePreset,
+      PromptPreset, // PromptPreset 추가
+    ]),
   ],
   providers: [TypeOrmService],
   exports: [TypeOrmService, NestTypeOrmModule],
