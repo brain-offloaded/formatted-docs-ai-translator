@@ -13,6 +13,7 @@ const ConfigPanel = lazy(() => import('./components/ConfigPanel'));
 const CacheManagerPanel = lazy(() => import('./components/CacheManagerPanel'));
 const LogViewer = lazy(() => import('./components/LogViewer'));
 const BugReportPanel = lazy(() => import('./components/BugReportPanel'));
+const PromptPresetPanel = lazy(() => import('./components/PromptPresetPanel')); // PromptPresetPanel 추가
 
 // 로딩 컴포넌트
 const LoadingFallback = () => (
@@ -102,6 +103,8 @@ const App: React.FC = () => {
         return '로그 보기';
       case 'bug-report':
         return '버그 제보';
+      case 'prompt-preset': // 추가
+        return '프롬프트 프리셋 관리';
       default:
         return '';
     }
@@ -119,6 +122,8 @@ const App: React.FC = () => {
         return <LogViewer />;
       case 'bug-report':
         return <BugReportPanel />;
+      case 'prompt-preset': // 추가
+        return <PromptPresetPanel />;
       default:
         return null;
     }

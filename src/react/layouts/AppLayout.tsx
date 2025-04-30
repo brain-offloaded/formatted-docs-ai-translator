@@ -4,6 +4,7 @@ import {
   Article as ArticleIcon,
   Menu as MenuIcon,
   BugReport as BugReportIcon,
+  ListAlt as ListAltIcon, // 아이콘 추가
 } from '@mui/icons-material';
 import {
   Box,
@@ -44,6 +45,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
   const menuItems = [
     { id: 'translation', label: '번역', icon: <TranslateIcon /> },
     { id: 'cache', label: '캐시 관리', icon: <StorageIcon /> },
+    { id: 'prompt-preset', label: '프롬프트 프리셋', icon: <ListAltIcon /> }, // 메뉴 항목 추가
     { id: 'log', label: '로그 보기', icon: <ArticleIcon /> },
     { id: 'bug-report', label: '버그 제보', icon: <BugReportIcon /> },
   ];
