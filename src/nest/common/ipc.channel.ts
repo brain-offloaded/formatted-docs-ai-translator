@@ -19,6 +19,14 @@ export enum IpcChannel {
   GetExamplePresetDetail = 'get-example-preset-detail',
   UpdateExamplePreset = 'update-example-preset',
   DeleteExamplePreset = 'delete-example-preset',
+
+  // Prompt Preset Channels
+  GetPromptPresets = 'get-prompt-presets',
+  GetPromptPresetDetail = 'get-prompt-preset-detail',
+  CreatePromptPreset = 'create-prompt-preset',
+  UpdatePromptPreset = 'update-prompt-preset',
+  DeletePromptPreset = 'delete-prompt-preset',
+
   ExportTranslations = 'export-translations',
   ImportTranslations = 'import-translations',
 
