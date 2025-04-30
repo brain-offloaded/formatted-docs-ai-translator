@@ -30,8 +30,10 @@ import { ConfigStore } from '../../config/config-store';
 import { IpcChannel } from '../../../nest/common/ipc.channel';
 import { Language, SourceLanguage } from '../../../utils/language';
 import { useTranslation } from '../../contexts/TranslationContext';
-import { ExamplePresetDto } from '@/nest/translation/example/dto/example-preset.dto';
-import { ExamplePresetDetailDto } from '@/nest/translation/example/dto/example-preset-detail.dto';
+import { ExamplePresetDto } from '@/nest/translation/example/dto/example-preset.dto'; // 경로 수정 (@/ alias 사용)
+import { ExamplePresetDetailDto } from '@/nest/translation/example/dto/example-preset-detail.dto'; // 경로 수정 (@/ alias 사용)
+// 요청 DTO import 추가
+import { GetExamplePresetDetailRequestDto } from '@/nest/translation/example/dto/request/get-example-preset-detail-request.dto'; // 경로 수정 (@/ alias 사용)
 
 // 삭제 버튼 컴포넌트를 별도로 분리
 const DeleteButton = React.memo(
@@ -211,14 +213,18 @@ const ExamplePresetSelector: React.FC = () => {
     }
   }, [newPresetName, newPresetDescription, fetchExamplePresets, showSnackbar]);
 
-  // 프리셋 상세 정보 가져오기
+  // 프리셋 상세 정보 가져오기 (id 기반으로 수정)
   const fetchPresetDetail = useCallback(
-    async (presetName: string) => {
+    async (presetId: number) => {
+      // presetName 대신 presetId 받도록 수정
+      if (!presetId) return; // id 없으면 중단
       try {
         setIsPresetLoading(true);
-        const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresetDetail, {
-          name: presetName,
-        });
+        const request: GetExamplePresetDetailRequestDto = { id: presetId }; // 요청 DTO 타입 확인
+        const result = await window.electron.ipcRenderer.invoke(
+          IpcChannel.GetExamplePresetDetail,
+          request
+        ); // id로 요청
 
         if (result.success && result.preset) {
           setSelectedPreset(result.preset);
@@ -237,11 +243,17 @@ const ExamplePresetSelector: React.FC = () => {
     [showSnackbar]
   );
 
-  // 상세 보기 열기
+  // 상세 보기 열기 (currentPresetName을 사용하여 id 조회 후 호출)
   const handleOpenDetail = useCallback(async () => {
-    await fetchPresetDetail(currentPresetName);
-    setIsDetailModalOpen(true);
-  }, [currentPresetName, fetchPresetDetail]);
+    // 현재 선택된 프리셋 이름으로 id 찾기
+    const currentPreset = examplePresets.find((p) => p.name === currentPresetName);
+    if (currentPreset) {
+      await fetchPresetDetail(currentPreset.id); // 찾은 id로 상세 정보 요청
+      setIsDetailModalOpen(true);
+    } else {
+      showSnackbar('현재 선택된 프리셋 정보를 찾을 수 없습니다.');
+    }
+  }, [currentPresetName, examplePresets, fetchPresetDetail, showSnackbar]); // 의존성 수정
 
   // 편집 모드 열기
   const handleOpenEdit = useCallback(() => {
@@ -261,26 +273,32 @@ const ExamplePresetSelector: React.FC = () => {
 
   // 예제 추가
   const handleAddExample = useCallback((language: SourceLanguage) => {
-    setEditingExamples((prev) => {
-      const updated = { ...prev };
-      updated[language] = {
-        sourceLines: [...updated[language].sourceLines, ''],
-        resultLines: [...updated[language].resultLines, ''],
-      };
-      return updated;
-    });
+    // prev 타입 명시
+    setEditingExamples(
+      (prev: Record<SourceLanguage, { sourceLines: string[]; resultLines: string[] }>) => {
+        const updated = { ...prev };
+        updated[language] = {
+          sourceLines: [...updated[language].sourceLines, ''],
+          resultLines: [...updated[language].resultLines, ''],
+        };
+        return updated;
+      }
+    );
   }, []);
 
   // 예제 제거
   const handleRemoveExample = useCallback((language: SourceLanguage, index: number) => {
-    setEditingExamples((prev) => {
-      const updated = { ...prev };
-      updated[language] = {
-        sourceLines: updated[language].sourceLines.filter((_, i) => i !== index),
-        resultLines: updated[language].resultLines.filter((_, i) => i !== index),
-      };
-      return updated;
-    });
+    // prev 타입 명시
+    setEditingExamples(
+      (prev: Record<SourceLanguage, { sourceLines: string[]; resultLines: string[] }>) => {
+        const updated = { ...prev };
+        updated[language] = {
+          sourceLines: updated[language].sourceLines.filter((_, i) => i !== index),
+          resultLines: updated[language].resultLines.filter((_, i) => i !== index),
+        };
+        return updated;
+      }
+    );
   }, []);
 
   // 예제 내용 변경
@@ -291,15 +309,18 @@ const ExamplePresetSelector: React.FC = () => {
       field: 'sourceLines' | 'resultLines',
       value: string
     ) => {
-      setEditingExamples((prev) => {
-        const updated = { ...prev };
-        updated[language][field] = [
-          ...updated[language][field].slice(0, index),
-          value,
-          ...updated[language][field].slice(index + 1),
-        ];
-        return updated;
-      });
+      // prev 타입 명시
+      setEditingExamples(
+        (prev: Record<SourceLanguage, { sourceLines: string[]; resultLines: string[] }>) => {
+          const updated = { ...prev };
+          updated[language][field] = [
+            ...updated[language][field].slice(0, index),
+            value,
+            ...updated[language][field].slice(index + 1),
+          ];
+          return updated;
+        }
+      );
     },
     []
   );
@@ -638,62 +659,65 @@ const ExamplePresetSelector: React.FC = () => {
                   예제 목록
                 </Typography>
 
-                {selectedPreset.examples[activeLanguageTab].sourceLines.map((source, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      mb: 2,
-                      p: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                    }}
-                  >
+                {/* map 콜백 파라미터 타입 명시 */}
+                {selectedPreset.examples[activeLanguageTab].sourceLines.map(
+                  (source: string, index: number) => (
                     <Box
+                      key={index}
                       sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mb: 1,
+                        mb: 2,
+                        p: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
                       }}
                     >
-                      <Typography variant="subtitle2">예제 {index + 1}</Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          mb: 1,
+                        }}
+                      >
+                        <Typography variant="subtitle2">예제 {index + 1}</Typography>
+                      </Box>
+
+                      <Typography variant="caption" color="text.secondary">
+                        소스
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          p: 1,
+                          bgcolor: 'action.hover',
+                          borderRadius: 1,
+                          fontFamily: 'monospace',
+                          mb: 1,
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {source}
+                      </Typography>
+
+                      <Typography variant="caption" color="text.secondary">
+                        번역 결과
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          p: 1,
+                          bgcolor: 'action.hover',
+                          borderRadius: 1,
+                          fontFamily: 'monospace',
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {selectedPreset.examples[activeLanguageTab].resultLines[index]}
+                      </Typography>
                     </Box>
-
-                    <Typography variant="caption" color="text.secondary">
-                      소스
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        p: 1,
-                        bgcolor: 'action.hover',
-                        borderRadius: 1,
-                        fontFamily: 'monospace',
-                        mb: 1,
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {source}
-                    </Typography>
-
-                    <Typography variant="caption" color="text.secondary">
-                      번역 결과
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        p: 1,
-                        bgcolor: 'action.hover',
-                        borderRadius: 1,
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {selectedPreset.examples[activeLanguageTab].resultLines[index]}
-                    </Typography>
-                  </Box>
-                ))}
+                  )
+                )}
 
                 {selectedPreset.examples[activeLanguageTab].sourceLines.length === 0 && (
                   <Typography

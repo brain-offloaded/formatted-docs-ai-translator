@@ -2,10 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
   Divider,
   Button,
   TextField,
@@ -58,7 +54,12 @@ const PromptPresetPanel: React.FC = () => {
   const [editPrompt, setEditPrompt] = useState('');
 
   // useSnackbar 수정: SnackbarComponent 제거, isOpen, message, closeSnackbar 추가
-  const { isOpen: isSnackbarOpen, message: snackbarMessage, showSnackbar, closeSnackbar } = useSnackbar();
+  const {
+    isOpen: isSnackbarOpen,
+    message: snackbarMessage,
+    showSnackbar,
+    closeSnackbar,
+  } = useSnackbar();
 
   // 프리셋 목록 로드
   const loadPresets = useCallback(async () => {
@@ -70,18 +71,18 @@ const PromptPresetPanel: React.FC = () => {
         // 목록 로드 후 첫 번째 프리셋 또는 이전에 선택된 프리셋 선택 (선택적)
         if (response.presets && response.presets.length > 0) {
           // 이전에 선택된 ID가 있으면 유지, 없으면 첫번째 선택
-          const currentSelectedIdExists = response.presets.some(p => p.id === selectedPresetId);
+          const currentSelectedIdExists = response.presets.some((p) => p.id === selectedPresetId);
           if (!currentSelectedIdExists) {
-             setSelectedPresetId(response.presets[0].id);
+            setSelectedPresetId(response.presets[0].id);
           }
         } else {
           setSelectedPresetId('');
           setSelectedPresetDetail(null);
-          }
-        } else {
-          showSnackbar(`프리셋 목록 로드 실패: ${response.message}`); // severity 제거
-          setPresets([]);
-          setSelectedPresetId('');
+        }
+      } else {
+        showSnackbar(`프리셋 목록 로드 실패: ${response.message}`); // severity 제거
+        setPresets([]);
+        setSelectedPresetId('');
         setSelectedPresetDetail(null);
       }
     } catch (error) {
@@ -115,11 +116,11 @@ const PromptPresetPanel: React.FC = () => {
           // 목록에서 해당 ID가 사라졌을 수 있으므로 목록 다시 로드 고려
           // loadPresets();
         }
-    } catch (error) {
-      console.error('Error loading preset detail:', error);
-      showSnackbar('프리셋 상세 로드 중 오류 발생'); // severity 제거
-      setSelectedPresetDetail(null);
-    } finally {
+      } catch (error) {
+        console.error('Error loading preset detail:', error);
+        showSnackbar('프리셋 상세 로드 중 오류 발생'); // severity 제거
+        setSelectedPresetDetail(null);
+      } finally {
         setIsDetailLoading(false);
       }
     },
@@ -195,10 +196,10 @@ const PromptPresetPanel: React.FC = () => {
   };
 
   const handleUpdatePreset = async () => {
-     if (!selectedPresetDetail || !editName.trim() || !editPrompt.trim()) {
-       showSnackbar('프리셋 이름과 프롬프트를 모두 입력해주세요.'); // severity 제거
-       return;
-     }
+    if (!selectedPresetDetail || !editName.trim() || !editPrompt.trim()) {
+      showSnackbar('프리셋 이름과 프롬프트를 모두 입력해주세요.'); // severity 제거
+      return;
+    }
     setIsSaving(true);
     try {
       const request: UpdatePromptPresetRequestDto = {
@@ -304,7 +305,9 @@ const PromptPresetPanel: React.FC = () => {
 
       {!isLoading && selectedPresetId !== '' && (
         <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}
+          >
             <Typography variant="h6">
               {selectedPresetDetail ? selectedPresetDetail.name : '프리셋 로딩 중...'}
             </Typography>
@@ -346,16 +349,15 @@ const PromptPresetPanel: React.FC = () => {
         </Box>
       )}
 
-       {!isLoading && selectedPresetId === '' && presets.length > 0 && (
-         <Typography sx={{ mt: 2, textAlign: 'center' }}>프리셋을 선택해주세요.</Typography>
-       )}
+      {!isLoading && selectedPresetId === '' && presets.length > 0 && (
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>프리셋을 선택해주세요.</Typography>
+      )}
 
-       {!isLoading && presets.length === 0 && (
-         <Typography sx={{ mt: 2, textAlign: 'center' }}>
-           생성된 프리셋이 없습니다. '새 프리셋' 버튼을 눌러 추가하세요.
-         </Typography>
-       )}
-
+      {!isLoading && presets.length === 0 && (
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>
+          생성된 프리셋이 없습니다. '새 프리셋' 버튼을 눌러 추가하세요.
+        </Typography>
+      )}
 
       {/* 생성 다이얼로그 */}
       <Dialog open={openCreateDialog} onClose={handleCloseCreateDialog} maxWidth="sm" fullWidth>
@@ -386,7 +388,9 @@ const PromptPresetPanel: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseCreateDialog} disabled={isSaving}>취소</Button>
+          <Button onClick={handleCloseCreateDialog} disabled={isSaving}>
+            취소
+          </Button>
           <Button onClick={handleCreatePreset} disabled={isSaving}>
             {isSaving ? <CircularProgress size={20} /> : '생성'}
           </Button>
@@ -422,7 +426,9 @@ const PromptPresetPanel: React.FC = () => {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEditDialog} disabled={isSaving}>취소</Button>
+          <Button onClick={handleCloseEditDialog} disabled={isSaving}>
+            취소
+          </Button>
           <Button onClick={handleUpdatePreset} disabled={isSaving}>
             {isSaving ? <CircularProgress size={20} /> : '저장'}
           </Button>
@@ -434,11 +440,14 @@ const PromptPresetPanel: React.FC = () => {
         <DialogTitle>프리셋 삭제 확인</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            '{selectedPresetDetail?.name}' 프리셋을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            '{selectedPresetDetail?.name}' 프리셋을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수
+            없습니다.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteConfirm} disabled={isDeleting}>취소</Button>
+          <Button onClick={handleCloseDeleteConfirm} disabled={isDeleting}>
+            취소
+          </Button>
           <Button onClick={handleDeletePreset} color="error" disabled={isDeleting}>
             {isDeleting ? <CircularProgress size={20} /> : '삭제'}
           </Button>
