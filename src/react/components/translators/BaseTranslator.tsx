@@ -26,7 +26,7 @@ export interface BaseTranslatorOptions {
   inputPlaceholder: string;
 
   // 유효성 검증
-  validateInput?: (input: string | string[]) => boolean;
+  validateInput?: (input: string | File[]) => boolean;
 
   // 번역 타입
   translationType: TranslationType;
@@ -76,14 +76,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const configStore = useMemo(() => ConfigStore.getInstance(), []);
 
   // 이전 입력값 참조 저장용 ref
-  const prevInputRef = useRef<string | string[]>('');
+  const prevInputRef = useRef<string | File[]>([]); // 초기값을 빈 배열로 변경
   const prevParserOptionsRef = useRef<T | null>(null);
 
   // 현재 파일 입력 모드인지 확인 (parserOptions의 isFile 값으로 결정) - 메모이제이션
   const currentIsFileInput = useMemo(() => parserOptions?.isFile || false, [parserOptions?.isFile]);
 
-  // 입력 상태 초기화
-  const [input, setInput] = useState<string | string[]>(currentIsFileInput ? [] : '');
+  // 입력 상태 초기화 (파일 모드일 때 File[] 사용)
+  const [input, setInput] = useState<string | File[]>(currentIsFileInput ? [] : '');
 
   // isFile 변경 시 입력 초기화
   useEffect(() => {
@@ -119,18 +119,25 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     [initialOptions.validateInput, initialOptions.translationType]
   );
 
-  // 입력 변경 핸들러 - 불필요한 렌더링 방지
-  const handleInputChange = useCallback((value: string | string[]) => {
+  // 입력 변경 핸들러 - File[] 타입 처리 추가
+  const handleInputChange = useCallback((value: string | File[]) => {
     setInput((prevInput) => {
-      // 배열이면 길이와 내용 비교
+      // 배열(File[])이면 길이와 파일 이름 비교 (더 정확한 비교 가능)
       if (Array.isArray(value) && Array.isArray(prevInput)) {
         if (
           value.length === prevInput.length &&
-          value.every((val, index) => val === prevInput[index])
+          value.every(
+            (file, index) =>
+              file.name === prevInput[index].name && file.size === prevInput[index].size
+          )
         ) {
           return prevInput;
         }
-      } else if (value === prevInput) {
+      } else if (
+        typeof value === 'string' &&
+        typeof prevInput === 'string' &&
+        value === prevInput
+      ) {
         // 문자열이면 단순 비교
         return prevInput;
       }
@@ -140,25 +147,30 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
     });
   }, []);
 
-  // 파일 입력 변경 핸들러
+  // 파일 입력 변경 핸들러 - File[] 직접 사용
   const handleFileChange = useCallback(
     (files: File[] | null) => {
-      // 파일 경로 배열로 변환
-      const filePaths = files ? files.map((file) => file.path) : [];
-
-      // 이전 입력값과 같으면 업데이트하지 않음
-      if (JSON.stringify(filePaths) === JSON.stringify(prevInputRef.current)) {
+      const newFiles = files || [];
+      // 이전 입력값(File[])과 비교
+      if (
+        Array.isArray(prevInputRef.current) &&
+        newFiles.length === prevInputRef.current.length &&
+        newFiles.every(
+          (file, index) =>
+            file.name === (prevInputRef.current as File[])[index].name &&
+            file.size === (prevInputRef.current as File[])[index].size
+        )
+      ) {
         return;
       }
-
-      handleInputChange(filePaths as string[]);
+      handleInputChange(newFiles);
     },
     [handleInputChange]
   );
 
-  // 파일 삭제 핸들러
+  // 파일 삭제 핸들러 - 빈 File[] 전달
   const handleClearFilesLocal = useCallback(() => {
-    handleInputChange([] as unknown as string[]);
+    handleInputChange([]);
     handleClearFiles();
   }, [handleInputChange, handleClearFiles]);
 
@@ -284,8 +296,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
       // 파일 모드인 경우 다중 파일 처리
       if (currentIsFileInput) {
-        const filePaths = input as string[];
-        const totalFiles = filePaths.length;
+        const files = input as File[]; // File[]로 타입 단언
+        const totalFiles = files.length;
         const fileResults: { name: string; success: boolean; message?: string }[] = [];
         let successCount = 0;
         let errorCount = 0;
@@ -299,7 +311,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
         // 각 파일을 반복 처리
         for (let i = 0; i < totalFiles; i++) {
-          const filePath = filePaths[i];
+          const file = files[i]; // File 객체 사용
+          const filePath = file.path; // 백엔드 전송용 경로 추출
 
           // 현재 처리 중인 파일 인덱스와 파일명 업데이트
           setUIState((prev) => ({
@@ -316,8 +329,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
               progressMessage: `파일 분석 중 (${i + 1}/${totalFiles}): ${filePath}`,
             }));
 
-            // 현재 파일만 포함하는 입력 객체 생성
-            const singleFileInput = filePath;
+            // 현재 파일 경로만 포함하는 입력 객체 생성
+            const singleFileInput = filePath; // 백엔드에는 경로 전달
             const parseResponse = await parseInput(singleFileInput, config);
 
             if (!parseResponse.success) {
@@ -343,7 +356,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
             }));
 
             const applyResponse = await applyTranslation(
-              singleFileInput,
+              singleFileInput, // 백엔드에는 경로 전달
               translateResponse.translatedTextPaths,
               config
             );
@@ -357,8 +370,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
             // 결과를 zip에 추가
             if (result && typeof result === 'string') {
               // 문자열 결과일 경우
-              // 파일 경로에서 파일 이름만 추출 (경로 구분자 / 또는 \ 이후의 마지막 부분)
-              const originalFileName = filePath.split(/[/\\]/).pop() || filePath;
+              const originalFileName = file.name; // File 객체에서 이름 사용
 
               // 단일 파일인 경우를 위해 결과 저장
               if (totalFiles === 1) {
@@ -371,13 +383,13 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
             }
 
             // 성공 결과 기록
-            fileResults.push({ name: filePath, success: true });
+            fileResults.push({ name: file.name, success: true }); // File 객체에서 이름 사용
             successCount++;
           } catch (error) {
-            console.error(`파일 '${filePath}' 번역 중 오류:`, error);
+            console.error(`파일 '${file.name}' 번역 중 오류:`, error); // File 객체에서 이름 사용
             // 오류 결과 기록
             fileResults.push({
-              name: filePath,
+              name: file.name, // File 객체에서 이름 사용
               success: false,
               message: error instanceof Error ? error.message : '알 수 없는 오류',
             });
@@ -607,9 +619,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   // 파일 입력 렌더링 - 메모이제이션
   const renderFileInput = useMemo(() => {
-    const selectedFiles = Array.isArray(input)
-      ? (input as string[]).map((path) => new File([], path))
-      : [];
+    // input 상태(File[])를 직접 사용
+    const selectedFiles = Array.isArray(input) ? (input as File[]) : [];
 
     return (
       <FileUploader
@@ -638,7 +649,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const renderProgressInfo = useMemo(() => {
     if (!isTranslating) return null;
 
-    // 파일 처리 진행 정보
+    // 파일 처리 진행 정보 (File[] 길이 사용)
     const progressText = currentIsFileInput
       ? `${uiState.progressMessage} (${uiState.currentFileIndex + 1}/${Array.isArray(input) ? input.length : 0})`
       : uiState.progressMessage;
