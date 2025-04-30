@@ -36,7 +36,7 @@ export interface BaseTranslatorOptions {
 
   // 파일 업로더 설정
   fileExtension?: string;
-  fileLabel?: string;
+  fileLabel: string;
 }
 
 export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
@@ -617,8 +617,8 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         selectedFiles={selectedFiles}
         onFileChange={handleFileChange}
         onClearFiles={handleClearFilesLocal}
-        fileExtension={initialOptions.fileExtension || '.json'}
-        label={initialOptions.fileLabel || 'JSON 파일'}
+        fileExtension={initialOptions.fileExtension}
+        label={initialOptions.fileLabel}
         dragActive={uiState.dragActive}
         setDragActive={(active) => setUIState((prev) => ({ ...prev, dragActive: active }))}
       />

@@ -5,6 +5,7 @@ import {
   FilePresent as FileIcon,
   DeleteOutline as DeleteIcon,
 } from '@mui/icons-material';
+import { isFileExtension } from '../../../utils/is-file-extension';
 
 interface FileUploaderProps {
   isDisabled: boolean;
@@ -22,8 +23,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   selectedFiles,
   onFileChange,
   onClearFiles,
-  fileExtension = '.json',
-  label = '파일 선택',
+  fileExtension = '*',
+  label,
   dragActive = false,
   setDragActive = () => {},
 }) => {
@@ -58,7 +59,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({
 
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const files = Array.from(e.dataTransfer.files).filter((file) =>
-          file.name.endsWith(fileExtension)
+          isFileExtension(file, fileExtension)
         );
 
         if (files.length === 0) {

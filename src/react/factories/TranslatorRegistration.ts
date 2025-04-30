@@ -63,6 +63,7 @@ function registerTextTranslator(): void {
       inputPlaceholder: '번역할 텍스트를 입력하세요...',
       translationType: TranslationType.Text,
       inputFieldRows: 10,
+      fileLabel: '텍스트 파일',
     },
     parseChannel: IpcChannel.ParsePlainText,
     applyChannel: IpcChannel.ApplyTranslationToPlainText,
