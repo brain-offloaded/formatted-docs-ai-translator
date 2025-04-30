@@ -114,10 +114,6 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
               consecutiveFailures = 0;
 
               for (const [originalText, result] of batchTranslations.entries()) {
-                this.logger.debug('번역 성공:', {
-                  originalText,
-                  result,
-                });
                 newTranslations.set(originalText, result);
               }
 
