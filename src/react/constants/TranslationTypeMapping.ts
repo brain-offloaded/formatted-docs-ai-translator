@@ -71,11 +71,12 @@ export function getParserOptionComponent<T extends TranslationType>(
  */
 export const getDefaultValidatorByMode = (
   translationType: TranslationType
-): ((input: string | string[]) => boolean) => {
+): ((input: string | File[]) => boolean) => {
   // 입력 타입에 따라 유효성 검사 함수 분기
   return (input) => {
     if (Array.isArray(input)) {
-      // 파일 입력 모드: 입력이 배열이고 요소가 있는지 확인
+      // 파일 입력 모드: 입력이 File 배열이고 요소가 있는지 확인
+      // 각 요소가 File 객체인지도 확인하는 것이 더 안전하지만, 여기서는 길이만 확인
       return input.length > 0;
     } else if (typeof input === 'string') {
       // 텍스트 입력 모드
