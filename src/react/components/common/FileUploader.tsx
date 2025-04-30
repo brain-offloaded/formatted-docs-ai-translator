@@ -22,8 +22,8 @@ const FileUploader: React.FC<FileUploaderProps> = ({
   selectedFiles,
   onFileChange,
   onClearFiles,
-  fileExtension = '.json',
-  label = '파일 선택',
+  fileExtension = '*',
+  label,
   dragActive = false,
   setDragActive = () => {},
 }) => {
