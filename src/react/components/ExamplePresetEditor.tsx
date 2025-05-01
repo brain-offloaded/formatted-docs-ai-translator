@@ -431,7 +431,7 @@ const ExamplePresetEditor: React.FC = () => {
           <List dense>
             {examplePresets.map((preset) => (
               <React.Fragment key={preset.id}>
-                <ListItem>
+                <ListItem onClick={() => handleOpenDetail(preset.id)}>
                   <ListItemText
                     primary={preset.name}
                     secondary={preset.description || '설명 없음'}
@@ -441,7 +441,10 @@ const ExamplePresetEditor: React.FC = () => {
                       <IconButton
                         edge="end"
                         aria-label="view"
-                        onClick={() => handleOpenDetail(preset.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenDetail(preset.id);
+                        }}
                         disabled={isPresetLoading}
                       >
                         <VisibilityIcon />
@@ -451,7 +454,10 @@ const ExamplePresetEditor: React.FC = () => {
                       <IconButton
                         edge="end"
                         aria-label="edit"
-                        onClick={() => handleOpenEditDirectly(preset.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenEditDirectly(preset.id);
+                        }}
                         disabled={isPresetLoading}
                       >
                         <EditIcon />
@@ -461,7 +467,10 @@ const ExamplePresetEditor: React.FC = () => {
                       <IconButton
                         edge="end"
                         aria-label="delete"
-                        onClick={() => openDeleteConfirm(preset)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openDeleteConfirm(preset);
+                        }}
                         disabled={isPresetLoading}
                       >
                         <DeleteIcon />
@@ -842,8 +851,7 @@ const ExamplePresetEditor: React.FC = () => {
         <DialogTitle id="alert-dialog-title">프리셋 삭제 확인</DialogTitle>
         <DialogContent>
           <Typography>
-            "{presetToDelete?.name}" 프리셋을 삭제하시겠습니까? 이 작업은 되돌릴 수
-            없습니다.
+            "{presetToDelete?.name}" 프리셋을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
           </Typography>
         </DialogContent>
         <DialogActions>
