@@ -320,14 +320,17 @@ const PromptPresetPanel: React.FC = () => {
           <List dense>
             {presets.map((preset) => (
               <React.Fragment key={preset.id}>
-                <ListItem>
+                <ListItem onClick={() => handleOpenViewDialog(preset.id)}>
                   <ListItemText primary={preset.name} />
                   <ListItemSecondaryAction>
                     <Tooltip title="상세 보기">
                       <IconButton
                         edge="end"
                         aria-label="view"
-                        onClick={() => handleOpenViewDialog(preset.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenViewDialog(preset.id);
+                        }}
                         disabled={
                           isLoading || isDetailLoading || isSaving || isDeleting || isCloning
                         }
@@ -339,7 +342,10 @@ const PromptPresetPanel: React.FC = () => {
                       <IconButton
                         edge="end"
                         aria-label="edit"
-                        onClick={() => handleOpenEditDialog(preset.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenEditDialog(preset.id);
+                        }}
                         disabled={
                           isLoading || isDetailLoading || isSaving || isDeleting || isCloning
                         } // 상세 로딩 중에도 비활성화
@@ -351,7 +357,10 @@ const PromptPresetPanel: React.FC = () => {
                       <IconButton
                         edge="end"
                         aria-label="delete"
-                        onClick={() => handleOpenDeleteConfirm(preset)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenDeleteConfirm(preset);
+                        }}
                         disabled={isLoading || isSaving || isDeleting || isCloning}
                       >
                         <DeleteIcon />
