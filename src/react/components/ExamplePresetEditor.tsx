@@ -851,7 +851,7 @@ const ExamplePresetEditor: React.FC = () => {
         <DialogTitle id="alert-dialog-title">프리셋 삭제 확인</DialogTitle>
         <DialogContent>
           <Typography>
-            "{presetToDelete?.name}" 프리셋을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            {presetToDelete?.name} 프리셋을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
           </Typography>
         </DialogContent>
         <DialogActions>

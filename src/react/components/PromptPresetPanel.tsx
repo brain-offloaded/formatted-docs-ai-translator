@@ -543,7 +543,7 @@ const PromptPresetPanel: React.FC = () => {
         <DialogTitle>프리셋 삭제 확인</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            "{presetToDelete?.name}" 프리셋을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            {presetToDelete?.name} 프리셋을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
