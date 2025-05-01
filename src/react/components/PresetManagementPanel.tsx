@@ -1,8 +1,8 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy } from 'react'; // 중복 제거
 import { Box, Tabs, Tab, CircularProgress, Paper } from '@mui/material';
 
 // 프리셋 관리 패널들을 지연 로딩
-const ExamplePresetEditor = lazy(() => import('./ExamplePresetEditor')); // 새로 만들 컴포넌트
+const ExamplePresetEditor = lazy(() => import('./ExamplePresetEditor')); // 경로 확인 및 유지
 const PromptPresetPanel = lazy(() => import('./PromptPresetPanel'));
 
 // 로딩 중 표시할 컴포넌트
