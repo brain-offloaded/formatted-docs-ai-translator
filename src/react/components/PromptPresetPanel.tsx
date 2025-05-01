@@ -323,45 +323,40 @@ const PromptPresetPanel: React.FC = () => {
                 <ListItem>
                   <ListItemText primary={preset.name} />
                   <ListItemSecondaryAction>
-                    <span style={{ display: 'flex', gap: '8px' }}>
-                      {' '}
-                      {/* Wrap buttons in span, add gap style */}
-                      <Tooltip title="상세 보기">
-                        <IconButton
-                          edge="end"
-                          aria-label="view"
-                          onClick={() => handleOpenViewDialog(preset.id)}
-                          disabled={
-                            isLoading || isDetailLoading || isSaving || isDeleting || isCloning
-                          }
-                        >
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="편집">
-                        <IconButton
-                          edge="end"
-                          aria-label="edit"
-                          onClick={() => handleOpenEditDialog(preset.id)}
-                          disabled={
-                            isLoading || isDetailLoading || isSaving || isDeleting || isCloning
-                          } // 상세 로딩 중에도 비활성화
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="삭제">
-                        <IconButton
-                          edge="end"
-                          aria-label="delete"
-                          onClick={() => handleOpenDeleteConfirm(preset)}
-                          disabled={isLoading || isSaving || isDeleting || isCloning}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </span>{' '}
-                    {/* End span */}
+                    <Tooltip title="상세 보기">
+                      <IconButton
+                        edge="end"
+                        aria-label="view"
+                        onClick={() => handleOpenViewDialog(preset.id)}
+                        disabled={
+                          isLoading || isDetailLoading || isSaving || isDeleting || isCloning
+                        }
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="편집">
+                      <IconButton
+                        edge="end"
+                        aria-label="edit"
+                        onClick={() => handleOpenEditDialog(preset.id)}
+                        disabled={
+                          isLoading || isDetailLoading || isSaving || isDeleting || isCloning
+                        } // 상세 로딩 중에도 비활성화
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="삭제">
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={() => handleOpenDeleteConfirm(preset)}
+                        disabled={isLoading || isSaving || isDeleting || isCloning}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
                   </ListItemSecondaryAction>
                 </ListItem>
                 <Divider component="li" />
