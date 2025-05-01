@@ -10,6 +10,9 @@
   "scripts": {
     "start": "yarn build && electron ./dist/main.js",
     "build": "tsc && tsc-alias && webpack",
+    "postinstall": "yarn rebuild:electron",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
+    "rebuild:local": "rebuild -f -w better-sqlite3",
     "watch": "concurrently \"tsc -w\" \"webpack --watch\"",
     "watch-ts": "tsc -w",
     "start:dev": "yarn build && concurrently \"yarn watch\" \"nodemon --watch dist --exec electron ./dist/main.js\"",
