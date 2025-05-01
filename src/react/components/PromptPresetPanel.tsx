@@ -24,7 +24,9 @@ import {
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
+  DeleteOutline as DeleteIcon, // Change delete icon
+  Visibility as VisibilityIcon,
+  BookmarkBorder as BookmarkIcon, // Add clone icon
 } from '@mui/icons-material';
 
 import { IpcChannel } from '../../nest/common/ipc.channel';
@@ -44,11 +46,15 @@ const PromptPresetPanel: React.FC = () => {
   const [isDetailLoading, setIsDetailLoading] = useState(false); // 편집 시 상세 로딩
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCloning, setIsCloning] = useState(false); // 복제 로딩 상태 추가
 
   // 모달 상태
-  const [openEditDialog, setOpenEditDialog] = useState(false); // 생성/편집 공용
+  const [openCreateDialog, setOpenCreateDialog] = useState(false); // 생성 모달
+  const [openEditDialog, setOpenEditDialog] = useState(false); // 편집 모달
+  const [openViewDialog, setOpenViewDialog] = useState(false); // 상세 보기 모달
   const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
   const [presetToDelete, setPresetToDelete] = useState<PromptPresetDto | null>(null); // 삭제 대상 저장
+  const [presetToView, setPresetToView] = useState<PromptPresetDetailDto | null>(null); // 상세 보기 대상 저장
 
   // 폼 상태 (생성/편집 공용)
   const [editId, setEditId] = useState<number | null>(null); // null이면 생성, number면 편집
@@ -120,9 +126,9 @@ const PromptPresetPanel: React.FC = () => {
   // 생성 다이얼로그 열기
   const handleOpenCreateDialog = () => {
     setEditId(null);
-    setEditName('');
+    setEditName(''); // Fix: Clear name on create
     setEditPrompt('');
-    setOpenEditDialog(true);
+    setOpenCreateDialog(true); // Fix: Open create dialog
   };
 
   // 편집 다이얼로그 열기 (리스트 아이템 클릭 시)
@@ -136,12 +142,42 @@ const PromptPresetPanel: React.FC = () => {
     }
   };
 
-  // 생성/편집 다이얼로그 닫기
-  const handleCloseEditDialog = () => {
+  // 폼 다이얼로그 닫기 (생성/편집 공용)
+  const handleCloseFormDialog = () => {
+    // Rename: handleCloseEditDialog -> handleCloseFormDialog
+    setOpenCreateDialog(false);
     setOpenEditDialog(false);
     setEditId(null);
     setEditName('');
     setEditPrompt('');
+  };
+
+  // 상세 보기 모달에서 편집 모달 열기
+  const handleOpenEditFromView = useCallback(() => {
+    if (presetToView) {
+      // Set state for the edit dialog based on presetToView
+      setEditId(presetToView.id);
+      setEditName(presetToView.name);
+      setEditPrompt(presetToView.prompt);
+      // Close view dialog, open edit dialog
+      setOpenViewDialog(false);
+      setOpenEditDialog(true);
+    }
+  }, [presetToView]);
+
+  // 상세 보기 다이얼로그 열기
+  const handleOpenViewDialog = async (id: number) => {
+    const detail = await loadPresetDetail(id);
+    if (detail) {
+      setPresetToView(detail);
+      setOpenViewDialog(true);
+    }
+  };
+
+  // 상세 보기 다이얼로그 닫기
+  const handleCloseViewDialog = () => {
+    setOpenViewDialog(false);
+    setPresetToView(null);
   };
 
   // 생성 또는 수정 저장 (통합)
@@ -153,27 +189,23 @@ const PromptPresetPanel: React.FC = () => {
     setIsSaving(true);
     try {
       let response;
-      if (editId === null) { // 생성
+      if (editId === null) {
+        // 생성
         const request: CreatePromptPresetRequestDto = { name: editName, prompt: editPrompt };
-        response = await window.electron.ipcRenderer.invoke(
-          IpcChannel.CreatePromptPreset,
-          request
-        );
+        response = await window.electron.ipcRenderer.invoke(IpcChannel.CreatePromptPreset, request);
         if (response.success) {
           showSnackbar('프리셋이 성공적으로 생성되었습니다.');
         } else {
           showSnackbar(`프리셋 생성 실패: ${response.message}`);
         }
-      } else { // 수정
+      } else {
+        // 수정
         const request: UpdatePromptPresetRequestDto = {
           id: editId,
           name: editName,
           prompt: editPrompt,
         };
-        response = await window.electron.ipcRenderer.invoke(
-          IpcChannel.UpdatePromptPreset,
-          request
-        );
+        response = await window.electron.ipcRenderer.invoke(IpcChannel.UpdatePromptPreset, request);
         if (response.success) {
           showSnackbar('프리셋이 성공적으로 수정되었습니다.');
         } else {
@@ -182,7 +214,7 @@ const PromptPresetPanel: React.FC = () => {
       }
 
       if (response.success) {
-        handleCloseEditDialog();
+        handleCloseFormDialog(); // Use new handler name
         await loadPresets();
       }
     } catch (error) {
@@ -193,6 +225,35 @@ const PromptPresetPanel: React.FC = () => {
     }
   };
 
+  // 프리셋 복제 (상세 보기 모달에서 호출)
+  const handleClonePreset = useCallback(async () => {
+    if (!presetToView) return;
+
+    setIsCloning(true);
+    try {
+      const request: CreatePromptPresetRequestDto = {
+        name: `${presetToView.name}_복제본`, // 복제본 이름 규칙
+        prompt: presetToView.prompt, // 원본 프롬프트 포함
+      };
+      const response = await window.electron.ipcRenderer.invoke(
+        IpcChannel.CreatePromptPreset,
+        request
+      );
+
+      if (response.success) {
+        setOpenViewDialog(false); // 상세 모달 닫기
+        showSnackbar('프리셋이 성공적으로 복제되었습니다.');
+        await loadPresets(); // 목록 갱신
+      } else {
+        showSnackbar(`프리셋 복제 실패: ${response.message}`);
+      }
+    } catch (error) {
+      console.error('Error cloning preset:', error);
+      showSnackbar('프리셋 복제 중 오류 발생');
+    } finally {
+      setIsCloning(false);
+    }
+  }, [presetToView, loadPresets, showSnackbar]);
   // 삭제 확인 다이얼로그 열기 (리스트 아이템 클릭 시)
   const handleOpenDeleteConfirm = (preset: PromptPresetDto) => {
     setPresetToDelete(preset);
@@ -240,11 +301,9 @@ const PromptPresetPanel: React.FC = () => {
           onClick={handleOpenCreateDialog}
           disabled={isLoading}
         >
-          새 프리셋 생성
+          생성 {/* Change button text */}
         </Button>
       </Box>
-      <Divider sx={{ mb: 2 }} />
-
       {/* 프리셋 목록 */}
       <Paper variant="outlined">
         {isLoading && (
@@ -264,26 +323,45 @@ const PromptPresetPanel: React.FC = () => {
                 <ListItem>
                   <ListItemText primary={preset.name} />
                   <ListItemSecondaryAction>
-                    <Tooltip title="편집">
-                      <IconButton
-                        edge="end"
-                        aria-label="edit"
-                        onClick={() => handleOpenEditDialog(preset.id)}
-                        disabled={isLoading || isDetailLoading} // 상세 로딩 중에도 비활성화
-                      >
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="삭제">
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => handleOpenDeleteConfirm(preset)}
-                        disabled={isLoading}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Tooltip>
+                    <span style={{ display: 'flex', gap: '8px' }}>
+                      {' '}
+                      {/* Wrap buttons in span, add gap style */}
+                      <Tooltip title="상세 보기">
+                        <IconButton
+                          edge="end"
+                          aria-label="view"
+                          onClick={() => handleOpenViewDialog(preset.id)}
+                          disabled={
+                            isLoading || isDetailLoading || isSaving || isDeleting || isCloning
+                          }
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="편집">
+                        <IconButton
+                          edge="end"
+                          aria-label="edit"
+                          onClick={() => handleOpenEditDialog(preset.id)}
+                          disabled={
+                            isLoading || isDetailLoading || isSaving || isDeleting || isCloning
+                          } // 상세 로딩 중에도 비활성화
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="삭제">
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          onClick={() => handleOpenDeleteConfirm(preset)}
+                          disabled={isLoading || isSaving || isDeleting || isCloning}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </span>{' '}
+                    {/* End span */}
                   </ListItemSecondaryAction>
                 </ListItem>
                 <Divider component="li" />
@@ -292,56 +370,176 @@ const PromptPresetPanel: React.FC = () => {
           </List>
         )}
       </Paper>
-
-      {/* 생성/편집 다이얼로그 */}
-      <Dialog open={openEditDialog} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editId === null ? '새 프롬프트 프리셋 생성' : '프롬프트 프리셋 수정'}
-        </DialogTitle>
+      {/* 새 프리셋 생성 다이얼로그 */}
+      <Dialog open={openCreateDialog} onClose={handleCloseFormDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>새 프롬프트 프리셋 생성</DialogTitle>
         <DialogContent>
           <TextField
-            // autoFocus // 접근성 문제로 제거
             margin="dense"
             label="프리셋 이름"
             type="text"
-            fullWidth
+            fullWidth // Fix: Ensure fullWidth
             variant="standard"
             value={editName}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
-            disabled={isSaving || isDetailLoading} // 상세 로딩 중에도 비활성화
+            disabled={isSaving}
+            required
+            error={!editName.trim()}
+            helperText={!editName.trim() ? '프리셋 이름은 필수입니다' : ''}
           />
           <TextField
             margin="dense"
             label="프롬프트 내용"
             type="text"
-            fullWidth
+            fullWidth // Fix: Ensure fullWidth
             multiline
-            rows={10} // 행 수 증가
+            rows={10}
             variant="standard"
             value={editPrompt}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditPrompt(e.target.value)}
-            disabled={isSaving || isDetailLoading} // 상세 로딩 중에도 비활성화
+            disabled={isSaving}
+            required
+            error={!editPrompt.trim()}
+            helperText={!editPrompt.trim() ? '프롬프트 내용은 필수입니다' : ''}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseEditDialog} disabled={isSaving || isDetailLoading}>
+          <Button onClick={handleCloseFormDialog} disabled={isSaving}>
+            취소
+          </Button>
+          <Button
+            onClick={handleSavePreset}
+            disabled={isSaving || !editName.trim() || !editPrompt.trim()}
+          >
+            {isSaving ? <CircularProgress size={20} /> : '생성'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* 프리셋 편집 다이얼로그 */}
+      <Dialog open={openEditDialog} onClose={handleCloseFormDialog} maxWidth="md" fullWidth>
+        {' '}
+        {/* Change maxWidth to md */}
+        <DialogTitle>프롬프트 프리셋 수정</DialogTitle>
+        <DialogContent>
+          {isDetailLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <TextField
+                margin="dense"
+                label="프리셋 이름"
+                type="text"
+                fullWidth // Fix: Ensure fullWidth
+                variant="standard"
+                value={editName}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditName(e.target.value)}
+                disabled={isSaving}
+                required
+                error={!editName.trim()}
+                helperText={!editName.trim() ? '프리셋 이름은 필수입니다' : ''}
+              />
+              <TextField
+                margin="dense"
+                label="프롬프트 내용"
+                type="text"
+                fullWidth // Fix: Ensure fullWidth
+                multiline
+                rows={10}
+                variant="standard"
+                value={editPrompt}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditPrompt(e.target.value)}
+                disabled={isSaving}
+                required
+                error={!editPrompt.trim()}
+                helperText={!editPrompt.trim() ? '프롬프트 내용은 필수입니다' : ''}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseFormDialog} disabled={isSaving || isDetailLoading}>
             취소
           </Button>
           <Button
             onClick={handleSavePreset}
             disabled={isSaving || isDetailLoading || !editName.trim() || !editPrompt.trim()}
           >
-            {isSaving ? <CircularProgress size={20} /> : editId === null ? '생성' : '저장'}
+            {isSaving ? <CircularProgress size={20} /> : '저장'}
           </Button>
         </DialogActions>
       </Dialog>
-
+      {/* 상세 보기 다이얼로그 */} {/* Add view dialog */}
+      <Dialog open={openViewDialog} onClose={handleCloseViewDialog} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            프롬프트 프리셋 상세 보기: {presetToView?.name}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="contained"
+                startIcon={<BookmarkIcon />}
+                onClick={handleClonePreset}
+                disabled={isDetailLoading || isCloning || isSaving || isDeleting || !presetToView}
+              >
+                복제
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={handleOpenEditFromView}
+                disabled={isDetailLoading || isCloning || isSaving || isDeleting}
+              >
+                편집
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                startIcon={<DeleteIcon />}
+                onClick={() => {
+                  if (presetToView) handleOpenDeleteConfirm(presetToView);
+                  setOpenViewDialog(false); // 상세 모달 닫기
+                }}
+                disabled={isDetailLoading || isCloning || isSaving || isDeleting}
+              >
+                삭제
+              </Button>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {isDetailLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            presetToView && (
+              <Box>
+                <Typography variant="subtitle2" gutterBottom>
+                  프롬프트 내용
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 2, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
+                >
+                  <Typography variant="body2">{presetToView.prompt}</Typography>
+                </Paper>
+              </Box>
+            )
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseViewDialog} disabled={isCloning || isDeleting}>
+            닫기
+          </Button>
+        </DialogActions>
+      </Dialog>
       {/* 삭제 확인 다이얼로그 */}
       <Dialog open={openDeleteConfirm} onClose={handleCloseDeleteConfirm}>
         <DialogTitle>프리셋 삭제 확인</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            '{presetToDelete?.name}' 프리셋을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            "{presetToDelete?.name}" 프리셋을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -353,7 +551,6 @@ const PromptPresetPanel: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       {/* 스낵바 컴포넌트 */}
       <Snackbar
         open={isSnackbarOpen}
