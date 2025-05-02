@@ -48,6 +48,8 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   formatOutput?: (output: string, isFileMode: boolean) => string;
   // 옵션 관련 props
   parserOptions?: T | null;
+  // 프롬프트 프리셋 내용 추가
+  promptPresetContent?: string;
 }
 
 // 모든 번역기 컴포넌트가 공유하는 공통 Props 타입 정의

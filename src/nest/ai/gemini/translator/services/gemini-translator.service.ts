@@ -260,6 +260,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
     apiKeyIterator: Generator<string>;
     maxOutputTokenCount?: number;
     fileInfo?: FilePathInfo;
+    promptPresetContent?: string;
   }): Promise<{
     batchTranslations: Map<string, TranslationResult>;
     response: EnhancedGenerateContentResponse;
@@ -271,6 +272,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
       const { contents, systemInstruction } = await this.promptConverterService.getChatBlock({
         content: tagTexts(Array.from(remainingTexts.keys())),
         sourceLanguage,
+        promptPresetContent,
       });
 
       this.logger.debug('번역 요청 전 프롬프트:', {

@@ -9,6 +9,7 @@ export interface AiTranslateParam {
   maxOutputTokenCount?: number;
   requestsPerMinute?: number;
   apiKey: string;
+  promptPresetContent?: string;
 }
 
 export interface IAiTranslatorService<ModelName extends AiModelName> {

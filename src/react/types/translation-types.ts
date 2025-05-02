@@ -63,7 +63,7 @@ export type OptionComponentType<T extends TranslationType> = React.ComponentType
 
 // 번역기 컴포넌트 타입
 export type TranslatorComponentType<T extends TranslationType> = React.ComponentType<
-  CustomTranslatorProps<TranslationTypeToOptionsMap[T]>
+  CustomTranslatorProps<TranslationTypeToOptionsMap[T]> & { promptPresetContent?: string } // promptPresetContent prop 추가
 >;
 
 // 특정 TranslationType에 해당하는 번역기와 옵션 컴포넌트 타입

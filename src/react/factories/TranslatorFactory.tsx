@@ -1,9 +1,14 @@
 import React, { memo } from 'react';
-import { BaseTranslator, BaseTranslatorOptions } from '../components/translators/BaseTranslator';
+import { BaseTranslator, BaseTranslatorOptions, BaseTranslatorProps } from '../components/translators/BaseTranslator'; // BaseTranslatorProps import
 import { TranslationType } from '../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
-import { TranslationTypeToOptionsMap, TranslatorComponentType } from '../types/translation-types';
+import { TranslationTypeToOptionsMap, TranslatorComponentType as OriginalTranslatorComponentType } from '../types/translation-types'; // 이름 변경
 import { OptionItem } from '../components/options/DynamicOptions';
+
+// promptPresetContent prop을 포함하도록 TranslatorComponentType 재정의
+type TranslatorComponentType<T extends TranslationType> = React.MemoExoticComponent<
+  (props: BaseTranslatorProps<TranslationTypeToOptionsMap[T]>) => React.ReactElement
+>;
 
 /**
  * 번역기 설정 인터페이스 - 번역기 생성에 필요한 모든 설정을 포함
@@ -88,7 +93,10 @@ export class TranslatorRegistry {
 
     // 메모이제이션된 번역기 컴포넌트 생성
     const TranslatorComponent = memo(
-      (props: { parserOptions?: TranslationTypeToOptionsMap[T] | null }) => {
+      (props: {
+        parserOptions?: TranslationTypeToOptionsMap[T] | null;
+        promptPresetContent?: string; // promptPresetContent prop 추가
+      }) => {
         return (
           <BaseTranslator
             options={config.options}
@@ -97,6 +105,7 @@ export class TranslatorRegistry {
             applyChannel={config.applyChannel}
             formatOutput={config.formatOutput}
             parserOptions={props.parserOptions as TranslationTypeToOptionsMap[T]}
+            promptPresetContent={props.promptPresetContent} // promptPresetContent prop 전달
           />
         );
       }

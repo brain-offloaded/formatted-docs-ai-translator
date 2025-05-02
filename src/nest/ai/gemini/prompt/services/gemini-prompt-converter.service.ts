@@ -47,12 +47,16 @@ export class GeminiPromptConverterService extends AiPromptConverterService<IChat
   protected parsePromptToChatBlock({
     image,
     currentPrompt,
+    promptPresetContent,
   }: {
     image?: string; // Base64 인코딩된 이미지 데이터
     currentPrompt: string;
+    promptPresetContent?: string;
   }): IChatBlock {
     {
-      const blocks = currentPrompt.match(/<\|role_start:(.*?)\|>(.*?)<\|role_end\|>/gs) || [];
+      // 프롬프트 프리셋 내용을 기존 프롬프트 앞에 추가
+      const fullPrompt = promptPresetContent ? `${promptPresetContent}\n\n${currentPrompt}` : currentPrompt;
+      const blocks = fullPrompt.match(/<\|role_start:(.*?)\|>(.*?)<\|role_end\|>/gs) || [];
       const tempContents: IChatContent[] = [];
       const result: IChatBlock = {
         contents: [],
