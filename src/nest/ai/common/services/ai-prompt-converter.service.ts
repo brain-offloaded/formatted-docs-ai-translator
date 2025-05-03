@@ -30,18 +30,18 @@ I understood. I have translated all sentences without omission. I must response 
   }
 
   protected async replacePrompt({
-    prompt,
+    promptPresetContent,
     sourceLanguage,
     content,
     // prefill,
   }: {
-    prompt?: string;
+    promptPresetContent?: string;
     sourceLanguage: SourceLanguage;
     content?: string;
     // prefill?: string;
   }) {
     const example = await this.exampleManager.getExample(sourceLanguage);
-    let currentPrompt = this.getPrompt(prompt);
+    let currentPrompt = this.getPrompt(promptPresetContent);
     // const currentPrefill = this.getPrefill(prefill);
 
     // currentPrompt = currentPrompt.replaceAll(
@@ -99,19 +99,17 @@ I understood. I have translated all sentences without omission. I must response 
     content,
     image,
     sourceLanguage,
-    prompt,
     promptPresetContent, // promptPresetContent 매개변수 추가
     // prefill,
   }: {
     content?: string;
     image?: string; // Base64 인코딩된 이미지 데이터
     sourceLanguage: SourceLanguage;
-    prompt?: string;
     promptPresetContent?: string; // 타입 정의에 추가
     // prefill?: string;
   }): Promise<ChatBlockType> {
     const currentPrompt = await this.replacePrompt({
-      prompt,
+      promptPresetContent,
       sourceLanguage,
       content,
       // prefill,

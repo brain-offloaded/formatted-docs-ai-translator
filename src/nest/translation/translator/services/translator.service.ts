@@ -66,6 +66,7 @@ export class TranslatorService {
     },
     textPaths,
     sourceFilePath,
+    promptPresetContent,
   }: InvokeFunctionRequest<IpcChannel.TranslateTextArray>): Promise<TranslatorResponse<unknown>> {
     const sourceTexts = textPaths.map((item) => item.text);
 
@@ -95,6 +96,7 @@ export class TranslatorService {
           apiKey,
           maxOutputTokenCount,
           requestsPerMinute,
+          promptPresetContent,
         })
       )
     );

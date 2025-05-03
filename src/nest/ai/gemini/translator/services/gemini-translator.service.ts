@@ -23,6 +23,7 @@ import { GeminiTokenService } from './gemini-token.service';
 import { GeminiResponseService } from './gemini-response.service';
 import { AiResponseService } from '../../../common/services/ai-response-service';
 import { FilePathInfo } from '@/types/cache';
+import { AiTranslateParam } from '@/nest/ai/common/services/i-ai-translator-service';
 
 @Injectable()
 export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, GenerativeModel> {
@@ -61,14 +62,8 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
       maxOutputTokenCount,
       requestsPerMinute,
       apiKey,
-    }: {
-      sourceTexts: string[];
-      sourceLanguage: SourceLanguage;
-      fileInfo?: FilePathInfo;
-      maxOutputTokenCount?: number;
-      requestsPerMinute?: number;
-      apiKey: string;
-    }
+      promptPresetContent,
+    }: AiTranslateParam
   ): Promise<string[]> {
     this.setRateLimiter(modelName, requestsPerMinute);
     const apiKeyIterator = keyRoundRobin(apiKey);
@@ -108,6 +103,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
                 apiKeyIterator,
                 maxOutputTokenCount,
                 fileInfo,
+                promptPresetContent,
               });
 
               // 번역 성공 시 연속 실패 횟수 초기화
