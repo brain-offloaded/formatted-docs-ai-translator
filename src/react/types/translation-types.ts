@@ -5,7 +5,6 @@ import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-opti
 import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
 import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
 import { SubtitleParserOptionsDto } from '@/nest/parser/dto/options/subtitle-parser-options.dto';
-import { CustomTranslatorProps } from '../components/translators/BaseTranslator';
 import { OptionItem } from '../components/options/DynamicOptions';
 
 /**
@@ -61,9 +60,11 @@ export type OptionComponentType<T extends TranslationType> = React.ComponentType
   CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>
 >;
 
+import { BaseTranslatorProps } from '../components/translators/BaseTranslator'; // BaseTranslatorProps import
+
 // 번역기 컴포넌트 타입
 export type TranslatorComponentType<T extends TranslationType> = React.ComponentType<
-  CustomTranslatorProps<TranslationTypeToOptionsMap[T]> & { promptPresetContent?: string } // promptPresetContent prop 추가
+  BaseTranslatorProps<TranslationTypeToOptionsMap[T]> // CustomTranslatorProps 대신 BaseTranslatorProps 사용
 >;
 
 // 특정 TranslationType에 해당하는 번역기와 옵션 컴포넌트 타입

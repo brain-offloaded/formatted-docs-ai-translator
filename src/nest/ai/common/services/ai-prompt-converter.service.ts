@@ -100,12 +100,14 @@ I understood. I have translated all sentences without omission. I must response 
     image,
     sourceLanguage,
     prompt,
+    promptPresetContent, // promptPresetContent 매개변수 추가
     // prefill,
   }: {
     content?: string;
     image?: string; // Base64 인코딩된 이미지 데이터
     sourceLanguage: SourceLanguage;
     prompt?: string;
+    promptPresetContent?: string; // 타입 정의에 추가
     // prefill?: string;
   }): Promise<ChatBlockType> {
     const currentPrompt = await this.replacePrompt({
@@ -118,14 +120,17 @@ I understood. I have translated all sentences without omission. I must response 
     return this.parsePromptToChatBlock({
       image,
       currentPrompt,
+      promptPresetContent, // parsePromptToChatBlock 호출 시 전달
     });
   }
 
   protected abstract parsePromptToChatBlock({
     image,
     currentPrompt,
+    promptPresetContent, // 추상 메소드 타입 정의에 추가
   }: {
     image?: string; // Base64 인코딩된 이미지 데이터
     currentPrompt: string;
+    promptPresetContent?: string; // 타입 정의에 추가
   }): ChatBlockType;
 }

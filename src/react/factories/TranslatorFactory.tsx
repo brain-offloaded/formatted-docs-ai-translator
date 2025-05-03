@@ -132,7 +132,7 @@ export class TranslatorFactory {
    * @param type 번역 타입
    * @returns 번역기 컴포넌트
    */
-  public static createTranslator<T extends TranslationType>(type: T): TranslatorComponentType<T> {
+  public static createTranslator<T extends TranslationType>(type: T): TranslatorComponentType<T> { // 반환 타입 명시
     return this.registry.getOrCreateComponent(type);
   }
 

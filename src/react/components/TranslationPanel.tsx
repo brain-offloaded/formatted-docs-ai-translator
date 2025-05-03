@@ -44,7 +44,6 @@ export default function TranslationPanel(): React.ReactElement {
   const [promptPresetContent, setPromptPresetContent] = useState<string | undefined>(undefined);
   const [isPromptPresetLoading, setIsPromptPresetLoading] = useState(false);
 
-
   // 옵션 상태 관리
   const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
   // 설정 패널 표시 여부 상태 관리
@@ -157,7 +156,7 @@ export default function TranslationPanel(): React.ReactElement {
 
         if (result.success) {
           setCurrentExamplePresetName(newPresetName);
-          configStore.updateConfig({ lastExamplePresetName: newPresetName }); // 설정 저장
+          configStore.updateConfig({ lastPresetName: newPresetName }); // 설정 저장
           showSnackbar(`'${newPresetName}' 예제 프리셋을 로드했습니다.`);
         } else {
           showSnackbar(`예제 프리셋 로드 실패: ${result.message}`);
@@ -184,9 +183,12 @@ export default function TranslationPanel(): React.ReactElement {
     []
   );
 
-
-  // TranslationType에 따라 적절한 컴포넌트 가져오기 - 메모이제이션
-  const { TranslatorComponent, OptionComponent } = useMemo(
+  // TranslationType에 따라 적절한 컴포넌트 및 옵션 가져오기 - 메모이제이션
+  const {
+    TranslatorComponent,
+    OptionComponent,
+    options: translatorOptions,
+  } = useMemo(
     () => getTranslatorWithOptions<typeof translationType>(translationType),
     [translationType]
   );
@@ -224,7 +226,6 @@ export default function TranslationPanel(): React.ReactElement {
             setIsPresetLoading={setIsPromptPresetLoading}
           />
 
-
           {/* 번역 유형 선택 */}
           <Box sx={{ mb: 2 }}>
             <TranslationTypeSelector
@@ -245,9 +246,10 @@ export default function TranslationPanel(): React.ReactElement {
               />
             )}
 
-            {/* 번역기 컴포넌트 렌더링 - 옵션과 프롬프트 프리셋 내용 전달 */}
+            {/* 번역기 컴포넌트 렌더링 - 옵션, 파서 옵션, 프롬프트 프리셋 내용 전달 */}
             <TranslatorComponent
               key={translationType}
+              options={translatorOptions} // options prop 전달
               parserOptions={parserOptions}
               promptPresetContent={promptPresetContent} // 프롬프트 프리셋 내용 전달
             />

@@ -253,6 +253,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
     apiKeyIterator,
     maxOutputTokenCount,
     fileInfo,
+    promptPresetContent, // 구조 분해 할당에 추가
   }: {
     remainingTexts: Map<string, number[]>;
     sourceLanguage: SourceLanguage;
