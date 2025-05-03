@@ -99,6 +99,72 @@ export default function TranslationPanel(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 최초 마운트 시에만 실행
 
+  // 초기 프롬프트 프리셋 로드 로직 추가
+  useEffect(() => {
+    const loadInitialPromptPreset = async () => {
+      try {
+        setIsPromptPresetLoading(true);
+        const config = configStore.getConfig();
+        const savedPresetName = config.lastPromptPresetName;
+
+        if (savedPresetName) {
+          // 먼저 전체 프리셋 목록을 가져와서 ID를 찾습니다.
+          const listResult = await window.electron.ipcRenderer.invoke(IpcChannel.GetPromptPresets);
+
+          if (listResult.success && listResult.presets) {
+            const foundPreset = listResult.presets.find((p) => p.name === savedPresetName);
+
+            if (foundPreset) {
+              // 찾은 프리셋의 ID로 상세 정보 가져오기
+              const detailResult = await window.electron.ipcRenderer.invoke(
+                IpcChannel.GetPromptPresetDetail,
+                { id: foundPreset.id }
+              );
+
+              if (detailResult.success && detailResult.preset) {
+                setCurrentPromptPresetName(detailResult.preset.name);
+                setPromptPresetContent(detailResult.preset.prompt);
+                showSnackbar(`'${detailResult.preset.name}' 프롬프트 프리셋을 로드했습니다.`);
+              } else {
+                console.warn(`초기 프롬프트 프리셋 상세 정보 로드 실패:`, detailResult.message);
+                // 상세 정보 로드 실패 시 상태 초기화
+                setCurrentPromptPresetName('');
+                setPromptPresetContent(undefined);
+              }
+            } else {
+              console.warn(
+                `저장된 프롬프트 프리셋 이름(${savedPresetName})에 해당하는 프리셋을 찾을 수 없습니다.`
+              );
+              // 이름에 해당하는 프리셋을 찾지 못한 경우 상태 초기화
+              setCurrentPromptPresetName('');
+              setPromptPresetContent(undefined);
+            }
+          } else {
+            console.warn(`프롬프트 프리셋 목록 불러오기 실패:`, listResult.message);
+            // 목록 불러오기 실패 시 상태 초기화
+            setCurrentPromptPresetName('');
+            setPromptPresetContent(undefined);
+          }
+        }
+      } catch (error) {
+        console.error('초기 프롬프트 프리셋 로드 중 오류 발생:', error);
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+        showSnackbar(`초기 프롬프트 프리셋 로드 중 오류가 발생했습니다: ${errorMessage}`);
+        // 오류 발생 시 상태 초기화
+        setCurrentPromptPresetName('');
+        setPromptPresetContent(undefined);
+      } finally {
+        setIsPromptPresetLoading(false);
+      }
+    };
+
+    // 컴포넌트 마운트 시 한 번만 실행
+    if (!currentPromptPresetName) {
+      loadInitialPromptPreset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 최초 마운트 시에만 실행
+
   // 옵션 변경 핸들러 - 메모이제이션
   const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
     setParserOptions((prevOptions) => {
@@ -177,10 +243,10 @@ export default function TranslationPanel(): React.ReactElement {
     (presetName: string, presetContent: string | undefined) => {
       setCurrentPromptPresetName(presetName);
       setPromptPresetContent(presetContent);
-      // 프롬프트 프리셋 변경 시 설정 저장 (선택 사항)
-      // configStore.updateConfig({ lastPromptPresetName: presetName });
+      // 프롬프트 프리셋 변경 시 설정 저장
+      configStore.updateConfig({ lastPromptPresetName: presetName });
     },
-    []
+    [configStore] // 의존성 배열에 configStore 추가
   );
 
   // TranslationType에 따라 적절한 컴포넌트 및 옵션 가져오기 - 메모이제이션
