@@ -48,6 +48,8 @@ export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOp
   formatOutput?: (output: string, isFileMode: boolean) => string;
   // 옵션 관련 props
   parserOptions?: T | null;
+  // 프롬프트 프리셋 내용 추가
+  promptPresetContent?: string;
 }
 
 // 모든 번역기 컴포넌트가 공유하는 공통 Props 타입 정의
@@ -71,6 +73,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   applyChannel,
   formatOutput = defaultFormatOutput,
   parserOptions,
+  promptPresetContent, // 구조 분해 할당에 추가
 }: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
   const configStore = useMemo(() => ConfigStore.getInstance(), []);
@@ -218,13 +221,14 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         config,
         textPaths: parsedContent.targets,
         sourceFilePath: '',
+        promptPresetContent, // promptPresetContent prop을 직접 사용
       };
       return (await window.electron.ipcRenderer.invoke(
         translateChannel,
         translatePayload
       )) as InvokeFunctionResponse<IpcChannel.TranslateTextArray>;
     },
-    [translateChannel]
+    [translateChannel, promptPresetContent] // 의존성 배열에 promptPresetContent 추가
   );
 
   // applyTranslation 함수 - 메모이제이션

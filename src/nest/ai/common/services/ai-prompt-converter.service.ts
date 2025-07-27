@@ -9,12 +9,16 @@ export abstract class AiPromptConverterService<ChatBlockType> {
   protected readonly DEFAULT_PREFILL =
     'I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only prefix included):';
   protected readonly DEFAULT_PROMPT = `<|role_start:system|>
-You are translator who translate the {{source_language}} text given by user to ${targetLanguage}. You are just a translator. If it's already in ${targetLanguage}, you have to output it as it is. Keep prefix format. Response only translation text and prefix, without any extra information.
+You are translator who translate the {{language::source}} text given by user to {{language::target}}. You are just a translator. If it's already in {{language::target}}, you have to output it as it is. Keep prefix format. Response only translation text and prefix, without any extra information.
 No sentence should be left untranslated, or you should not respond with a blank sentence without translating.<|role_end|>
-{{example}}
+{{example::source}}
+<|role_start:assistant|>
+I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only prefix included):<|role_end|>
+{{example::result}}
 <|role_start:user|>
 {{content}}<|role_end|>
-{{prefill}}
+<|role_start:assistant|>
+I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only prefix included):<|role_end|>
 `;
 
   protected getPrompt(prompt?: string) {
@@ -26,24 +30,24 @@ No sentence should be left untranslated, or you should not respond with a blank 
   }
 
   protected async replacePrompt({
-    prompt,
+    promptPresetContent,
     sourceLanguage,
     content,
-    prefill,
+    // prefill,
   }: {
-    prompt?: string;
+    promptPresetContent?: string;
     sourceLanguage: SourceLanguage;
     content?: string;
-    prefill?: string;
+    // prefill?: string;
   }) {
     const example = await this.exampleManager.getExample(sourceLanguage);
-    let currentPrompt = this.getPrompt(prompt);
-    const currentPrefill = this.getPrefill(prefill);
+    let currentPrompt = this.getPrompt(promptPresetContent);
+    // const currentPrefill = this.getPrefill(prefill);
 
-    currentPrompt = currentPrompt.replaceAll(
-      '{{example}}',
-      '{{example::source}}\n{{prefill}}\n{{example::result}}'
-    );
+    // currentPrompt = currentPrompt.replaceAll(
+    //   '{{example}}',
+    //   '{{example::source}}\n{{prefill}}\n{{example::result}}'
+    // );
 
     if (example?.source) {
       currentPrompt = currentPrompt.replaceAll(
@@ -63,14 +67,14 @@ No sentence should be left untranslated, or you should not respond with a blank 
       currentPrompt = currentPrompt.replaceAll('{{example::result}}', '');
     }
 
-    if (currentPrefill) {
-      currentPrompt = currentPrompt.replaceAll(
-        '{{prefill}}',
-        `<|role_start:assistant|>\n${currentPrefill}<|role_end|>`
-      );
-    } else {
-      currentPrompt = currentPrompt.replaceAll('{{prefill}}', '');
-    }
+    // if (currentPrefill) {
+    //   currentPrompt = currentPrompt.replaceAll(
+    //     '{{prefill}}',
+    //     `<|role_start:assistant|>\n${currentPrefill}<|role_end|>`
+    //   );
+    // } else {
+    //   currentPrompt = currentPrompt.replaceAll('{{prefill}}', '');
+    // }
 
     if (content) {
       currentPrompt = currentPrompt.replaceAll('{{content}}', content);
@@ -79,9 +83,13 @@ No sentence should be left untranslated, or you should not respond with a blank 
     }
 
     if (sourceLanguage) {
-      currentPrompt = currentPrompt.replaceAll('{{source_language}}', sourceLanguage);
+      currentPrompt = currentPrompt.replaceAll('{{language::source}}', sourceLanguage);
     } else {
       throw new Error('Source language is required');
+    }
+
+    if (targetLanguage) {
+      currentPrompt = currentPrompt.replaceAll('{{language::target}}', targetLanguage);
     }
 
     return currentPrompt;
@@ -91,33 +99,36 @@ No sentence should be left untranslated, or you should not respond with a blank 
     content,
     image,
     sourceLanguage,
-    prompt,
-    prefill,
+    promptPresetContent, // promptPresetContent 매개변수 추가
+    // prefill,
   }: {
     content?: string;
     image?: string; // Base64 인코딩된 이미지 데이터
     sourceLanguage: SourceLanguage;
-    prompt?: string;
-    prefill?: string;
+    promptPresetContent?: string; // 타입 정의에 추가
+    // prefill?: string;
   }): Promise<ChatBlockType> {
     const currentPrompt = await this.replacePrompt({
-      prompt,
+      promptPresetContent,
       sourceLanguage,
       content,
-      prefill,
+      // prefill,
     });
 
     return this.parsePromptToChatBlock({
       image,
       currentPrompt,
+      promptPresetContent, // parsePromptToChatBlock 호출 시 전달
     });
   }
 
   protected abstract parsePromptToChatBlock({
     image,
     currentPrompt,
+    promptPresetContent, // 추상 메소드 타입 정의에 추가
   }: {
     image?: string; // Base64 인코딩된 이미지 데이터
     currentPrompt: string;
+    promptPresetContent?: string; // 타입 정의에 추가
   }): ChatBlockType;
 }

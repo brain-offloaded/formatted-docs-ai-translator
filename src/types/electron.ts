@@ -7,6 +7,8 @@ import { LoggerRequestResponse } from '@/nest/logger/dto';
 import { UpdaterRequestResponse } from '@/nest/common/updater/dto';
 import { DbRequestResponse } from '@/nest/db/dto';
 import { CommonRequestResponse } from '@/nest/common/dto';
+import { PromptPresetRequestResponse } from '@/nest/translation/prompt/dto';
+
 type IpcRequestResponse = ParserRequestResponse &
   CacheRequestResponse &
   TranslatorRequestResponse &
@@ -14,7 +16,8 @@ type IpcRequestResponse = ParserRequestResponse &
   LoggerRequestResponse &
   UpdaterRequestResponse &
   DbRequestResponse &
-  CommonRequestResponse;
+  CommonRequestResponse &
+  PromptPresetRequestResponse;
 
 type invokeFunctionType = {
   <T extends IpcChannel>(

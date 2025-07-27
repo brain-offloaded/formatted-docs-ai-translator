@@ -39,7 +39,8 @@ const baseTheme = createTheme({
     divider: 'rgba(0, 0, 0, 0.06)',
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily:
+      '"Noto Sans KR", "Nanum Gothic", "Malgun Gothic", "Apple SD Gothic Neo", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 600,
     },

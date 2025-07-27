@@ -2,12 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
-  SelectChangeEvent,
   Tooltip,
   Dialog,
   DialogTitle,
@@ -17,6 +12,13 @@ import {
   Paper,
   Tab,
   Tabs,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  CircularProgress,
+  Divider,
 } from '@mui/material';
 import {
   Visibility as VisibilityIcon,
@@ -26,14 +28,15 @@ import {
   DeleteOutline as DeleteIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { ConfigStore } from '../../config/config-store';
-import { IpcChannel } from '../../../nest/common/ipc.channel';
-import { Language, SourceLanguage } from '../../../utils/language';
-import { useTranslation } from '../../contexts/TranslationContext';
+import { ConfigStore } from '../config/config-store';
+import { IpcChannel } from '../../nest/common/ipc.channel';
+import { Language, SourceLanguage } from '../../utils/language';
+import { useTranslation } from '../contexts/TranslationContext';
 import { ExamplePresetDto } from '@/nest/translation/example/dto/example-preset.dto';
 import { ExamplePresetDetailDto } from '@/nest/translation/example/dto/example-preset-detail.dto';
+import { GetExamplePresetDetailRequestDto } from '@/nest/translation/example/dto/request/get-example-preset-detail-request.dto';
 
-// 삭제 버튼 컴포넌트를 별도로 분리
+// 삭제 버튼 컴포넌트 (ExamplePresetSelector에서 가져옴)
 const DeleteButton = React.memo(
   ({
     language,
@@ -44,7 +47,6 @@ const DeleteButton = React.memo(
     index: number;
     onDelete: (language: SourceLanguage, index: number) => void;
   }) => {
-    // 클릭 핸들러를 컴포넌트 내부에 정의하여 이벤트 버블링 제한
     const handleClick = useCallback(() => {
       onDelete(language, index);
     }, [language, index, onDelete]);
@@ -58,13 +60,12 @@ const DeleteButton = React.memo(
 );
 DeleteButton.displayName = 'DeleteButton';
 
-const ExamplePresetSelector: React.FC = () => {
+const ExamplePresetEditor: React.FC = () => {
   const configStore = ConfigStore.getInstance();
-  const { isTranslating, showSnackbar } = useTranslation();
+  const { showSnackbar } = useTranslation();
 
   // 예제 프리셋 관련 상태
   const [examplePresets, setExamplePresets] = useState<ExamplePresetDto[]>([]);
-  const [currentPresetName, setCurrentPresetName] = useState<string>('');
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
   const [newPresetDescription, setNewPresetDescription] = useState('');
@@ -85,6 +86,7 @@ const ExamplePresetSelector: React.FC = () => {
     [Language.ENGLISH]: { sourceLines: [], resultLines: [] },
     [Language.JAPANESE]: { sourceLines: [], resultLines: [] },
   });
+  const [presetToDelete, setPresetToDelete] = useState<ExamplePresetDto | null>(null); // 삭제할 프리셋 정보 저장
 
   // 예제 프리셋 목록 가져오기
   const fetchExamplePresets = useCallback(async () => {
@@ -93,46 +95,6 @@ const ExamplePresetSelector: React.FC = () => {
       const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresets);
       if (result.success) {
         setExamplePresets(result.presets);
-
-        // 저장된 설정에서 마지막으로 선택한 프리셋 이름 가져오기
-        const config = configStore.getConfig();
-        const savedPresetName = config.lastPresetName || result.currentPreset;
-
-        // 현재 선택된 프리셋이 없거나 빈 문자열인 경우에도 프리셋 설정
-        if (!currentPresetName && result.presets.length > 0) {
-          // 가져온 프리셋 목록에 저장된 프리셋이 존재하는지 확인
-          const presetExists = result.presets.some((preset) => preset.name === savedPresetName);
-
-          // 저장된 프리셋이 존재하면 해당 프리셋 로드, 아니면 첫 번째 프리셋 사용
-          if (presetExists) {
-            setCurrentPresetName(savedPresetName);
-            // 백엔드에서 현재 설정된 프리셋과 다르면 로드
-            if (savedPresetName !== result.currentPreset) {
-              const loadResult = await window.electron.ipcRenderer.invoke(
-                IpcChannel.LoadExamplePreset,
-                {
-                  name: savedPresetName,
-                }
-              );
-              if (!loadResult.success) {
-                console.warn(`저장된 프리셋(${savedPresetName}) 로드 실패:`, loadResult.message);
-              }
-            }
-          } else if (result.presets.length > 0) {
-            // 존재하지 않으면 첫 번째 프리셋 사용
-            setCurrentPresetName(result.presets[0].name);
-            // 첫 번째 프리셋 로드
-            const loadResult = await window.electron.ipcRenderer.invoke(
-              IpcChannel.LoadExamplePreset,
-              {
-                name: result.presets[0].name,
-              }
-            );
-            if (!loadResult.success) {
-              console.warn(`첫 번째 프리셋 로드 실패:`, loadResult.message);
-            }
-          }
-        }
       } else {
         showSnackbar(`프리셋 목록 불러오기 실패: ${result.message}`);
       }
@@ -143,41 +105,12 @@ const ExamplePresetSelector: React.FC = () => {
     } finally {
       setIsPresetLoading(false);
     }
-  }, [showSnackbar, configStore, currentPresetName]);
+  }, [showSnackbar]);
 
   // 컴포넌트 마운트 시 예제 프리셋 목록 가져오기
   useEffect(() => {
     fetchExamplePresets();
   }, [fetchExamplePresets]);
-
-  // 예제 프리셋 변경 핸들러
-  const handlePresetChange = useCallback(
-    async (event: SelectChangeEvent<string>) => {
-      const newPresetName = event.target.value;
-      try {
-        setIsPresetLoading(true);
-        const result = await window.electron.ipcRenderer.invoke(IpcChannel.LoadExamplePreset, {
-          name: newPresetName,
-        });
-
-        if (result.success) {
-          setCurrentPresetName(newPresetName);
-          // 마지막으로 선택한 프리셋 이름을 설정에 저장
-          configStore.updateConfig({ lastPresetName: newPresetName });
-          showSnackbar(`'${newPresetName}' 프리셋을 로드했습니다.`);
-        } else {
-          showSnackbar(`프리셋 로드 실패: ${result.message}`);
-        }
-      } catch (error) {
-        console.error('프리셋 로드 중 오류 발생:', error);
-        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
-        showSnackbar(`프리셋 로드 중 오류가 발생했습니다: ${errorMessage}`);
-      } finally {
-        setIsPresetLoading(false);
-      }
-    },
-    [showSnackbar, configStore]
-  );
 
   // 새 프리셋 저장
   const handleSaveNewPreset = useCallback(async () => {
@@ -198,7 +131,7 @@ const ExamplePresetSelector: React.FC = () => {
         setNewPresetName('');
         setNewPresetDescription('');
         showSnackbar('새 프리셋이 성공적으로 생성되었습니다.');
-        fetchExamplePresets();
+        fetchExamplePresets(); // 목록 갱신
       } else {
         showSnackbar(`프리셋 생성 실패: ${result.message}`);
       }
@@ -213,23 +146,31 @@ const ExamplePresetSelector: React.FC = () => {
 
   // 프리셋 상세 정보 가져오기
   const fetchPresetDetail = useCallback(
-    async (presetName: string) => {
+    async (presetId: number) => {
+      if (!presetId) return;
       try {
         setIsPresetLoading(true);
-        const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresetDetail, {
-          name: presetName,
-        });
+        const request: GetExamplePresetDetailRequestDto = { id: presetId };
+        const result = await window.electron.ipcRenderer.invoke(
+          IpcChannel.GetExamplePresetDetail,
+          request
+        );
 
         if (result.success && result.preset) {
           setSelectedPreset(result.preset);
-          setEditingExamples(result.preset.examples);
+          setEditingExamples(result.preset.examples); // 편집 상태 초기화
+          setEditingName(result.preset.name); // 편집 이름 초기화
+          setEditingDescription(result.preset.description || ''); // 편집 설명 초기화
+          return result.preset; // 상세 정보 반환
         } else {
           showSnackbar(`프리셋 정보를 불러오지 못했습니다: ${result.message}`);
+          return null;
         }
       } catch (error) {
         console.error('프리셋 상세 정보 가져오기 오류:', error);
         const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
         showSnackbar(`프리셋 정보를 불러오는데 실패했습니다: ${errorMessage}`);
+        return null;
       } finally {
         setIsPresetLoading(false);
       }
@@ -238,21 +179,35 @@ const ExamplePresetSelector: React.FC = () => {
   );
 
   // 상세 보기 열기
-  const handleOpenDetail = useCallback(async () => {
-    await fetchPresetDetail(currentPresetName);
-    setIsDetailModalOpen(true);
-  }, [currentPresetName, fetchPresetDetail]);
+  const handleOpenDetail = useCallback(
+    async (presetId: number) => {
+      const detail = await fetchPresetDetail(presetId);
+      if (detail) {
+        setIsDetailModalOpen(true);
+      }
+    },
+    [fetchPresetDetail]
+  );
 
-  // 편집 모드 열기
-  const handleOpenEdit = useCallback(() => {
+  // 편집 모드 열기 (상세 보기 모달에서 호출)
+  const handleOpenEditFromDetail = useCallback(() => {
     if (selectedPreset) {
-      setEditingExamples({ ...selectedPreset.examples });
-      setEditingName(selectedPreset.name);
-      setEditingDescription(selectedPreset.description || '');
+      // 이미 fetchPresetDetail에서 editing 상태가 설정되었으므로 바로 열기
       setIsDetailModalOpen(false);
       setIsEditModalOpen(true);
     }
   }, [selectedPreset]);
+
+  // 편집 모드 직접 열기 (리스트에서 호출)
+  const handleOpenEditDirectly = useCallback(
+    async (presetId: number) => {
+      const detail = await fetchPresetDetail(presetId);
+      if (detail) {
+        setIsEditModalOpen(true);
+      }
+    },
+    [fetchPresetDetail]
+  );
 
   // 탭 변경 핸들러
   const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: SourceLanguage) => {
@@ -325,30 +280,28 @@ const ExamplePresetSelector: React.FC = () => {
     [handleRemoveExample]
   );
 
-  // 프리셋 복제
+  // 프리셋 복제 (사용자 요청 반영)
   const handleClonePreset = useCallback(async () => {
     if (!selectedPreset) return;
 
     try {
       setIsPresetLoading(true);
       const result = await window.electron.ipcRenderer.invoke(IpcChannel.CreateExamplePreset, {
-        name: `${selectedPreset.name}_복제본`,
+        name: `${selectedPreset.name}_복제본`, // 복제본 이름 규칙
         description: selectedPreset.description,
-        examples: selectedPreset.examples,
+        examples: selectedPreset.examples, // 원본 예제 포함
       });
 
       if (result.success) {
-        setIsDetailModalOpen(false);
+        setIsDetailModalOpen(false); // 상세 모달 닫기
         showSnackbar('프리셋이 성공적으로 복제되었습니다.');
-        fetchExamplePresets();
+        fetchExamplePresets(); // 목록 갱신
 
-        // 새로 생성된 프리셋으로 전환
-        if (result.preset) {
-          await window.electron.ipcRenderer.invoke(IpcChannel.LoadExamplePreset, {
-            name: result.preset.name,
-          });
-          setCurrentPresetName(result.preset.name);
-        }
+        // 복제된 프리셋으로 현재 선택된 프리셋 변경 (선택 사항)
+        // const config = configStore.getConfig();
+        // if (config.lastPresetName === selectedPreset.name) {
+        //   configStore.updateConfig({ lastPresetName: result.preset.name });
+        // }
       } else {
         showSnackbar(`프리셋 복제 실패: ${result.message}`);
       }
@@ -359,13 +312,12 @@ const ExamplePresetSelector: React.FC = () => {
     } finally {
       setIsPresetLoading(false);
     }
-  }, [selectedPreset, fetchExamplePresets, showSnackbar]);
+  }, [selectedPreset, fetchExamplePresets, showSnackbar, configStore]);
 
   // 수정된 예제 저장
   const handleSaveExamples = useCallback(async () => {
     if (!selectedPreset) return;
 
-    // 이름이 비어있는지 확인
     if (!editingName.trim()) {
       showSnackbar('프리셋 이름은 비워둘 수 없습니다.');
       return;
@@ -382,31 +334,12 @@ const ExamplePresetSelector: React.FC = () => {
 
       if (result.success) {
         setIsEditModalOpen(false);
-
-        // 프리셋 객체 업데이트
-        setSelectedPreset((prev) =>
-          prev
-            ? {
-                ...prev,
-                name: editingName.trim(),
-                examples: editingExamples,
-                description: editingDescription,
-              }
-            : null
-        );
-
-        // 현재 선택된 프리셋이 수정한 프리셋이라면 다시 로드
-        if (currentPresetName === selectedPreset.name) {
-          await window.electron.ipcRenderer.invoke(IpcChannel.LoadExamplePreset, {
-            name: editingName.trim(),
-          });
-          setCurrentPresetName(editingName.trim());
-        }
-
-        // 프리셋 목록 다시 불러오기 (이름이 변경되었을 수 있으므로)
-        fetchExamplePresets();
-
+        fetchExamplePresets(); // 목록 갱신
         showSnackbar('프리셋이 성공적으로 저장되었습니다.');
+
+        // 현재 로드된 프리셋이 수정된 경우, TranslationPanel에서 감지하여 다시 로드하도록 유도 필요
+        // (예: context나 이벤트 버스 사용)
+        // 여기서는 목록만 갱신
       } else {
         showSnackbar(`프리셋 저장 실패: ${result.message}`);
       }
@@ -418,7 +351,6 @@ const ExamplePresetSelector: React.FC = () => {
       setIsPresetLoading(false);
     }
   }, [
-    currentPresetName,
     editingExamples,
     editingDescription,
     editingName,
@@ -427,39 +359,33 @@ const ExamplePresetSelector: React.FC = () => {
     showSnackbar,
   ]);
 
+  // 삭제 확인 대화상자 열기
+  const openDeleteConfirm = (preset: ExamplePresetDto) => {
+    setPresetToDelete(preset);
+    setIsDeleteConfirmOpen(true);
+  };
+
   // 프리셋 삭제
   const handleDeletePreset = useCallback(async () => {
-    if (!selectedPreset) return;
+    if (!presetToDelete) return;
 
     try {
       setIsPresetLoading(true);
       const result = await window.electron.ipcRenderer.invoke(IpcChannel.DeleteExamplePreset, {
-        id: selectedPreset.id,
+        id: presetToDelete.id,
       });
 
       if (result.success) {
         setIsDeleteConfirmOpen(false);
-        setIsDetailModalOpen(false);
+        setPresetToDelete(null); // 삭제 대상 초기화
         showSnackbar('프리셋이 성공적으로 삭제되었습니다.');
+        fetchExamplePresets(); // 목록 갱신
 
-        // 현재 선택된 프리셋이 삭제한 프리셋이라면 프리셋 목록에서 첫 번째 프리셋으로 변경
-        if (currentPresetName === selectedPreset.name) {
-          // 프리셋 목록 가져오기
-          const presetsResult = await window.electron.ipcRenderer.invoke(
-            IpcChannel.GetExamplePresets
-          );
-          if (presetsResult.success && presetsResult.presets.length > 0) {
-            // 남아있는 프리셋 중 첫 번째 프리셋 선택
-            setCurrentPresetName(presetsResult.presets[0].name);
-            // 선택한 프리셋 로드
-            await window.electron.ipcRenderer.invoke(IpcChannel.LoadExamplePreset, {
-              name: presetsResult.presets[0].name,
-            });
-          }
-        }
-
-        // 프리셋 목록 다시 불러오기
-        fetchExamplePresets();
+        // 현재 로드된 프리셋이 삭제된 경우 처리 (TranslationPanel에서 필요)
+        // const config = configStore.getConfig();
+        // if (config.lastPresetName === presetToDelete.name) {
+        //   // 다른 프리셋 로드 또는 기본값 설정 로직 필요
+        // }
       } else {
         showSnackbar(`프리셋 삭제 실패: ${result.message}`);
       }
@@ -470,61 +396,94 @@ const ExamplePresetSelector: React.FC = () => {
     } finally {
       setIsPresetLoading(false);
     }
-  }, [currentPresetName, fetchExamplePresets, selectedPreset, showSnackbar]);
+  }, [presetToDelete, fetchExamplePresets, showSnackbar, configStore]);
 
   return (
-    <Box sx={{ mb: 3 }}>
-      <Typography variant="subtitle1" gutterBottom>
-        번역 예제 프리셋
-      </Typography>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <FormControl fullWidth size="small">
-          <InputLabel id="example-preset-label">예제 프리셋 선택</InputLabel>
-          <Select
-            labelId="example-preset-label"
-            id="example-preset"
-            value={currentPresetName}
-            onChange={handlePresetChange}
-            label="예제 프리셋 선택"
-            disabled={isTranslating || isPresetLoading}
-          >
-            {examplePresets.map((preset) => (
-              <MenuItem key={preset.id} value={preset.name}>
-                <Tooltip title={preset.description || ''} placement="right">
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography>{preset.name}</Typography>
-                  </Box>
-                </Tooltip>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Tooltip title="프리셋 상세 보기">
-          <span>
-            <Button
-              variant="outlined"
-              startIcon={<VisibilityIcon />}
-              onClick={handleOpenDetail}
-              disabled={isTranslating || isPresetLoading}
-            >
-              상세
-            </Button>
-          </span>
-        </Tooltip>
-
+    <Box sx={{ p: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6">예제 프리셋 관리</Typography>
         <Tooltip title="새 프리셋 생성">
           <span>
             <Button
-              variant="outlined"
+              variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setIsPresetModalOpen(true)}
-              disabled={isTranslating || isPresetLoading}
+              disabled={isPresetLoading}
             >
               생성
             </Button>
           </span>
         </Tooltip>
       </Box>
+
+      <Paper variant="outlined">
+        {isPresetLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        )}
+        {!isPresetLoading && examplePresets.length === 0 && (
+          <Typography sx={{ textAlign: 'center', p: 3, color: 'text.secondary' }}>
+            생성된 예제 프리셋이 없습니다.
+          </Typography>
+        )}
+        {!isPresetLoading && examplePresets.length > 0 && (
+          <List dense>
+            {examplePresets.map((preset) => (
+              <React.Fragment key={preset.id}>
+                <ListItem onClick={() => handleOpenDetail(preset.id)}>
+                  <ListItemText
+                    primary={preset.name}
+                    secondary={preset.description || '설명 없음'}
+                  />
+                  <ListItemSecondaryAction>
+                    <Tooltip title="상세 보기">
+                      <IconButton
+                        edge="end"
+                        aria-label="view"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenDetail(preset.id);
+                        }}
+                        disabled={isPresetLoading}
+                      >
+                        <VisibilityIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="편집">
+                      <IconButton
+                        edge="end"
+                        aria-label="edit"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleOpenEditDirectly(preset.id);
+                        }}
+                        disabled={isPresetLoading}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="삭제">
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openDeleteConfirm(preset);
+                        }}
+                        disabled={isPresetLoading}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </ListItemSecondaryAction>
+                </ListItem>
+                <Divider component="li" />
+              </React.Fragment>
+            ))}
+          </List>
+        )}
+      </Paper>
 
       {/* 새 프리셋 생성 모달 */}
       <Dialog
@@ -542,8 +501,10 @@ const ExamplePresetSelector: React.FC = () => {
             type="text"
             fullWidth
             value={newPresetName}
-            onChange={(e) => setNewPresetName(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPresetName(e.target.value)}
             required
+            error={!newPresetName.trim()}
+            helperText={!newPresetName.trim() ? '프리셋 이름은 필수입니다' : ''}
           />
           <TextField
             margin="dense"
@@ -552,7 +513,9 @@ const ExamplePresetSelector: React.FC = () => {
             type="text"
             fullWidth
             value={newPresetDescription}
-            onChange={(e) => setNewPresetDescription(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setNewPresetDescription(e.target.value)
+            }
             multiline
             rows={2}
           />
@@ -562,7 +525,7 @@ const ExamplePresetSelector: React.FC = () => {
           <Button
             onClick={handleSaveNewPreset}
             variant="contained"
-            disabled={!newPresetName.trim()}
+            disabled={!newPresetName.trim() || isPresetLoading}
           >
             생성
           </Button>
@@ -580,6 +543,7 @@ const ExamplePresetSelector: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             예제 프리셋 상세 보기: {selectedPreset?.name}
             <Box sx={{ display: 'flex', gap: 1 }}>
+              {/* 복제 버튼 추가 */}
               <Button
                 variant="contained"
                 startIcon={<BookmarkIcon />}
@@ -591,7 +555,7 @@ const ExamplePresetSelector: React.FC = () => {
               <Button
                 variant="contained"
                 startIcon={<EditIcon />}
-                onClick={handleOpenEdit}
+                onClick={handleOpenEditFromDetail}
                 disabled={isPresetLoading}
               >
                 편집
@@ -600,7 +564,10 @@ const ExamplePresetSelector: React.FC = () => {
                 variant="contained"
                 color="error"
                 startIcon={<DeleteIcon />}
-                onClick={() => setIsDeleteConfirmOpen(true)}
+                onClick={() => {
+                  if (selectedPreset) openDeleteConfirm(selectedPreset);
+                  setIsDetailModalOpen(false); // 상세 모달 닫기
+                }}
                 disabled={isPresetLoading}
               >
                 삭제
@@ -609,7 +576,8 @@ const ExamplePresetSelector: React.FC = () => {
           </Box>
         </DialogTitle>
         <DialogContent>
-          {selectedPreset && (
+          {isPresetLoading && <CircularProgress />}
+          {!isPresetLoading && selectedPreset && (
             <>
               {selectedPreset.description && (
                 <Box sx={{ mb: 2 }}>
@@ -638,62 +606,64 @@ const ExamplePresetSelector: React.FC = () => {
                   예제 목록
                 </Typography>
 
-                {selectedPreset.examples[activeLanguageTab].sourceLines.map((source, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      mb: 2,
-                      p: 1,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                    }}
-                  >
+                {selectedPreset.examples[activeLanguageTab].sourceLines.map(
+                  (source: string, index: number) => (
                     <Box
+                      key={index}
                       sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mb: 1,
+                        mb: 2,
+                        p: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
                       }}
                     >
-                      <Typography variant="subtitle2">예제 {index + 1}</Typography>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          mb: 1,
+                        }}
+                      >
+                        <Typography variant="subtitle2">예제 {index + 1}</Typography>
+                      </Box>
+
+                      <Typography variant="caption" color="text.secondary">
+                        소스
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          p: 1,
+                          bgcolor: 'action.hover',
+                          borderRadius: 1,
+                          fontFamily: 'monospace',
+                          mb: 1,
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {source}
+                      </Typography>
+
+                      <Typography variant="caption" color="text.secondary">
+                        번역 결과
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          p: 1,
+                          bgcolor: 'action.hover',
+                          borderRadius: 1,
+                          fontFamily: 'monospace',
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {selectedPreset.examples[activeLanguageTab].resultLines[index]}
+                      </Typography>
                     </Box>
-
-                    <Typography variant="caption" color="text.secondary">
-                      소스
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        p: 1,
-                        bgcolor: 'action.hover',
-                        borderRadius: 1,
-                        fontFamily: 'monospace',
-                        mb: 1,
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {source}
-                    </Typography>
-
-                    <Typography variant="caption" color="text.secondary">
-                      번역 결과
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        p: 1,
-                        bgcolor: 'action.hover',
-                        borderRadius: 1,
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      {selectedPreset.examples[activeLanguageTab].resultLines[index]}
-                    </Typography>
-                  </Box>
-                ))}
+                  )
+                )}
 
                 {selectedPreset.examples[activeLanguageTab].sourceLines.length === 0 && (
                   <Typography
@@ -701,7 +671,7 @@ const ExamplePresetSelector: React.FC = () => {
                     color="text.secondary"
                     sx={{ textAlign: 'center', py: 2 }}
                   >
-                    이 언어에 등록된 예제가 없습니다. 예제 추가 버튼을 눌러 추가해보세요.
+                    이 언어에 등록된 예제가 없습니다.
                   </Typography>
                 )}
               </Paper>
@@ -722,13 +692,13 @@ const ExamplePresetSelector: React.FC = () => {
       >
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            예제 프리셋 편집
+            예제 프리셋 편집: {selectedPreset?.name}
           </Box>
         </DialogTitle>
         <DialogContent>
-          {selectedPreset && (
+          {isPresetLoading && <CircularProgress />}
+          {!isPresetLoading && selectedPreset && (
             <>
-              {/* 이름 편집 필드 추가 */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   이름
@@ -737,7 +707,9 @@ const ExamplePresetSelector: React.FC = () => {
                   fullWidth
                   placeholder="프리셋 이름"
                   value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditingName(e.target.value)
+                  }
                   variant="outlined"
                   required
                   error={!editingName.trim()}
@@ -745,7 +717,6 @@ const ExamplePresetSelector: React.FC = () => {
                 />
               </Box>
 
-              {/* 설명 편집 필드 */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" gutterBottom>
                   설명
@@ -756,7 +727,9 @@ const ExamplePresetSelector: React.FC = () => {
                   rows={2}
                   placeholder="프리셋에 대한 설명을 입력하세요"
                   value={editingDescription}
-                  onChange={(e) => setEditingDescription(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEditingDescription(e.target.value)
+                  }
                   variant="outlined"
                 />
               </Box>
@@ -819,7 +792,7 @@ const ExamplePresetSelector: React.FC = () => {
                       variant="outlined"
                       size="small"
                       value={source}
-                      onChange={(e) =>
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                         handleExampleEdit(activeLanguageTab, 'sourceLines', index, e.target.value)
                       }
                       sx={{ mb: 1, fontFamily: 'monospace' }}
@@ -834,7 +807,7 @@ const ExamplePresetSelector: React.FC = () => {
                       variant="outlined"
                       size="small"
                       value={editingExamples[activeLanguageTab].resultLines[index]}
-                      onChange={(e) =>
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                         handleExampleEdit(activeLanguageTab, 'resultLines', index, e.target.value)
                       }
                       sx={{ fontFamily: 'monospace' }}
@@ -878,13 +851,12 @@ const ExamplePresetSelector: React.FC = () => {
         <DialogTitle id="alert-dialog-title">프리셋 삭제 확인</DialogTitle>
         <DialogContent>
           <Typography>
-            &quot;{selectedPreset?.name}&quot; 프리셋을 삭제하시겠습니까? 이 작업은 되돌릴 수
-            없습니다.
+            {presetToDelete?.name} 프리셋을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsDeleteConfirmOpen(false)}>취소</Button>
-          <Button onClick={handleDeletePreset} color="error">
+          <Button onClick={handleDeletePreset} color="error" disabled={isPresetLoading}>
             삭제
           </Button>
         </DialogActions>
@@ -893,4 +865,4 @@ const ExamplePresetSelector: React.FC = () => {
   );
 };
 
-export default ExamplePresetSelector;
+export default ExamplePresetEditor;

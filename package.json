@@ -5,15 +5,17 @@
   "main": "dist/main.js",
   "author": "leejs1030",
   "engines": {
-    "node": "22.17.1"
+    "node": "22.14.0"
   },
   "scripts": {
-    "start": "npm run build && electron ./dist/main.js",
+    "start": "electron ./dist/main.js",
     "build": "tsc && tsc-alias && webpack",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "yarn rebuild:electron",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
+    "rebuild:local": "rebuild -f -w better-sqlite3",
     "watch": "concurrently \"tsc -w\" \"webpack --watch\"",
     "watch-ts": "tsc -w",
-    "start:dev": "npm run build && concurrently \"npm run watch\" \"nodemon --watch dist --exec electron ./dist/main.js\"",
+    "start:dev": "yarn build && concurrently \"yarn watch\" \"nodemon --watch dist --exec electron ./dist/main.js\"",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
@@ -22,14 +24,14 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:unit": "jest --testPathPattern=src/",
-    "package:win": "npm run build && electron-builder build --win",
-    "package:linux": "npm run build && electron-builder build --linux",
+    "package:win": "yarn build && electron-builder build --win",
+    "package:linux": "yarn build && electron-builder build --linux",
     "prisma:studio": "prisma db pull && prisma studio",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migration:create": "npm run typeorm migration:create -- -n",
-    "migration:run": "npm run typeorm migration:run -- -d src/nest/db/typeorm/datasource.ts",
-    "migration:revert": "npm run typeorm migration:revert -- -d src/nest/db/typeorm/datasource.ts",
-    "migration:generate": "npm run typeorm migration:generate -- -d src/nest/db/typeorm/datasource.ts",
+    "migration:create": "yarn typeorm migration:create -- -n",
+    "migration:run": "yarn typeorm migration:run -- -d src/nest/db/typeorm/datasource.ts",
+    "migration:revert": "yarn typeorm migration:revert -- -d src/nest/db/typeorm/datasource.ts",
+    "migration:generate": "yarn typeorm migration:generate -- -d src/nest/db/typeorm/datasource.ts",
     "nest:generate": "nest generate",
     "nest:g:module": "nest generate module",
     "nest:g:controller": "nest generate controller",
@@ -53,8 +55,10 @@
     "@types/react-dom": "^19.0.4",
     "@types/rfdc": "^1.2.0",
     "better-sqlite3": "^11.9.1",
+    "class-validator": "^0.14.1",
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
+    "electron": "35.2.2",
     "electron-dl": "^4.0.0",
     "electron-updater": "^6.6.2",
     "jszip": "^3.10.1",
@@ -80,8 +84,8 @@
     "@typescript-eslint/parser": "^7.2.0",
     "concurrently": "^8.2.2",
     "css-loader": "^7.1.2",
-    "electron": "^29.4.6",
     "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
     "electron-reloader": "^1.2.3",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
@@ -142,5 +146,6 @@
   "repository": {
     "type": "git",
     "repo": "formatted-docs-ai-translator"
-  }
+  },
+  "packageManager": "yarn@4.9.2"
 }

@@ -6,7 +6,8 @@ export interface TranslatorConfig {
   apiKey: string;
   customModelConfig: ModelConfig;
   isCustomInputMode: boolean;
-  lastPresetName?: string;
+  lastPresetName?: string; // 예제 프리셋 이름
+  lastPromptPresetName?: string; // 프롬프트 프리셋 이름 추가
 }
 
 export type TranslatorConfigUpdate = Partial<TranslatorConfig>;

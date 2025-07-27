@@ -11,6 +11,10 @@ import { UpdateExamplePresetResponseDto } from './response/update-example-preset
 import { LoadExamplePresetRequestDto } from './request/load-example-preset-request.dto';
 import { LoadExamplePresetResponseDto } from './response/load-example-preset-response.dto';
 
+// 기본 DTO export 추가
+export * from './example-preset.dto';
+export * from './example-preset-detail.dto';
+
 export class ExamplePresetRequestResponse {
   [IpcChannel.CreateExamplePreset]: {
     Request: CreateExamplePresetRequestDto;

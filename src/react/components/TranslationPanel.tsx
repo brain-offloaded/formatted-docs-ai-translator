@@ -1,13 +1,27 @@
-import React, { useCallback, useState, useMemo } from 'react';
-import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
+import React, { useCallback, useState, useMemo, useEffect } from 'react'; // 중복 제거 및 useEffect 유지
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Divider,
+  Snackbar,
+  // SelectChangeEvent, // 여기서 제거
+} from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select'; // 올바른 경로에서 import
 import { TranslationType, useTranslation } from '../contexts/TranslationContext';
+import { ConfigStore } from '../config/config-store'; // ConfigStore 추가
+import { IpcChannel } from '../../nest/common/ipc.channel'; // IpcChannel 추가
 import {
   getTranslatorWithOptions,
   getTranslationTypeLabel,
 } from '../constants/TranslationTypeMapping';
-import ExamplePresetSelector from './translation/ExamplePresetSelector';
+// import ExamplePresetSelector from './translation/ExamplePresetSelector'; // 기존 컴포넌트 주석 처리 또는 삭제
+import ExamplePresetSelectorMinimal from './translation/ExamplePresetSelectorMinimal'; // 예제 프리셋 컴포넌트 import
+import PromptPresetSelectorMinimal from './translation/PromptPresetSelectorMinimal'; // 프롬프트 프리셋 컴포넌트 import
 import TranslationTypeSelector from './common/TranslationTypeSelector';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
+import { ExamplePresetDto } from '@/nest/translation/example/dto/example-preset.dto'; // ExamplePresetDto 추가
 
 export default function TranslationPanel(): React.ReactElement {
   // Context에서 상태와 함수 가져오기 - 필요한 것만 선택적으로 가져옵니다
@@ -18,12 +32,138 @@ export default function TranslationPanel(): React.ReactElement {
     uiState,
     setResultState,
     isTranslating,
+    showSnackbar, // showSnackbar 추가
   } = useTranslation();
+  const configStore = ConfigStore.getInstance(); // ConfigStore 인스턴스
+  // 예제 프리셋 상태
+  const [currentExamplePresetName, setCurrentExamplePresetName] = useState<string>('');
+  const [isExamplePresetLoading, setIsExamplePresetLoading] = useState(false);
+
+  // 프롬프트 프리셋 상태 추가
+  const [currentPromptPresetName, setCurrentPromptPresetName] = useState<string>('');
+  const [promptPresetContent, setPromptPresetContent] = useState<string | undefined>(undefined);
+  const [isPromptPresetLoading, setIsPromptPresetLoading] = useState(false);
 
   // 옵션 상태 관리
   const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
   // 설정 패널 표시 여부 상태 관리
   const [showSettings, setShowSettings] = useState(false);
+
+  // 초기 예제 프리셋 로드 로직
+  useEffect(() => {
+    const loadInitialExamplePreset = async () => {
+      try {
+        setIsExamplePresetLoading(true);
+        const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresets);
+        if (result.success && result.presets.length > 0) {
+          const presets: ExamplePresetDto[] = result.presets;
+          const config = configStore.getConfig();
+          const savedPresetName = config.lastPresetName || result.currentPreset;
+          const presetExists = presets.some((preset) => preset.name === savedPresetName);
+          const targetPresetName = presetExists ? savedPresetName : presets[0].name;
+
+          setCurrentExamplePresetName(targetPresetName);
+
+          // 백엔드의 현재 프리셋과 다르면 로드 요청
+          if (targetPresetName !== result.currentPreset) {
+            const loadResult = await window.electron.ipcRenderer.invoke(
+              IpcChannel.LoadExamplePreset,
+              { name: targetPresetName }
+            );
+            if (!loadResult.success) {
+              console.warn(`초기 예제 프리셋(${targetPresetName}) 로드 실패:`, loadResult.message);
+            } else {
+              // 성공 시 설정 저장
+              configStore.updateConfig({ lastPresetName: targetPresetName });
+            }
+          } else {
+            // 이미 백엔드에 로드된 프리셋이면 설정만 업데이트
+            configStore.updateConfig({ lastPresetName: targetPresetName });
+          }
+        } else if (!result.success) {
+          showSnackbar(`초기 예제 프리셋 목록 불러오기 실패: ${result.message}`);
+        }
+      } catch (error) {
+        console.error('초기 예제 프리셋 로드 중 오류 발생:', error);
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+        showSnackbar(`초기 예제 프리셋 로드 중 오류가 발생했습니다: ${errorMessage}`);
+      } finally {
+        setIsExamplePresetLoading(false);
+      }
+    };
+
+    // 컴포넌트 마운트 시 한 번만 실행
+    if (!currentExamplePresetName) {
+      loadInitialExamplePreset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 최초 마운트 시에만 실행
+
+  // 초기 프롬프트 프리셋 로드 로직 추가
+  useEffect(() => {
+    const loadInitialPromptPreset = async () => {
+      try {
+        setIsPromptPresetLoading(true);
+        const config = configStore.getConfig();
+        const savedPresetName = config.lastPromptPresetName;
+
+        if (savedPresetName) {
+          // 먼저 전체 프리셋 목록을 가져와서 ID를 찾습니다.
+          const listResult = await window.electron.ipcRenderer.invoke(IpcChannel.GetPromptPresets);
+
+          if (listResult.success && listResult.presets) {
+            const foundPreset = listResult.presets.find((p) => p.name === savedPresetName);
+
+            if (foundPreset) {
+              // 찾은 프리셋의 ID로 상세 정보 가져오기
+              const detailResult = await window.electron.ipcRenderer.invoke(
+                IpcChannel.GetPromptPresetDetail,
+                { id: foundPreset.id }
+              );
+
+              if (detailResult.success && detailResult.preset) {
+                setCurrentPromptPresetName(detailResult.preset.name);
+                setPromptPresetContent(detailResult.preset.prompt);
+                showSnackbar(`'${detailResult.preset.name}' 프롬프트 프리셋을 로드했습니다.`);
+              } else {
+                console.warn(`초기 프롬프트 프리셋 상세 정보 로드 실패:`, detailResult.message);
+                // 상세 정보 로드 실패 시 상태 초기화
+                setCurrentPromptPresetName('');
+                setPromptPresetContent(undefined);
+              }
+            } else {
+              console.warn(
+                `저장된 프롬프트 프리셋 이름(${savedPresetName})에 해당하는 프리셋을 찾을 수 없습니다.`
+              );
+              // 이름에 해당하는 프리셋을 찾지 못한 경우 상태 초기화
+              setCurrentPromptPresetName('');
+              setPromptPresetContent(undefined);
+            }
+          } else {
+            console.warn(`프롬프트 프리셋 목록 불러오기 실패:`, listResult.message);
+            // 목록 불러오기 실패 시 상태 초기화
+            setCurrentPromptPresetName('');
+            setPromptPresetContent(undefined);
+          }
+        }
+      } catch (error) {
+        console.error('초기 프롬프트 프리셋 로드 중 오류 발생:', error);
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+        showSnackbar(`초기 프롬프트 프리셋 로드 중 오류가 발생했습니다: ${errorMessage}`);
+        // 오류 발생 시 상태 초기화
+        setCurrentPromptPresetName('');
+        setPromptPresetContent(undefined);
+      } finally {
+        setIsPromptPresetLoading(false);
+      }
+    };
+
+    // 컴포넌트 마운트 시 한 번만 실행
+    if (!currentPromptPresetName) {
+      loadInitialPromptPreset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 최초 마운트 시에만 실행
 
   // 옵션 변경 핸들러 - 메모이제이션
   const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
@@ -61,12 +201,60 @@ export default function TranslationPanel(): React.ReactElement {
       setParserOptions(null);
       // 설정 패널도 초기화
       setShowSettings(false);
+      // 프롬프트 프리셋 상태 초기화
+      setCurrentPromptPresetName('');
+      setPromptPresetContent(undefined);
     },
     [setTranslationType, handleClearFiles, setResultState, translationType]
   );
 
-  // TranslationType에 따라 적절한 컴포넌트 가져오기 - 메모이제이션
-  const { TranslatorComponent, OptionComponent } = useMemo(
+  // 예제 프리셋 변경 핸들러
+  const handleExamplePresetChange = useCallback(
+    async (event: SelectChangeEvent<string>) => {
+      const newPresetName = event.target.value;
+      if (newPresetName === currentExamplePresetName) return; // 변경 없으면 중단
+
+      try {
+        setIsExamplePresetLoading(true);
+        const result = await window.electron.ipcRenderer.invoke(IpcChannel.LoadExamplePreset, {
+          name: newPresetName,
+        });
+
+        if (result.success) {
+          setCurrentExamplePresetName(newPresetName);
+          configStore.updateConfig({ lastPresetName: newPresetName }); // 설정 저장
+          showSnackbar(`'${newPresetName}' 예제 프리셋을 로드했습니다.`);
+        } else {
+          showSnackbar(`예제 프리셋 로드 실패: ${result.message}`);
+        }
+      } catch (error) {
+        console.error('예제 프리셋 로드 중 오류 발생:', error);
+        const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+        showSnackbar(`예제 프리셋 로드 중 오류가 발생했습니다: ${errorMessage}`);
+      } finally {
+        setIsExamplePresetLoading(false);
+      }
+    },
+    [showSnackbar, configStore, currentExamplePresetName]
+  );
+
+  // 프롬프트 프리셋 변경 핸들러 추가
+  const handlePromptPresetChange = useCallback(
+    (presetName: string, presetContent: string | undefined) => {
+      setCurrentPromptPresetName(presetName);
+      setPromptPresetContent(presetContent);
+      // 프롬프트 프리셋 변경 시 설정 저장
+      configStore.updateConfig({ lastPromptPresetName: presetName });
+    },
+    [configStore] // 의존성 배열에 configStore 추가
+  );
+
+  // TranslationType에 따라 적절한 컴포넌트 및 옵션 가져오기 - 메모이제이션
+  const {
+    TranslatorComponent,
+    OptionComponent,
+    options: translatorOptions,
+  } = useMemo(
     () => getTranslatorWithOptions<typeof translationType>(translationType),
     [translationType]
   );
@@ -86,8 +274,23 @@ export default function TranslationPanel(): React.ReactElement {
           </Typography>
           <Divider sx={{ my: 2 }} />
 
-          {/* 프리셋 선택기 */}
-          <ExamplePresetSelector />
+          {/* 예제 프리셋 선택기 */}
+          <ExamplePresetSelectorMinimal
+            currentPresetName={currentExamplePresetName}
+            onPresetChange={handleExamplePresetChange}
+            isTranslating={isTranslating}
+            isPresetLoading={isExamplePresetLoading}
+            setIsPresetLoading={setIsExamplePresetLoading}
+          />
+
+          {/* 프롬프트 프리셋 선택기 추가 */}
+          <PromptPresetSelectorMinimal
+            currentPresetName={currentPromptPresetName}
+            onPresetChange={handlePromptPresetChange}
+            isTranslating={isTranslating}
+            isPresetLoading={isPromptPresetLoading}
+            setIsPresetLoading={setIsPromptPresetLoading}
+          />
 
           {/* 번역 유형 선택 */}
           <Box sx={{ mb: 2 }}>
@@ -109,8 +312,13 @@ export default function TranslationPanel(): React.ReactElement {
               />
             )}
 
-            {/* 번역기 컴포넌트 렌더링 - 옵션은 props로 전달 */}
-            <TranslatorComponent key={translationType} parserOptions={parserOptions} />
+            {/* 번역기 컴포넌트 렌더링 - 옵션, 파서 옵션, 프롬프트 프리셋 내용 전달 */}
+            <TranslatorComponent
+              key={translationType}
+              options={translatorOptions} // options prop 전달
+              parserOptions={parserOptions}
+              promptPresetContent={promptPresetContent} // 프롬프트 프리셋 내용 전달
+            />
           </Box>
         </CardContent>
       </Card>

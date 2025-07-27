@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common'; // NotFoundException 추가
 
 import { deepClone } from '../../../../utils/deep-clone';
 import { Language, SourceLanguage } from '../../../../utils/language';
@@ -109,7 +109,29 @@ export class ExampleManagerService {
   }
 
   /**
-   * 이름으로 프리셋을 찾습니다.
+   * ID로 프리셋을 찾습니다.
+   * @param presetId 프리셋 ID
+   * @returns 프리셋 엔티티
+   * @throws NotFoundException 프리셋을 찾지 못한 경우
+   */
+  public async getPresetById(presetId: number): Promise<ExamplePreset> {
+    try {
+      const preset = await this.typeOrmService.examplePreset.findOne({
+        where: { id: presetId },
+      });
+      if (!preset) {
+        // NotFoundException을 사용하여 핸들러에서 적절히 처리하도록 함
+        throw new NotFoundException(`ID ${presetId}에 해당하는 예제 프리셋을 찾을 수 없습니다.`);
+      }
+      return preset;
+    } catch (e) {
+      this.logger.error(`Failed to find example preset by ID: ${presetId}`, { error: e });
+      throw e; // 오류를 다시 던짐
+    }
+  }
+
+  /**
+   * 이름으로 프리셋을 찾습니다. (내부 사용 또는 필요한 경우 유지)
    * @param presetName 프리셋 이름
    * @returns 프리셋 엔티티 또는 null
    */
@@ -130,7 +152,7 @@ export class ExampleManagerService {
    * @param examples 업데이트할 예제 데이터
    * @param description 업데이트할 설명 (선택사항)
    * @param name 업데이트할 이름 (선택사항)
-   * @returns 성공 여부
+   * @returns 성공 여부 및 메시지
    */
   public async updatePresetExamples(
     presetId: number,
@@ -139,13 +161,8 @@ export class ExampleManagerService {
     name?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const preset = await this.typeOrmService.examplePreset.findOne({
-        where: { id: presetId },
-      });
-
-      if (!preset) {
-        return { success: false, message: '프리셋을 찾을 수 없습니다.' };
-      }
+      // getPresetById 사용으로 변경 (NotFoundException 처리 가능)
+      const preset = await this.getPresetById(presetId);
 
       // 이름 변경 (제공된 경우)
       const oldName = preset.name;
@@ -186,6 +203,10 @@ export class ExampleManagerService {
     } catch (e) {
       const message =
         (e as { message?: string })?.message || '프리셋 업데이트 중 오류가 발생했습니다.';
+      // NotFoundException인 경우 메시지를 그대로 사용
+      if (e instanceof NotFoundException) {
+        return { success: false, message: e.message };
+      }
       return { success: false, message };
     }
   }
@@ -201,7 +222,14 @@ export class ExampleManagerService {
    * 모든 프리셋 목록을 가져옵니다.
    */
   public async getAllPresets(): Promise<ExamplePreset[]> {
-    return this.typeOrmService.examplePreset.find();
+    try {
+      return await this.typeOrmService.examplePreset.find({
+        order: { createdAt: 'ASC' }, // 생성 시간 오름차순 정렬 (선택적)
+      });
+    } catch (error) {
+      this.logger.error('예제 프리셋 목록 조회 중 오류 발생:', { error });
+      throw error;
+    }
   }
 
   /**
@@ -212,20 +240,31 @@ export class ExampleManagerService {
     description: string | null,
     examples?: RawTranslationExampleMessages
   ): Promise<ExamplePreset> {
-    const preset = new ExamplePreset();
-    preset.name = name;
-    preset.description = description;
+    try {
+      // 이름 중복 확인
+      const existingPreset = await this.getPresetByName(name);
+      if (existingPreset) {
+        throw new Error(`'${name}' 이름의 프리셋이 이미 존재합니다.`);
+      }
 
-    // 빈 예제로 초기화 또는 제공된 예제 사용
-    const emptyExamples: RawTranslationExampleMessages = {
-      [Language.CHINESE]: { sourceLines: [], resultLines: [] },
-      [Language.ENGLISH]: { sourceLines: [], resultLines: [] },
-      [Language.JAPANESE]: { sourceLines: [], resultLines: [] },
-    };
+      const preset = new ExamplePreset();
+      preset.name = name;
+      preset.description = description;
 
-    preset.setExamples(examples || emptyExamples);
+      // 빈 예제로 초기화 또는 제공된 예제 사용
+      const emptyExamples: RawTranslationExampleMessages = {
+        [Language.CHINESE]: { sourceLines: [], resultLines: [] },
+        [Language.ENGLISH]: { sourceLines: [], resultLines: [] },
+        [Language.JAPANESE]: { sourceLines: [], resultLines: [] },
+      };
 
-    return this.typeOrmService.examplePreset.save(preset);
+      preset.setExamples(examples || emptyExamples);
+
+      return await this.typeOrmService.examplePreset.save(preset);
+    } catch (error) {
+      this.logger.error('예제 프리셋 생성 중 오류 발생:', { error, name });
+      throw error;
+    }
   }
 
   /**
@@ -235,13 +274,8 @@ export class ExampleManagerService {
    */
   public async deletePreset(presetId: number): Promise<boolean> {
     try {
-      const preset = await this.typeOrmService.examplePreset.findOne({
-        where: { id: presetId },
-      });
-
-      if (!preset) {
-        return false;
-      }
+      // getPresetById 사용으로 변경 (NotFoundException 처리 가능)
+      const preset = await this.getPresetById(presetId);
 
       // 삭제할 프리셋이 현재 사용 중이면 다른 프리셋으로 변경
       if (this.currentPresetName === preset.name) {
@@ -267,8 +301,12 @@ export class ExampleManagerService {
       await this.typeOrmService.examplePreset.remove(preset);
       return true;
     } catch (e) {
-      this.logger.error(`프리셋 삭제 중 오류 발생: ${e}`);
-      return false;
+      this.logger.error(`프리셋 삭제 중 오류 발생: ID ${presetId}`, { error: e });
+      // NotFoundException인 경우 false 반환 (핸들러에서 처리)
+      if (e instanceof NotFoundException) {
+        return false;
+      }
+      throw e; // 다른 오류는 다시 던짐
     }
   }
 
