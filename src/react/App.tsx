@@ -4,6 +4,8 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import AppLayout from './layouts/AppLayout';
 import { TranslationProvider } from './contexts/TranslationContext';
 import { ModalProvider } from './contexts/ModalContext';
+import { SettingsProvider } from './contexts/SettingsContext';
+import { PresetProvider } from './contexts/PresetContext';
 import { ModalRoot } from './components/common/ModalRoot';
 import SettingsView from './views/SettingsView';
 import PresetView from './views/PresetView';
@@ -80,40 +82,44 @@ const App: React.FC = () => {
   }, [activeView]);
 
   return (
-    <ModalProvider>
-      <TranslationProvider>
-        <AppLayout activeView={activeView} onViewChange={handleViewChange}>
-          <Box sx={{ mb: 3 }}>
-            <Typography
-              variant="h5"
-              fontWeight="medium"
-              color="text.primary"
-              sx={{
-                position: 'relative',
-                '&:after': {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: -1,
-                  left: 0,
-                  width: '40px',
-                  height: '4px',
-                  backgroundColor: theme.palette.primary.main,
-                  borderRadius: '4px',
-                },
-              }}
-            >
-              {getViewTitle()}
-            </Typography>
-          </Box>
-          <Fade in={viewTransition} timeout={200}>
-            <Box>
-              <Suspense fallback={<LoadingFallback />}>{renderActiveView()}</Suspense>
-            </Box>
-          </Fade>
-        </AppLayout>
-      </TranslationProvider>
-      <ModalRoot />
-    </ModalProvider>
+    <SettingsProvider>
+      <PresetProvider>
+        <ModalProvider>
+          <TranslationProvider>
+            <AppLayout activeView={activeView} onViewChange={handleViewChange}>
+              <Box sx={{ mb: 3 }}>
+                <Typography
+                  variant="h5"
+                  fontWeight="medium"
+                  color="text.primary"
+                  sx={{
+                    position: 'relative',
+                    '&:after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: -1,
+                      left: 0,
+                      width: '40px',
+                      height: '4px',
+                      backgroundColor: theme.palette.primary.main,
+                      borderRadius: '4px',
+                    },
+                  }}
+                >
+                  {getViewTitle()}
+                </Typography>
+              </Box>
+              <Fade in={viewTransition} timeout={200}>
+                <Box>
+                  <Suspense fallback={<LoadingFallback />}>{renderActiveView()}</Suspense>
+                </Box>
+              </Fade>
+            </AppLayout>
+          </TranslationProvider>
+          <ModalRoot />
+        </ModalProvider>
+      </PresetProvider>
+    </SettingsProvider>
   );
 };
 

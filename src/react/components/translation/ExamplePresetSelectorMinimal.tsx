@@ -19,7 +19,6 @@ interface ExamplePresetSelectorMinimalProps {
   onPresetChange: (event: SelectChangeEvent<string>) => void;
   isTranslating: boolean;
   isPresetLoading: boolean;
-  setIsPresetLoading: (loading: boolean) => void; // 로딩 상태 설정 함수 추가
 }
 
 const ExamplePresetSelectorMinimal: React.FC<ExamplePresetSelectorMinimalProps> = ({
@@ -27,7 +26,6 @@ const ExamplePresetSelectorMinimal: React.FC<ExamplePresetSelectorMinimalProps> 
   onPresetChange,
   isTranslating,
   isPresetLoading,
-  setIsPresetLoading, // props로 받기
 }) => {
   const [examplePresets, setExamplePresets] = useState<ExamplePresetDto[]>([]);
   const { showSnackbar } = useTranslation(); // 스낵바 사용
@@ -35,11 +33,9 @@ const ExamplePresetSelectorMinimal: React.FC<ExamplePresetSelectorMinimalProps> 
   // 예제 프리셋 목록 가져오기
   const fetchExamplePresets = useCallback(async () => {
     try {
-      setIsPresetLoading(true); // 로딩 시작
       const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresets);
       if (result.success) {
         setExamplePresets(result.presets);
-        // 초기 프리셋 설정 로직은 상위 컴포넌트(TranslationPanel)에서 처리
       } else {
         showSnackbar(`프리셋 목록 불러오기 실패: ${result.message}`);
       }
@@ -47,10 +43,8 @@ const ExamplePresetSelectorMinimal: React.FC<ExamplePresetSelectorMinimalProps> 
       console.error('프리셋 불러오기 중 오류 발생:', error);
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
       showSnackbar(`프리셋 목록 불러오기 중 오류가 발생했습니다: ${errorMessage}`);
-    } finally {
-      setIsPresetLoading(false); // 로딩 종료
     }
-  }, [setIsPresetLoading, showSnackbar]); // 의존성 배열 업데이트
+  }, [showSnackbar]);
 
   // 컴포넌트 마운트 시 예제 프리셋 목록 가져오기
   useEffect(() => {

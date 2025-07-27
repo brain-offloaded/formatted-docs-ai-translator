@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Box, Tabs, Tab, CircularProgress, Paper } from '@mui/material';
 
 const ExamplePresetEditor = lazy(() => import('./components/ExamplePresetEditor'));
@@ -39,12 +39,19 @@ function a11yProps(index: number) {
   };
 }
 
+import { usePresets } from '../../contexts/PresetContext';
+
 const PresetView: React.FC = () => {
   const [currentTab, setCurrentTab] = useState(0);
+  const { fetchPresets } = usePresets();
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
+
+  useEffect(() => {
+    fetchPresets();
+  }, [fetchPresets, currentTab]);
 
   return (
     <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden' }}>

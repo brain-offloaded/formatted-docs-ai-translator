@@ -22,8 +22,11 @@ import {
   useTheme,
   IconButton,
   useMediaQuery,
+  CssBaseline,
+  ThemeProvider,
+  createTheme,
 } from '@mui/material';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Page } from '../types';
 
 interface AppLayoutProps {
@@ -38,6 +41,32 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChang
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const muiTheme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: 'dark',
+          primary: {
+            main: '#90caf9',
+          },
+          secondary: {
+            main: '#f48fb1',
+          },
+          background: {
+            default: '#121212',
+            paper: '#1e1e1e',
+          },
+        },
+        typography: {
+          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+          h5: {
+            fontWeight: 700,
+          },
+        },
+      }),
+    []
+  );
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -102,85 +131,90 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChang
   );
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh' }}>
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-        aria-label="menu items"
-      >
-        {/* 모바일용 메뉴 버튼 */}
-        <IconButton
-          color="inherit"
-          aria-label="open drawer"
-          edge="start"
-          onClick={handleDrawerToggle}
-          sx={{
-            mr: 2,
-            display: { sm: 'none' },
-            position: 'absolute',
-            top: 10,
-            left: 10,
-            zIndex: 1200,
-            backgroundColor: 'background.paper',
-            '&:hover': {
-              backgroundColor: 'action.hover',
-            },
-          }}
+    <ThemeProvider theme={muiTheme}>
+      <CssBaseline />
+      <Box sx={{ display: 'flex', height: '100vh' }}>
+        <Box
+          component="nav"
+          sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+          aria-label="menu items"
         >
-          <MenuIcon />
-        </IconButton>
+          {/* 모바일용 메뉴 버튼 */}
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{
+              mr: 2,
+              display: { sm: 'none' },
+              position: 'absolute',
+              top: 10,
+              left: 10,
+              zIndex: 1200,
+              backgroundColor: 'background.paper',
+              '&:hover': {
+                backgroundColor: 'action.hover',
+              },
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
 
-        {/* 모바일 드로어 */}
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true, // 모바일 성능 향상을 위해
-          }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              boxSizing: 'border-box',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
+          {/* 모바일 드로어 */}
+          <Drawer
+            variant="temporary"
+            open={mobileOpen}
+            onClose={handleDrawerToggle}
+            ModalProps={{
+              keepMounted: true, // 모바일 성능 향상을 위해
+            }}
+            sx={{
+              display: { xs: 'block', sm: 'none' },
+              '& .MuiDrawer-paper': {
+                width: drawerWidth,
+                boxSizing: 'border-box',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              },
+            }}
+          >
+            {drawer}
+          </Drawer>
 
-        {/* 데스크톱 드로어 */}
-        <Drawer
-          variant="permanent"
+          {/* 데스크톱 드로어 */}
+          <Drawer
+            variant="permanent"
+            sx={{
+              display: { xs: 'none', sm: 'block' },
+              '& .MuiDrawer-paper': {
+                width: drawerWidth,
+                boxSizing: 'border-box',
+                borderRight: `1px solid ${theme.palette.divider}`,
+              },
+            }}
+            open
+          >
+            {drawer}
+          </Drawer>
+        </Box>
+
+        <Box
+          component="main"
           sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              width: drawerWidth,
-              boxSizing: 'border-box',
-              borderRight: `1px solid ${theme.palette.divider}`,
-            },
+            flexGrow: 1,
+            p: 3,
+            width: { sm: `calc(100% - ${drawerWidth}px)` },
+            bgcolor: 'background.default',
+            minHeight: '100vh',
+            overflow: 'auto',
           }}
-          open
         >
-          {drawer}
-        </Drawer>
+          <Container maxWidth="xl" sx={{ pt: 4, pb: 4 }}>
+            {children}
+          </Container>
+        </Box>
       </Box>
-
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          bgcolor: 'background.default',
-          minHeight: '100vh',
-          overflow: 'auto',
-        }}
-      >
-        <Container maxWidth="xl">{children}</Container>
-      </Box>
-    </Box>
+    </ThemeProvider>
   );
 };
 
