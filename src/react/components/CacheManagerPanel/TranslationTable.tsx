@@ -6,6 +6,7 @@ import type { CacheTranslation } from '@/types/cache';
 
 interface TranslationTableProps {
   translations: CacheTranslation[];
+  total: number;
   isLoading?: boolean;
   searchValue?: string;
   searchType?: string;
@@ -18,6 +19,9 @@ interface TranslationTableProps {
   onLoadTranslationHistory?: (id: number) => void;
   onDeleteCheckedItems: () => void;
   onDeleteAllItems: () => void;
+  onPageChange: (page: number, pageSize: number) => void;
+  onDelete: (ids: number[]) => void;
+  onExport: (format: 'json' | 'csv') => void;
 }
 
 /**

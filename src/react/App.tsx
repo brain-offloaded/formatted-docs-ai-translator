@@ -7,7 +7,7 @@ import { ModalProvider } from './contexts/ModalContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { PresetProvider } from './contexts/PresetContext';
 import { ModalRoot } from './components/common/ModalRoot';
-import SettingsView from './views/SettingsView';
+import { SettingsView } from './views/SettingsView';
 import PresetView from './views/PresetView';
 import TranslateView from './views/TranslateView';
 import LogView from './views/LogView';
