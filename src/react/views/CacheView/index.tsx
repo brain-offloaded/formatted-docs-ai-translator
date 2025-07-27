@@ -1,8 +1,17 @@
 import React from 'react';
-import CacheManagerPanel from './CacheManagerPanel';
+import { TranslationTable } from '../../components/CacheManagerPanel/TranslationTable';
 
 const CacheView = () => {
-  return <CacheManagerPanel />;
+  return (
+    <TranslationTable
+      translations={[]}
+      checkedItems={new Set()}
+      onCheckboxChange={() => {}}
+      onCheckAll={() => {}}
+      onDeleteCheckedItems={() => {}}
+      onDeleteAllItems={() => {}}
+    />
+  );
 };
 
 export default CacheView;

@@ -12,6 +12,7 @@ import PresetView from './views/PresetView';
 import TranslateView from './views/TranslateView';
 import LogView from './views/LogView';
 import CacheView from './views/CacheView';
+import BugReportPanel from './components/BugReportPanel';
 import type { Page as ActiveView } from './types'; // Page를 ActiveView로 사용
 
 // 로딩 컴포넌트
@@ -58,6 +59,8 @@ const App: React.FC = () => {
         return '로그 보기';
       case 'cache':
         return '캐시 관리';
+      case 'bug-report':
+        return '버그 제보';
       default:
         // 'bug-report' 등 다른 페이지 타입에 대한 처리 추가 가능
         return '';
@@ -76,6 +79,8 @@ const App: React.FC = () => {
         return <LogView />;
       case 'cache':
         return <CacheView />;
+      case 'bug-report':
+        return <BugReportPanel />;
       default:
         return null;
     }
