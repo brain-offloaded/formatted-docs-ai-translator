@@ -28,13 +28,13 @@ import type { Page } from '../types';
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  currentPage: Page;
-  onPageChange: (page: Page) => void;
+  activeView: Page;
+  onViewChange: (view: Page) => void;
 }
 
 const drawerWidth = 260;
 
-const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChange }) => {
+const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChange }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,8 +45,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
 
   const menuItems = [
     { id: 'translation', label: '번역', icon: <TranslateIcon /> },
+    { id: 'presets', label: '프리셋', icon: <StyleIcon /> },
+    { id: 'settings', label: '설정', icon: <MenuIcon /> },
     { id: 'cache', label: '캐시 관리', icon: <StorageIcon /> },
-    { id: 'presets', label: '프리셋', icon: <StyleIcon /> }, // 통합 메뉴 항목 추가
     { id: 'log', label: '로그 보기', icon: <ArticleIcon /> },
     { id: 'bug-report', label: '버그 제보', icon: <BugReportIcon /> },
   ];
@@ -63,9 +64,9 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
         {menuItems.map((item) => (
           <ListItem key={item.id} disablePadding>
             <ListItemButton
-              selected={currentPage === (item.id as Page)}
+              selected={activeView === (item.id as Page)}
               onClick={() => {
-                onPageChange(item.id as Page);
+                onViewChange(item.id as Page);
                 if (isMobile) setMobileOpen(false);
               }}
               sx={{
@@ -82,7 +83,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
               <ListItemIcon
                 sx={{
                   minWidth: 40,
-                  color: currentPage === (item.id as Page) ? theme.palette.primary.main : 'inherit',
+                  color: activeView === (item.id as Page) ? theme.palette.primary.main : 'inherit',
                 }}
               >
                 {item.icon}
@@ -90,7 +91,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentPage, onPageChan
               <ListItemText
                 primary={item.label}
                 primaryTypographyProps={{
-                  fontWeight: currentPage === (item.id as Page) ? 'medium' : 'normal',
+                  fontWeight: activeView === (item.id as Page) ? 'medium' : 'normal',
                 }}
               />
             </ListItemButton>

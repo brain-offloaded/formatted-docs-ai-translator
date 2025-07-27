@@ -73,7 +73,7 @@ const PromptPresetSelectorMinimal: React.FC<PromptPresetSelectorMinimalProps> = 
       try {
         setIsPresetLoading(true);
 
-        const selectedPreset = promptPresets.find(p => p.name === newPresetName);
+        const selectedPreset = promptPresets.find((p) => p.name === newPresetName);
         if (!selectedPreset) {
           // 프리셋을 찾지 못한 경우 오류 처리
           showSnackbar(`프리셋 '${newPresetName}'을(를) 찾을 수 없습니다.`);
@@ -123,16 +123,14 @@ const PromptPresetSelectorMinimal: React.FC<PromptPresetSelectorMinimalProps> = 
             label="프롬프트 프리셋 선택"
             disabled={isTranslating || isPresetLoading} // 로딩 중일 때 비활성화
           >
-             <MenuItem value="">
-                프리셋 선택 안 함
-              </MenuItem>
+            <MenuItem value="">프리셋 선택 안 함</MenuItem>
             {/* 로딩 중이 아닐 때만 메뉴 아이템 표시 */}
             {!isPresetLoading &&
               promptPresets.map((preset) => (
                 <MenuItem key={preset.id} value={preset.name}>
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Typography>{preset.name}</Typography>
-                    </Box>
+                    <Typography>{preset.name}</Typography>
+                  </Box>
                 </MenuItem>
               ))}
           </Select>
