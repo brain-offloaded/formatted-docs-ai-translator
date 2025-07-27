@@ -46,7 +46,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChang
     () =>
       createTheme({
         palette: {
-          mode: 'dark',
+          mode: 'light',
           primary: {
             main: '#90caf9',
           },
@@ -54,8 +54,8 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChang
             main: '#f48fb1',
           },
           background: {
-            default: '#121212',
-            paper: '#1e1e1e',
+            default: '#f5f5f5',
+            paper: '#ffffff',
           },
         },
         typography: {
