@@ -19,12 +19,19 @@ import { ExamplePresetDetailDto } from '../../../../nest/translation/example/dto
 import { CreateExamplePresetRequestDto } from '../../../../nest/translation/example/dto/request/create-example-preset-request.dto';
 import { UpdateExamplePresetRequestDto } from '../../../../nest/translation/example/dto/request/update-example-preset-request.dto';
 import { DeleteExamplePresetRequestDto } from '../../../../nest/translation/example/dto/request/delete-example-preset-request.dto';
+import { Language } from '@/utils/language';
+
+interface ExamplePair {
+  before: string;
+  after: string;
+}
 
 const ExamplePresetEditor: React.FC = () => {
   const [presets, setPresets] = useState<ExamplePresetDto[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<ExamplePresetDetailDto | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [examples, setExamples] = useState<ExamplePair[]>([]);
   const [isEditing, setIsEditing] = useState(false);
 
   const fetchPresets = useCallback(async () => {
@@ -49,6 +56,16 @@ const ExamplePresetEditor: React.FC = () => {
       setSelectedPreset(result.preset);
       setName(result.preset.name);
       setDescription(result.preset.description || '');
+      const presetExamples = result.preset.examples[Language.ENGLISH];
+      if (presetExamples) {
+        const pairedExamples = presetExamples.sourceLines.map((source, index) => ({
+          before: source,
+          after: presetExamples.resultLines[index] || '',
+        }));
+        setExamples(pairedExamples);
+      } else {
+        setExamples([]);
+      }
       setIsEditing(true);
     } else {
       console.error('Failed to fetch preset detail:', result.message);
@@ -59,7 +76,22 @@ const ExamplePresetEditor: React.FC = () => {
     setSelectedPreset(null);
     setName('');
     setDescription('');
+    setExamples([]);
     setIsEditing(false);
+  };
+
+  const handleAddExample = () => {
+    setExamples([...examples, { before: '', after: '' }]);
+  };
+
+  const handleRemoveExample = (index: number) => {
+    setExamples(examples.filter((_, i) => i !== index));
+  };
+
+  const handleExampleChange = (index: number, field: keyof ExamplePair, value: string) => {
+    const newExamples = [...examples];
+    newExamples[index][field] = value;
+    setExamples(newExamples);
   };
 
   const handleSave = async () => {
@@ -69,11 +101,19 @@ const ExamplePresetEditor: React.FC = () => {
     }
 
     if (isEditing && selectedPreset) {
+      const examplesToSave = {
+        ...selectedPreset?.examples,
+        [Language.ENGLISH]: {
+          sourceLines: examples.map((e) => e.before),
+          resultLines: examples.map((e) => e.after),
+        },
+      };
+
       const payload: UpdateExamplePresetRequestDto = {
         id: selectedPreset.id,
         name,
         description,
-        examples: selectedPreset.examples,
+        examples: examplesToSave,
       };
       await window.electron.ipcRenderer.invoke(IpcChannel.UpdateExamplePreset, payload);
     } else {
@@ -81,10 +121,12 @@ const ExamplePresetEditor: React.FC = () => {
         name,
         description,
         examples: {
-          // 기본적으로 빈 구조를 생성
-          English: { sourceLines: [], resultLines: [] },
-          Japanese: { sourceLines: [], resultLines: [] },
-          Chinese: { sourceLines: [], resultLines: [] },
+          [Language.ENGLISH]: {
+            sourceLines: examples.map((e) => e.before),
+            resultLines: examples.map((e) => e.after),
+          },
+          [Language.JAPANESE]: { sourceLines: [], resultLines: [] },
+          [Language.CHINESE]: { sourceLines: [], resultLines: [] },
         },
       };
       await window.electron.ipcRenderer.invoke(IpcChannel.CreateExamplePreset, payload);
@@ -167,9 +209,46 @@ const ExamplePresetEditor: React.FC = () => {
           fullWidth
           margin="normal"
           multiline
-          rows={10}
+          rows={4}
         />
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Typography variant="h6" gutterBottom>
+          번역 예시
+        </Typography>
+
+        {examples.map((example, index) => (
+          <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+            <TextField
+              label={`Before #${index + 1}`}
+              value={example.before}
+              onChange={(e) => handleExampleChange(index, 'before', e.target.value)}
+              fullWidth
+              multiline
+              variant="outlined"
+              size="small"
+            />
+            <TextField
+              label={`After #${index + 1}`}
+              value={example.after}
+              onChange={(e) => handleExampleChange(index, 'after', e.target.value)}
+              fullWidth
+              multiline
+              variant="outlined"
+              size="small"
+            />
+            <IconButton onClick={() => handleRemoveExample(index)} color="error">
+              <Delete />
+            </IconButton>
+          </Box>
+        ))}
+
+        <Button startIcon={<Add />} onClick={handleAddExample} variant="outlined">
+          예시 추가
+        </Button>
+
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
           <Button onClick={handleClearSelection} variant="outlined">
             취소
           </Button>
