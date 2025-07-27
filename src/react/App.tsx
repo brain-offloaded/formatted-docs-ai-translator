@@ -8,6 +8,8 @@ import { ModalRoot } from './components/common/ModalRoot';
 import SettingsView from './views/SettingsView';
 import PresetView from './views/PresetView';
 import TranslateView from './views/TranslateView';
+import LogView from './views/LogView';
+import CacheView from './views/CacheView';
 import type { Page as ActiveView } from './types'; // Page를 ActiveView로 사용
 
 // 로딩 컴포넌트
@@ -50,8 +52,12 @@ const App: React.FC = () => {
         return '프리셋 관리';
       case 'settings':
         return '설정';
+      case 'log':
+        return '로그 보기';
+      case 'cache':
+        return '캐시 관리';
       default:
-        // 'cache', 'log', 'bug-report' 등 다른 페이지 타입에 대한 처리 추가 가능
+        // 'bug-report' 등 다른 페이지 타입에 대한 처리 추가 가능
         return '';
     }
   }, [activeView]);
@@ -64,6 +70,10 @@ const App: React.FC = () => {
         return <PresetView />;
       case 'settings':
         return <SettingsView />;
+      case 'log':
+        return <LogView />;
+      case 'cache':
+        return <CacheView />;
       default:
         return null;
     }

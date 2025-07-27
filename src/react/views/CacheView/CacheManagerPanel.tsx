@@ -2,24 +2,24 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 import { TranslationHistory } from '@/types/cache';
 
-import { PaginationSection } from './CacheManagerPanel/PaginationSection';
-import { SearchSection } from './CacheManagerPanel/SearchSection';
-import { TranslationDetailModal } from './CacheManagerPanel/TranslationDetailModal'; // Import Detail Modal
-import { TranslationHistoryModal } from './CacheManagerPanel/TranslationHistoryModal'; // Import History Modal
-import { useConfirmModal } from './common/ConfirmModal';
-import { useModal } from '../contexts/ModalContext';
-import { useCheckboxes } from '../hooks/useCheckboxes';
-import { DataTable } from './common/DataTable'; // 데이터 테이블 컴포넌트 추가
-import { getDefaultStartDate, getDefaultEndDate } from '../utils/dateUtils';
-import { truncateText } from '../utils/textUtils';
-import { openAlertModal } from '../utils/modalUtils';
+import { PaginationSection } from '../../components/CacheManagerPanel/PaginationSection';
+import { SearchSection } from '../../components/CacheManagerPanel/SearchSection';
+import { TranslationDetailModal } from '../../components/CacheManagerPanel/TranslationDetailModal'; // Import Detail Modal
+import { TranslationHistoryModal } from '../../components/CacheManagerPanel/TranslationHistoryModal'; // Import History Modal
+import { useConfirmModal } from '../../components/common/ConfirmModal';
+import { useModal } from '../../contexts/ModalContext';
+import { useCheckboxes } from '../../hooks/useCheckboxes';
+import { DataTable } from '../../components/common/DataTable'; // 데이터 테이블 컴포넌트 추가
+import { getDefaultStartDate, getDefaultEndDate } from '../../utils/dateUtils';
+import { truncateText } from '../../utils/textUtils';
+import { openAlertModal } from '../../utils/modalUtils';
 import type { CacheTranslation } from '@/types/cache'; // Update import path
 
-import '../styles/CacheManagerPanel.css';
-import '../styles/DataTable.css'; // 데이터 테이블 스타일 추가
+import '../../styles/CacheManagerPanel.css';
+import '../../styles/DataTable.css'; // 데이터 테이블 스타일 추가
 import { Tooltip, Button, Box } from '@mui/material';
-import { CopyButton } from './common/CopyButton';
-import { IpcChannel } from '../../nest/common/ipc.channel';
+import { CopyButton } from '../../components/common/CopyButton';
+import { IpcChannel } from '@/nest/common/ipc.channel';
 import { Download as DownloadIcon, Upload as UploadIcon } from '@mui/icons-material';
 import { CacheSearchParams } from '@/types/common';
 
