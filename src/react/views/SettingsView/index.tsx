@@ -29,18 +29,18 @@ import {
   SelectChangeEvent,
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
-import { TranslatorConfig } from '../../types/config';
-import { Language, SourceLanguage } from '../../utils/language';
-import { ConfigStore } from '../config/config-store';
-import { useConfirmModal } from './common/ConfirmModal';
-import { CopyButton } from './common/CopyButton';
-import '../styles/ConfigPanel.css';
+import { TranslatorConfig } from '../../../types/config';
+import { Language, SourceLanguage } from '../../../utils/language';
+import { ConfigStore } from '../../config/config-store';
+import { useConfirmModal } from '../../components/common/ConfirmModal';
+import { CopyButton } from '../../components/common/CopyButton';
+import '../../styles/ConfigPanel.css';
 import {
   AiModelName,
   getDefaultModelConfig,
   getModelDescription,
   ModelConfig,
-} from '../../ai/model';
+} from '../../../ai/model';
 
 // 각 모델의 기본 설정값 정의
 const MODEL_DEFAULT_CONFIGS: Record<AiModelName, ModelConfig> = {
@@ -61,7 +61,7 @@ const DEFAULT_CUSTOM_INPUT_CONFIG: ModelConfig = getDefaultModelConfig({
   requestsPerMinute: 25,
 });
 
-export const ConfigPanel: React.FC = () => {
+export const SettingsView: React.FC = () => {
   const [config, setConfig] = useState<TranslatorConfig>(() =>
     ConfigStore.getInstance().getConfig()
   );
@@ -663,4 +663,4 @@ export const ConfigPanel: React.FC = () => {
   );
 };
 
-export default ConfigPanel;
+export default SettingsView;

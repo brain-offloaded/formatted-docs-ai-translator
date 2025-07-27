@@ -55,7 +55,9 @@ export class GeminiPromptConverterService extends AiPromptConverterService<IChat
   }): IChatBlock {
     {
       // 프롬프트 프리셋 내용을 기존 프롬프트 앞에 추가
-      const fullPrompt = promptPresetContent ? `${promptPresetContent}\n\n${currentPrompt}` : currentPrompt;
+      const fullPrompt = promptPresetContent
+        ? `${promptPresetContent}\n\n${currentPrompt}`
+        : currentPrompt;
       const blocks = fullPrompt.match(/<\|role_start:(.*?)\|>(.*?)<\|role_end\|>/gs) || [];
       const tempContents: IChatContent[] = [];
       const result: IChatBlock = {

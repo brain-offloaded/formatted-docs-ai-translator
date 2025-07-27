@@ -1,30 +1,20 @@
-import React, { useCallback, useState, useMemo, useEffect } from 'react'; // 중복 제거 및 useEffect 유지
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Divider,
-  Snackbar,
-  // SelectChangeEvent, // 여기서 제거
-} from '@mui/material';
-import { SelectChangeEvent } from '@mui/material/Select'; // 올바른 경로에서 import
-import { TranslationType, useTranslation } from '../contexts/TranslationContext';
-import { ConfigStore } from '../config/config-store'; // ConfigStore 추가
-import { IpcChannel } from '../../nest/common/ipc.channel'; // IpcChannel 추가
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
+import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
+import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
+import { ConfigStore } from '../../config/config-store';
+import { IpcChannel } from '../../../nest/common/ipc.channel';
 import {
   getTranslatorWithOptions,
   getTranslationTypeLabel,
-} from '../constants/TranslationTypeMapping';
-// import ExamplePresetSelector from './translation/ExamplePresetSelector'; // 기존 컴포넌트 주석 처리 또는 삭제
-import ExamplePresetSelectorMinimal from './translation/ExamplePresetSelectorMinimal'; // 예제 프리셋 컴포넌트 import
-import PromptPresetSelectorMinimal from './translation/PromptPresetSelectorMinimal'; // 프롬프트 프리셋 컴포넌트 import
-import TranslationTypeSelector from './common/TranslationTypeSelector';
-import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
-import { ExamplePresetDto } from '@/nest/translation/example/dto/example-preset.dto'; // ExamplePresetDto 추가
+} from '../../constants/TranslationTypeMapping';
+import ExamplePresetSelectorMinimal from '../../components/translation/ExamplePresetSelectorMinimal';
+import PromptPresetSelectorMinimal from '../../components/translation/PromptPresetSelectorMinimal';
+import TranslationTypeSelector from '../../components/common/TranslationTypeSelector';
+import { BaseParseOptionsDto } from '../../../nest/parser/dto/options/base-parse-options.dto';
+import { ExamplePresetDto } from '../../../nest/translation/example/dto/example-preset.dto';
 
-export default function TranslationPanel(): React.ReactElement {
-  // Context에서 상태와 함수 가져오기 - 필요한 것만 선택적으로 가져옵니다
+export default function TranslateView(): React.ReactElement {
   const {
     translationType,
     setTranslationType,
@@ -32,24 +22,17 @@ export default function TranslationPanel(): React.ReactElement {
     uiState,
     setResultState,
     isTranslating,
-    showSnackbar, // showSnackbar 추가
+    showSnackbar,
   } = useTranslation();
-  const configStore = ConfigStore.getInstance(); // ConfigStore 인스턴스
-  // 예제 프리셋 상태
+  const configStore = ConfigStore.getInstance();
   const [currentExamplePresetName, setCurrentExamplePresetName] = useState<string>('');
   const [isExamplePresetLoading, setIsExamplePresetLoading] = useState(false);
-
-  // 프롬프트 프리셋 상태 추가
   const [currentPromptPresetName, setCurrentPromptPresetName] = useState<string>('');
   const [promptPresetContent, setPromptPresetContent] = useState<string | undefined>(undefined);
   const [isPromptPresetLoading, setIsPromptPresetLoading] = useState(false);
-
-  // 옵션 상태 관리
   const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
-  // 설정 패널 표시 여부 상태 관리
   const [showSettings, setShowSettings] = useState(false);
 
-  // 초기 예제 프리셋 로드 로직
   useEffect(() => {
     const loadInitialExamplePreset = async () => {
       try {
@@ -64,7 +47,6 @@ export default function TranslationPanel(): React.ReactElement {
 
           setCurrentExamplePresetName(targetPresetName);
 
-          // 백엔드의 현재 프리셋과 다르면 로드 요청
           if (targetPresetName !== result.currentPreset) {
             const loadResult = await window.electron.ipcRenderer.invoke(
               IpcChannel.LoadExamplePreset,
@@ -73,11 +55,9 @@ export default function TranslationPanel(): React.ReactElement {
             if (!loadResult.success) {
               console.warn(`초기 예제 프리셋(${targetPresetName}) 로드 실패:`, loadResult.message);
             } else {
-              // 성공 시 설정 저장
               configStore.updateConfig({ lastPresetName: targetPresetName });
             }
           } else {
-            // 이미 백엔드에 로드된 프리셋이면 설정만 업데이트
             configStore.updateConfig({ lastPresetName: targetPresetName });
           }
         } else if (!result.success) {
@@ -92,14 +72,11 @@ export default function TranslationPanel(): React.ReactElement {
       }
     };
 
-    // 컴포넌트 마운트 시 한 번만 실행
     if (!currentExamplePresetName) {
       loadInitialExamplePreset();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 최초 마운트 시에만 실행
+  }, []);
 
-  // 초기 프롬프트 프리셋 로드 로직 추가
   useEffect(() => {
     const loadInitialPromptPreset = async () => {
       try {
@@ -108,14 +85,12 @@ export default function TranslationPanel(): React.ReactElement {
         const savedPresetName = config.lastPromptPresetName;
 
         if (savedPresetName) {
-          // 먼저 전체 프리셋 목록을 가져와서 ID를 찾습니다.
           const listResult = await window.electron.ipcRenderer.invoke(IpcChannel.GetPromptPresets);
 
           if (listResult.success && listResult.presets) {
             const foundPreset = listResult.presets.find((p) => p.name === savedPresetName);
 
             if (foundPreset) {
-              // 찾은 프리셋의 ID로 상세 정보 가져오기
               const detailResult = await window.electron.ipcRenderer.invoke(
                 IpcChannel.GetPromptPresetDetail,
                 { id: foundPreset.id }
@@ -127,7 +102,6 @@ export default function TranslationPanel(): React.ReactElement {
                 showSnackbar(`'${detailResult.preset.name}' 프롬프트 프리셋을 로드했습니다.`);
               } else {
                 console.warn(`초기 프롬프트 프리셋 상세 정보 로드 실패:`, detailResult.message);
-                // 상세 정보 로드 실패 시 상태 초기화
                 setCurrentPromptPresetName('');
                 setPromptPresetContent(undefined);
               }
@@ -135,13 +109,11 @@ export default function TranslationPanel(): React.ReactElement {
               console.warn(
                 `저장된 프롬프트 프리셋 이름(${savedPresetName})에 해당하는 프리셋을 찾을 수 없습니다.`
               );
-              // 이름에 해당하는 프리셋을 찾지 못한 경우 상태 초기화
               setCurrentPromptPresetName('');
               setPromptPresetContent(undefined);
             }
           } else {
             console.warn(`프롬프트 프리셋 목록 불러오기 실패:`, listResult.message);
-            // 목록 불러오기 실패 시 상태 초기화
             setCurrentPromptPresetName('');
             setPromptPresetContent(undefined);
           }
@@ -150,7 +122,6 @@ export default function TranslationPanel(): React.ReactElement {
         console.error('초기 프롬프트 프리셋 로드 중 오류 발생:', error);
         const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
         showSnackbar(`초기 프롬프트 프리셋 로드 중 오류가 발생했습니다: ${errorMessage}`);
-        // 오류 발생 시 상태 초기화
         setCurrentPromptPresetName('');
         setPromptPresetContent(undefined);
       } finally {
@@ -158,17 +129,13 @@ export default function TranslationPanel(): React.ReactElement {
       }
     };
 
-    // 컴포넌트 마운트 시 한 번만 실행
     if (!currentPromptPresetName) {
       loadInitialPromptPreset();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 최초 마운트 시에만 실행
+  }, []);
 
-  // 옵션 변경 핸들러 - 메모이제이션
   const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
     setParserOptions((prevOptions) => {
-      // 이전 옵션과 새 옵션이 동일하면 상태 업데이트 방지
       if (JSON.stringify(prevOptions) === JSON.stringify(options)) {
         return prevOptions;
       }
@@ -176,43 +143,35 @@ export default function TranslationPanel(): React.ReactElement {
     });
   }, []);
 
-  // 설정 토글 핸들러 - 메모이제이션
   const toggleSettings = useCallback(() => {
     setShowSettings((prev) => !prev);
   }, []);
 
-  // 번역 타입 변경 핸들러 - 메모이제이션
   const handleTranslationTypeChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newType = e.target.value as TranslationType;
-      if (newType === translationType) return; // 변경이 없으면 처리하지 않음
+      if (newType === translationType) return;
 
       setTranslationType(newType);
-      // 파일 선택 초기화
       handleClearFiles();
-      // 결과 초기화
       setResultState({
         translationResult: null,
         zipBlob: null,
         singleFileBlob: null,
         singleFileName: null,
       });
-      // 옵션 초기화
       setParserOptions(null);
-      // 설정 패널도 초기화
       setShowSettings(false);
-      // 프롬프트 프리셋 상태 초기화
       setCurrentPromptPresetName('');
       setPromptPresetContent(undefined);
     },
     [setTranslationType, handleClearFiles, setResultState, translationType]
   );
 
-  // 예제 프리셋 변경 핸들러
   const handleExamplePresetChange = useCallback(
     async (event: SelectChangeEvent<string>) => {
       const newPresetName = event.target.value;
-      if (newPresetName === currentExamplePresetName) return; // 변경 없으면 중단
+      if (newPresetName === currentExamplePresetName) return;
 
       try {
         setIsExamplePresetLoading(true);
@@ -222,7 +181,7 @@ export default function TranslationPanel(): React.ReactElement {
 
         if (result.success) {
           setCurrentExamplePresetName(newPresetName);
-          configStore.updateConfig({ lastPresetName: newPresetName }); // 설정 저장
+          configStore.updateConfig({ lastPresetName: newPresetName });
           showSnackbar(`'${newPresetName}' 예제 프리셋을 로드했습니다.`);
         } else {
           showSnackbar(`예제 프리셋 로드 실패: ${result.message}`);
@@ -238,18 +197,15 @@ export default function TranslationPanel(): React.ReactElement {
     [showSnackbar, configStore, currentExamplePresetName]
   );
 
-  // 프롬프트 프리셋 변경 핸들러 추가
   const handlePromptPresetChange = useCallback(
     (presetName: string, presetContent: string | undefined) => {
       setCurrentPromptPresetName(presetName);
       setPromptPresetContent(presetContent);
-      // 프롬프트 프리셋 변경 시 설정 저장
       configStore.updateConfig({ lastPromptPresetName: presetName });
     },
-    [configStore] // 의존성 배열에 configStore 추가
+    [configStore]
   );
 
-  // TranslationType에 따라 적절한 컴포넌트 및 옵션 가져오기 - 메모이제이션
   const {
     TranslatorComponent,
     OptionComponent,
@@ -259,7 +215,6 @@ export default function TranslationPanel(): React.ReactElement {
     [translationType]
   );
 
-  // 번역 타입 라벨 - 메모이제이션
   const translationTypeLabel = useMemo(
     () => getTranslationTypeLabel(translationType),
     [translationType]
@@ -274,7 +229,6 @@ export default function TranslationPanel(): React.ReactElement {
           </Typography>
           <Divider sx={{ my: 2 }} />
 
-          {/* 예제 프리셋 선택기 */}
           <ExamplePresetSelectorMinimal
             currentPresetName={currentExamplePresetName}
             onPresetChange={handleExamplePresetChange}
@@ -283,7 +237,6 @@ export default function TranslationPanel(): React.ReactElement {
             setIsPresetLoading={setIsExamplePresetLoading}
           />
 
-          {/* 프롬프트 프리셋 선택기 추가 */}
           <PromptPresetSelectorMinimal
             currentPresetName={currentPromptPresetName}
             onPresetChange={handlePromptPresetChange}
@@ -292,14 +245,12 @@ export default function TranslationPanel(): React.ReactElement {
             setIsPresetLoading={setIsPromptPresetLoading}
           />
 
-          {/* 번역 유형 선택 */}
           <Box sx={{ mb: 2 }}>
             <TranslationTypeSelector
               selectedType={translationType}
               onChange={handleTranslationTypeChange}
             />
 
-            {/* 옵션 컴포넌트 렌더링 */}
             {OptionComponent && (
               <OptionComponent
                 isTranslating={isTranslating}
@@ -312,12 +263,11 @@ export default function TranslationPanel(): React.ReactElement {
               />
             )}
 
-            {/* 번역기 컴포넌트 렌더링 - 옵션, 파서 옵션, 프롬프트 프리셋 내용 전달 */}
             <TranslatorComponent
               key={translationType}
-              options={translatorOptions} // options prop 전달
+              options={translatorOptions}
               parserOptions={parserOptions}
-              promptPresetContent={promptPresetContent} // 프롬프트 프리셋 내용 전달
+              promptPresetContent={promptPresetContent}
             />
           </Box>
         </CardContent>

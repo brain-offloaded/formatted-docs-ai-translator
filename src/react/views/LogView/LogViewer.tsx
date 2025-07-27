@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import '../styles/LogViewer.css';
-import '../styles/DataTable.css';
-import { useConfirmModal } from './common/ConfirmModal';
-import { CopyButton } from './common/CopyButton';
-import { useCheckboxes } from '../hooks/useCheckboxes';
-import { usePagination } from '../hooks/usePagination';
-import { useModal } from '../contexts/ModalContext';
-import { DataTable } from './common/DataTable';
+import '../../styles/LogViewer.css';
+import '../../styles/DataTable.css';
+import { useConfirmModal } from '../../components/common/ConfirmModal';
+import { CopyButton } from '../../components/common/CopyButton';
+import { useCheckboxes } from '../../hooks/useCheckboxes';
+import { usePagination } from '../../hooks/usePagination';
+import { useModal } from '../../contexts/ModalContext';
+import { DataTable } from '../../components/common/DataTable';
 import {
   formatRelativeDate,
   getDefaultEndDateTomorrow,
   getDefaultStartDate,
-} from '../utils/dateUtils';
-import { openAlertModal } from '../utils/modalUtils';
-import { FormField } from './common/FormField';
-import { IpcChannel } from '../../nest/common/ipc.channel';
+} from '../../utils/dateUtils';
+import { openAlertModal } from '../../utils/modalUtils';
+import { FormField } from '../../components/common/FormField';
+import { IpcChannel } from '@/nest/common/ipc.channel';
 
 interface Log {
   id: number;

@@ -1,8 +1,15 @@
 import React, { memo } from 'react';
-import { BaseTranslator, BaseTranslatorOptions, BaseTranslatorProps } from '../components/translators/BaseTranslator'; // BaseTranslatorProps import
+import {
+  BaseTranslator,
+  BaseTranslatorOptions,
+  BaseTranslatorProps,
+} from '../components/translators/BaseTranslator'; // BaseTranslatorProps import
 import { TranslationType } from '../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
-import { TranslationTypeToOptionsMap, TranslatorComponentType as OriginalTranslatorComponentType } from '../types/translation-types'; // 이름 변경
+import {
+  TranslationTypeToOptionsMap,
+  // TranslatorComponentType as OriginalTranslatorComponentType,
+} from '../types/translation-types'; // 이름 변경
 import { OptionItem } from '../components/options/DynamicOptions';
 
 // promptPresetContent prop을 포함하도록 TranslatorComponentType 재정의
@@ -132,7 +139,8 @@ export class TranslatorFactory {
    * @param type 번역 타입
    * @returns 번역기 컴포넌트
    */
-  public static createTranslator<T extends TranslationType>(type: T): TranslatorComponentType<T> { // 반환 타입 명시
+  public static createTranslator<T extends TranslationType>(type: T): TranslatorComponentType<T> {
+    // 반환 타입 명시
     return this.registry.getOrCreateComponent(type);
   }
 
