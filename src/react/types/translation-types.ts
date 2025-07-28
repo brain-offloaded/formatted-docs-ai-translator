@@ -1,6 +1,10 @@
 import React from 'react';
 import { TranslationType } from '../contexts/TranslationContext';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
+import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
+import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
+import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
+import { SubtitleParserOptionsDto } from '@/nest/parser/dto/options/subtitle-parser-options.dto';
 import { OptionItem } from '../components/options/DynamicOptions';
 import { BaseTranslatorProps } from '../components/translators/BaseTranslator';
 
@@ -31,14 +35,27 @@ export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParse
 export type CustomOptionComponentProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> =
   BaseParseOptionsProps<T>;
 
+/**
+ * 각 TranslationType에 대한 옵션 타입 매핑
+ */
+export interface TranslationTypeToOptionsMap {
+  [TranslationType.Json]: JsonParserOptionsDto;
+  [TranslationType.Text]: PlainTextParserOptionsDto;
+  [TranslationType.Csv]: CsvParserOptionsDto;
+  [TranslationType.Subtitle]: SubtitleParserOptionsDto;
+}
+
 // 옵션 컴포넌트 타입
-export type OptionComponentType = React.ComponentType<CustomOptionComponentProps<any>>;
+export type OptionComponentType<T extends keyof TranslationTypeToOptionsMap> = React.ComponentType<
+  CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>
+>;
 
 // 번역기 컴포넌트 타입
-export type TranslatorComponentType = React.ComponentType<BaseTranslatorProps<any>>;
+export type TranslatorComponentType<T extends keyof TranslationTypeToOptionsMap> =
+  React.ComponentType<BaseTranslatorProps<TranslationTypeToOptionsMap[T]>>;
 
 // 특정 TranslationType에 해당하는 번역기와 옵션 컴포넌트 타입
-export interface TranslatorWithOptions {
-  TranslatorComponent: TranslatorComponentType;
-  OptionComponent: OptionComponentType;
+export interface TranslatorWithOptions<T extends keyof TranslationTypeToOptionsMap> {
+  TranslatorComponent: TranslatorComponentType<T>;
+  OptionComponent: OptionComponentType<T>;
 }

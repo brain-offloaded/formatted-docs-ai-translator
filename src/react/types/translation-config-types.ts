@@ -2,7 +2,7 @@ import { IpcChannel } from '@/nest/common/ipc.channel';
 import { OptionItem } from '../components/options/DynamicOptions';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 
-type Constructor<T> = new (...args: any[]) => T;
+type Constructor<T> = new (...args: unknown[]) => T;
 
 export interface TranslationConfigDefinition<T extends BaseParseOptionsDto> {
   type: string;
@@ -26,6 +26,6 @@ export interface TranslationConfigDefinition<T extends BaseParseOptionsDto> {
     };
     dto?: Constructor<T>;
   };
-  customTranslatorComponent?: React.ComponentType<any>;
-  customOptionsComponent?: React.ComponentType<any>;
+  customTranslatorComponent?: React.ComponentType;
+  customOptionsComponent?: React.ComponentType;
 }

@@ -26,7 +26,8 @@ export class ParseOptionsRegistry {
   private static instance: ParseOptionsRegistry;
   private registry: Map<TranslationType, ParseOptionsConfig> = new Map();
   // 캐시된 옵션 컴포넌트 저장
-  private componentCache: Map<TranslationType, OptionComponentType> = new Map();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private componentCache: Map<TranslationType, OptionComponentType<any>> = new Map();
 
   private constructor() {}
 
@@ -70,7 +71,8 @@ export class ParseOptionsRegistry {
    * @param type 번역 타입
    * @returns 옵션 컴포넌트
    */
-  public getOrCreateComponent(type: TranslationType): OptionComponentType {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public getOrCreateComponent(type: TranslationType): OptionComponentType<any> {
     // 캐시에서 확인
     const cachedComponent = this.componentCache.get(type);
     if (cachedComponent) {
@@ -118,7 +120,8 @@ export class ParseOptionsFactory {
    * @param type 번역 타입
    * @returns 파싱 옵션 컴포넌트
    */
-  public static createParseOptions(type: TranslationType): OptionComponentType {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static createParseOptions(type: TranslationType): OptionComponentType<any> {
     return this.registry.getOrCreateComponent(type);
   }
 

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Box, useTheme, TextField } from '@mui/material';
-import { useTranslation } from '../../contexts/TranslationContext';
+import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { TranslatorConfig } from '../../../types/config';
 import TranslationButton from '../common/TranslationButton';
@@ -118,7 +118,9 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   // 유효성 검증 함수 - 메모이제이션
   const validateInput = useMemo(
-    () => initialOptions.validateInput || getDefaultValidatorByMode(initialOptions.translationType),
+    () =>
+      initialOptions.validateInput ||
+      getDefaultValidatorByMode(initialOptions.translationType as TranslationType),
     [initialOptions.validateInput, initialOptions.translationType]
   );
 

@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import JSZip from 'jszip';
 
-import { translationConfigs } from '../config/translation-configs';
-
 // 상태 인터페이스 정의
 export interface FileState {
   selectedFiles: File[] | null;
 }
 
-export type TranslationType = (typeof translationConfigs)[number]['type'];
+export enum TranslationType {
+  Text = 'text',
+  Json = 'json',
+  Csv = 'csv',
+  Subtitle = 'subtitle',
+}
 
 export interface TranslationResultState {
   translationResult: {
@@ -67,9 +70,7 @@ const TranslationContext = createContext<TranslationContextType | undefined>(und
 // TranslationProvider 컴포넌트
 export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // 상태 정의
-  const [translationType, setTranslationType] = useState<TranslationType>(
-    translationConfigs[0].type
-  );
+  const [translationType, setTranslationType] = useState<TranslationType>(TranslationType.Text);
   const [isTranslating, setIsTranslating] = useState(false);
   const [fileState, setFileState] = useState<FileState>({
     selectedFiles: null,
@@ -139,7 +140,7 @@ export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ childre
       errorCount?: number
     ) => {
       // 텍스트 모드인 경우 별도 처리 없이 리턴
-      if (translationType === 'text') {
+      if (translationType === TranslationType.Text) {
         return;
       }
 

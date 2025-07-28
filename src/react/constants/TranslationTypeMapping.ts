@@ -1,5 +1,4 @@
 import { TranslationType } from '../contexts/TranslationContext';
-import { translationConfigs } from '../config/translation-configs';
 
 /**
  * 파일 모드에 따른 기본 유효성 검사 함수를 반환하는 함수
@@ -17,7 +16,7 @@ export const getDefaultValidatorByMode = (
       return input.length > 0;
     } else if (typeof input === 'string') {
       // 텍스트 입력 모드
-      if (translationType === 'json') {
+      if (translationType === TranslationType.Json) {
         // 입력이 문자열이고 유효한 JSON인지 확인
         try {
           JSON.parse(input.trim());
@@ -42,8 +41,18 @@ export const getDefaultValidatorByMode = (
  * @returns 해당 번역 유형에 맞는 라벨 문자열
  */
 export const getTranslationTypeLabel = (type: TranslationType): string => {
-  const config = translationConfigs.find((c) => c.type === type);
-  return config ? config.label : '알 수 없는 번역';
+  switch (type) {
+    case TranslationType.Json:
+      return 'JSON';
+    case TranslationType.Text:
+      return 'Text';
+    case TranslationType.Csv:
+      return 'CSV';
+    case TranslationType.Subtitle:
+      return 'Subtitle';
+    default:
+      return 'Unknown';
+  }
 };
 
 /**
@@ -51,8 +60,8 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
  * @returns TranslationType 배열
  */
 export const getTranslationTypes = (): { value: TranslationType; label: string }[] => {
-  return translationConfigs.map((config) => ({
-    value: config.type,
-    label: config.label,
+  return Object.values(TranslationType).map((type) => ({
+    value: type,
+    label: getTranslationTypeLabel(type),
   }));
 };
