@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Box, useTheme, TextField } from '@mui/material';
-import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
+import { useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { TranslatorConfig } from '../../../types/config';
 import TranslationButton from '../common/TranslationButton';
@@ -29,14 +29,14 @@ export interface BaseTranslatorOptions {
   validateInput?: (input: string | File[]) => boolean;
 
   // 번역 타입
-  translationType: TranslationType;
+  translationType: string;
 
   // 입력 필드 설정
   inputFieldRows?: number;
 
   // 파일 업로더 설정
   fileExtension?: string;
-  fileLabel: string;
+  fileLabel?: string;
 }
 
 export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {

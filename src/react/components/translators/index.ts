@@ -1,10 +1,9 @@
-import { TranslationType } from '../../contexts/TranslationContext';
-import { getTranslatorComponent } from '../../constants/TranslationTypeMapping';
+import { TranslatorFactory } from '../../factories/TranslatorFactory';
 
 // 각 번역기 타입에 맞는 번역기 컴포넌트 생성
-export const JsonTranslator = getTranslatorComponent(TranslationType.Json);
-export const TextTranslator = getTranslatorComponent(TranslationType.Text);
-export const CsvTranslator = getTranslatorComponent(TranslationType.Csv);
+export const JsonTranslator = TranslatorFactory.createTranslator('json');
+export const TextTranslator = TranslatorFactory.createTranslator('text');
+export const CsvTranslator = TranslatorFactory.createTranslator('csv');
 
 // 기본 번역기 타입 export
 export { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';

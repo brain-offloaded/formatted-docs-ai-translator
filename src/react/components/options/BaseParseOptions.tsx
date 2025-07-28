@@ -2,7 +2,7 @@ import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { ConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
-import { getDefaultOptions } from '../../constants/TranslationTypeMapping';
+import { translationConfigs } from '../../config/translation-configs';
 import { OptionsValues, DynamicOptions } from './DynamicOptions';
 import { Box, Tooltip, IconButton, Typography, FormControlLabel, Switch } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
@@ -105,7 +105,12 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
       let optionsToSet = loadOptionsFromLocalStorage<T>(translationType);
 
       if (!optionsToSet) {
-        optionsToSet = getDefaultOptions(translationType, sourceLanguage) as T;
+        const config = translationConfigs.find((c) => c.type === translationType);
+        const defaultOptions = config?.parser.dto ? new config.parser.dto() : {};
+        optionsToSet = {
+          ...defaultOptions,
+          sourceLanguage,
+        } as T;
       } else {
         optionsToSet = { ...optionsToSet, sourceLanguage };
       }

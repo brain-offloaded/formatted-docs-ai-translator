@@ -1,11 +1,8 @@
 import React from 'react';
 import { TranslationType } from '../contexts/TranslationContext';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
-import { JsonParserOptionsDto } from '@/nest/parser/dto/options/json-parser-options.dto';
-import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-parser-options.dto';
-import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-options.dto';
-import { SubtitleParserOptionsDto } from '@/nest/parser/dto/options/subtitle-parser-options.dto';
 import { OptionItem } from '../components/options/DynamicOptions';
+import { BaseTranslatorProps } from '../components/translators/BaseTranslator';
 
 /**
  * 컴포넌트에서 사용할 파서 옵션 타입
@@ -34,41 +31,14 @@ export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParse
 export type CustomOptionComponentProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> =
   BaseParseOptionsProps<T>;
 
-/**
- * 옵션 필드 설정 타입
- */
-export type OptionFieldConfig<T> = {
-  key: keyof T;
-  label?: string;
-  helperText?: string;
-  type?: 'text' | 'switch' | 'select';
-  options?: { value: string; label: string }[];
-};
-
-/**
- * 각 TranslationType에 대한 옵션 타입 매핑
- */
-export interface TranslationTypeToOptionsMap {
-  [TranslationType.Json]: JsonParserOptionsDto;
-  [TranslationType.Text]: PlainTextParserOptionsDto;
-  [TranslationType.Csv]: CsvParserOptionsDto;
-  [TranslationType.Subtitle]: SubtitleParserOptionsDto;
-}
-
 // 옵션 컴포넌트 타입
-export type OptionComponentType<T extends TranslationType> = React.ComponentType<
-  CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>
->;
-
-import { BaseTranslatorProps } from '../components/translators/BaseTranslator'; // BaseTranslatorProps import
+export type OptionComponentType = React.ComponentType<CustomOptionComponentProps<any>>;
 
 // 번역기 컴포넌트 타입
-export type TranslatorComponentType<T extends TranslationType> = React.ComponentType<
-  BaseTranslatorProps<TranslationTypeToOptionsMap[T]> // CustomTranslatorProps 대신 BaseTranslatorProps 사용
->;
+export type TranslatorComponentType = React.ComponentType<BaseTranslatorProps<any>>;
 
 // 특정 TranslationType에 해당하는 번역기와 옵션 컴포넌트 타입
-export interface TranslatorWithOptions<T extends TranslationType> {
-  TranslatorComponent: TranslatorComponentType<T>;
-  OptionComponent: OptionComponentType<T>;
+export interface TranslatorWithOptions {
+  TranslatorComponent: TranslatorComponentType;
+  OptionComponent: OptionComponentType;
 }

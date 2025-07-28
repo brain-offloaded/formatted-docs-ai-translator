@@ -4,10 +4,9 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { IpcChannel } from '../../../nest/common/ipc.channel';
-import {
-  getTranslatorWithOptions,
-  getTranslationTypeLabel,
-} from '../../constants/TranslationTypeMapping';
+import { getTranslationTypeLabel } from '../../constants/TranslationTypeMapping';
+import { TranslatorFactory } from '../../factories/TranslatorFactory';
+import { ParseOptionsFactory } from '../../factories/ParseOptionsFactory';
 import ExamplePresetSelectorMinimal from '../../components/translation/ExamplePresetSelectorMinimal';
 import PromptPresetSelectorMinimal from '../../components/translation/PromptPresetSelectorMinimal';
 import TranslationTypeSelector from '../../components/common/TranslationTypeSelector';
@@ -206,12 +205,18 @@ export default function TranslateView(): React.ReactElement {
     [configStore]
   );
 
-  const {
-    TranslatorComponent,
-    OptionComponent,
-    options: translatorOptions,
-  } = useMemo(
-    () => getTranslatorWithOptions<typeof translationType>(translationType),
+  const translatorConfig = useMemo(
+    () => TranslatorFactory.getConfig(translationType),
+    [translationType]
+  );
+
+  const TranslatorComponent = useMemo(
+    () => TranslatorFactory.createTranslator(translationType),
+    [translationType]
+  );
+
+  const OptionComponent = useMemo(
+    () => ParseOptionsFactory.createParseOptions(translationType),
     [translationType]
   );
 
@@ -263,12 +268,14 @@ export default function TranslateView(): React.ReactElement {
               />
             )}
 
-            <TranslatorComponent
-              key={translationType}
-              options={translatorOptions}
-              parserOptions={parserOptions}
-              promptPresetContent={promptPresetContent}
-            />
+            {translatorConfig && (
+              <TranslatorComponent
+                key={translationType}
+                options={translatorConfig.options}
+                parserOptions={parserOptions}
+                promptPresetContent={promptPresetContent}
+              />
+            )}
           </Box>
         </CardContent>
       </Card>
