@@ -61,7 +61,7 @@ const DEFAULT_CUSTOM_INPUT_CONFIG: ModelConfig = getDefaultModelConfig({
   requestsPerMinute: 25,
 });
 
-export const SettingsView: React.FC = () => {
+const SettingsView: React.FC = () => {
   const [config, setConfig] = useState<TranslatorConfig>(() =>
     ConfigStore.getInstance().getConfig()
   );

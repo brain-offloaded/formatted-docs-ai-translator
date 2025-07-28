@@ -40,7 +40,7 @@ interface CacheState {
 // Helper type for selected translation data for modals
 type SelectedTranslationData = CacheTranslation | null;
 
-export const CacheManagerPanel: React.FC = () => {
+const CacheManagerPanel: React.FC = () => {
   const [state, setState] = useState<CacheState>({
     currentPage: 1,
     itemsPerPage: 10,
