@@ -31,10 +31,9 @@ import {
   FormControlLabel,
   Slider,
 } from '@mui/material';
-import React, { useState, useEffect } from 'react';
-import { TranslatorConfig } from '../../../types/config';
+import React, { useState, useEffect, useCallback } from 'react';
 
-import { ConfigStore } from '../../config/config-store';
+import { useConfigStore } from '../../config/config-store';
 import { useConfirmModal } from '../../components/common/ConfirmModal';
 import { CopyButton } from '../../components/common/CopyButton';
 import '../../styles/ConfigPanel.css';
@@ -67,62 +66,30 @@ const DEFAULT_CUSTOM_INPUT_CONFIG: ModelConfig = getDefaultModelConfig({
 });
 
 const SettingsView: React.FC = () => {
-  const [config, setConfig] = useState<TranslatorConfig>(() =>
-    ConfigStore.getInstance().getConfig()
-  );
-  const [aiProvider, setAiProvider] = useState<AiProvider>(config.aiProvider);
+  const config = useConfigStore((state) => state);
+  const updateConfig = useConfigStore((state) => state.updateConfig);
+
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [apiKeyError, setApiKeyError] = useState('');
   const [lastCustomInputConfig, setLastCustomInputConfig] = useState<ModelConfig | null>(null);
-  const [isCustomInputMode, setIsCustomInputMode] = useState<boolean>(() => {
-    // ConfigStore에서 isCustomInputMode 값을 가져와 사용
-    return ConfigStore.getInstance().getConfig().isCustomInputMode;
-  });
-  const [customModelConfig, setCustomModelConfig] = useState<ModelConfig>(() => {
-    // 선택된 모델에 맞는 기본 설정 사용 (customModelConfig가 있으면 그것을 우선 사용)
-    return config.customModelConfig;
-  });
   const { openConfirmModal } = useConfirmModal();
 
-  useEffect(() => {
-    const configStore = ConfigStore.getInstance();
-
-    const handleConfigChange = (event: CustomEvent<TranslatorConfig>) => {
-      const newConfig = event.detail;
-      setConfig(newConfig);
-      if (newConfig.customModelConfig) {
-        setCustomModelConfig(newConfig.customModelConfig);
-      }
-      if (newConfig.aiProvider) {
-        setAiProvider(newConfig.aiProvider);
-      }
-    };
-
-    const handleConfigError = (event: CustomEvent<{ message: string }>) => {
-      showSnackbar(event.detail.message);
-    };
-
-    configStore.addEventListener('configChanged', handleConfigChange);
-    configStore.addEventListener('configError', handleConfigError);
-
-    return () => {
-      configStore.removeEventListener('configChanged', handleConfigChange);
-      configStore.removeEventListener('configError', handleConfigError);
-    };
+  const showSnackbar = useCallback((message: string) => {
+    setSnackbarMessage(message);
+    setSnackbarOpen(true);
   }, []);
 
   useEffect(() => {
     // 직접 입력 모드에서 필수 값이 비어있는지 체크
-    if (isCustomInputMode) {
+    if (config.isCustomInputMode) {
       const isValid = Boolean(
-        customModelConfig.modelName &&
-          customModelConfig.requestsPerMinute &&
-          customModelConfig.maxOutputTokenCount
+        config.customModelConfig.modelName &&
+          config.customModelConfig.requestsPerMinute &&
+          config.customModelConfig.maxOutputTokenCount
       );
-      // setHasValidCustomInputs(isValid); // 이 변수는 현재 사용되지 않습니다.
 
       // 번역 버튼 활성화/비활성화 상태를 전역 이벤트로 발행
       window.dispatchEvent(
@@ -131,25 +98,20 @@ const SettingsView: React.FC = () => {
         })
       );
     } else {
-      // setHasValidCustomInputs(true); // 이 변수는 현재 사용되지 않습니다.
       window.dispatchEvent(
         new CustomEvent('configValidityChanged', {
           detail: { isValid: true, apiKeyError: Boolean(apiKeyError) },
         })
       );
     }
-  }, [isCustomInputMode, customModelConfig, apiKeyError]);
+  }, [config.isCustomInputMode, config.customModelConfig, apiKeyError]);
 
   const handleProviderChange = (e: SelectChangeEvent<string>) => {
     const newProvider = e.target.value as AiProvider;
-    setAiProvider(newProvider);
 
     // 제공자 변경 시 모델을 기본값으로 리셋
     const newModelConfig = getDefaultModelConfig();
-    setCustomModelConfig(newModelConfig);
-    setIsCustomInputMode(false);
-
-    ConfigStore.getInstance().updateConfig({
+    updateConfig({
       aiProvider: newProvider,
       customModelConfig: newModelConfig,
       isCustomInputMode: false,
@@ -157,15 +119,12 @@ const SettingsView: React.FC = () => {
   };
 
   const handleModelNameChange = (e: SelectChangeEvent<string>) => {
-    const configStore = ConfigStore.getInstance();
     const selectedValue = e.target.value;
 
     if (selectedValue === 'custom_input_mode') {
-      setIsCustomInputMode(true);
-      if (!isCustomInputMode) {
+      if (!config.isCustomInputMode) {
         const newCustomConfig = lastCustomInputConfig || DEFAULT_CUSTOM_INPUT_CONFIG;
-        setCustomModelConfig(newCustomConfig);
-        configStore.updateConfig({
+        updateConfig({
           customModelConfig: newCustomConfig,
           isCustomInputMode: true,
         });
@@ -173,72 +132,17 @@ const SettingsView: React.FC = () => {
       return;
     }
 
-    if (isCustomInputMode) {
-      setLastCustomInputConfig(customModelConfig);
+    if (config.isCustomInputMode) {
+      setLastCustomInputConfig(config.customModelConfig);
     }
 
-    setIsCustomInputMode(false);
     const newModelName = selectedValue as AiModelName;
     const newModelConfig =
       MODEL_DEFAULT_CONFIGS[newModelName] || getDefaultModelConfig({ modelName: newModelName });
 
-    setCustomModelConfig(newModelConfig);
-    configStore.updateConfig({
+    updateConfig({
       customModelConfig: newModelConfig,
       isCustomInputMode: false,
-    });
-  };
-
-  const handleCustomModelNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 커스텀 모델 이름 업데이트
-    const newModelName = e.target.value;
-
-    const newCustomModelConfig = {
-      ...customModelConfig,
-      modelName: newModelName as AiModelName,
-    };
-
-    setCustomModelConfig(newCustomModelConfig);
-
-    const configStore = ConfigStore.getInstance();
-    configStore.updateConfig({
-      customModelConfig: newCustomModelConfig,
-    });
-  };
-
-  const handleRequestsPerMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    const rpm = inputValue === '' ? 0 : parseInt(inputValue, 10);
-
-    // 빈 값이나 숫자 값 모두 허용
-    const newCustomModelConfig = {
-      ...customModelConfig,
-      requestsPerMinute: rpm,
-    };
-
-    setCustomModelConfig(newCustomModelConfig);
-
-    const configStore = ConfigStore.getInstance();
-    configStore.updateConfig({
-      customModelConfig: newCustomModelConfig,
-    });
-  };
-
-  const handleMaxOutputTokensChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    const tokens = inputValue === '' ? 0 : parseInt(inputValue, 10);
-
-    // 빈 값이나 숫자 값 모두 허용
-    const newCustomModelConfig = {
-      ...customModelConfig,
-      maxOutputTokenCount: tokens,
-    };
-
-    setCustomModelConfig(newCustomModelConfig);
-
-    const configStore = ConfigStore.getInstance();
-    configStore.updateConfig({
-      customModelConfig: newCustomModelConfig,
     });
   };
 
@@ -252,10 +156,7 @@ const SettingsView: React.FC = () => {
       setApiKeyError('');
     }
 
-    const configStore = ConfigStore.getInstance();
-    configStore.updateConfig({
-      apiKey,
-    });
+    updateConfig({ apiKey });
   };
 
   const handleSaveConfig = () => {
@@ -281,42 +182,28 @@ const SettingsView: React.FC = () => {
   // 확인 후 설정 저장 로직을 별도 함수로 분리
   const saveConfigAfterConfirmation = () => {
     // 모델 설정 검증
-    if (isCustomInputMode) {
-      if (!customModelConfig.modelName) {
+    if (config.isCustomInputMode) {
+      if (!config.customModelConfig.modelName) {
         showSnackbar('모델 이름이 설정되지 않았습니다.');
         return;
       }
 
-      if (!customModelConfig.requestsPerMinute || customModelConfig.requestsPerMinute <= 0) {
+      if (
+        !config.customModelConfig.requestsPerMinute ||
+        config.customModelConfig.requestsPerMinute <= 0
+      ) {
         showSnackbar('유효한 분당 요청 수(RPM)를 입력해주세요.');
         return;
       }
 
-      if (!customModelConfig.maxOutputTokenCount || customModelConfig.maxOutputTokenCount <= 0) {
+      if (
+        !config.customModelConfig.maxOutputTokenCount ||
+        config.customModelConfig.maxOutputTokenCount <= 0
+      ) {
         showSnackbar('유효한 최대 출력 토큰 수를 입력해주세요.');
         return;
       }
     }
-
-    // 실제 API 호출에 사용할 설정 생성
-    const savedModelConfig = {
-      ...customModelConfig,
-    };
-
-    // 현재 설정을 모두 localStorage에 저장
-    const configStore = ConfigStore.getInstance();
-
-    // 이미 변경된 설정을 다시 저장하여 모든 설정이 localStorage에 반영되도록 함
-    configStore.updateConfig({
-      sourceLanguage: config.sourceLanguage,
-      apiKey: config.apiKey,
-      customModelConfig: savedModelConfig,
-      isCustomInputMode: isCustomInputMode,
-      aiProvider: aiProvider,
-      useThinking: config.useThinking,
-      thinkingBudget: config.thinkingBudget,
-      setThinkingBudget: config.setThinkingBudget,
-    });
 
     // 성공 메시지 표시
     showSnackbar('설정이 저장되었으며 브라우저 localStorage에 유지됩니다.');
@@ -329,45 +216,12 @@ const SettingsView: React.FC = () => {
     }
   };
 
-  const handleThinkingToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const useThinking = e.target.checked;
-    ConfigStore.getInstance().updateConfig({
-      useThinking,
-    });
-  };
-
-  const handleSetThinkingBudgetToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const setThinkingBudget = e.target.checked;
-    ConfigStore.getInstance().updateConfig({
-      setThinkingBudget,
-    });
-  };
-
-  const handleThinkingBudgetChange = (event: Event, newValue: number | number[]) => {
-    const budget = newValue as number;
-    ConfigStore.getInstance().updateConfig({
-      thinkingBudget: isNaN(budget) ? 0 : budget,
-    });
-  };
-
-  const handleThinkingBudgetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const budget = Number(e.target.value);
-    ConfigStore.getInstance().updateConfig({
-      thinkingBudget: isNaN(budget) ? 0 : budget,
-    });
-  };
-
   const toggleApiKeyVisibility = () => {
     setIsApiKeyVisible(!isApiKeyVisible);
   };
 
   const toggleExpanded = () => {
     setExpanded(!expanded);
-  };
-
-  const showSnackbar = (message: string) => {
-    setSnackbarMessage(message);
-    setSnackbarOpen(true);
   };
 
   const handleCloseSnackbar = () => {
@@ -404,7 +258,7 @@ const SettingsView: React.FC = () => {
               <Select
                 labelId="ai-provider-label"
                 id="ai-provider"
-                value={aiProvider}
+                value={config.aiProvider}
                 onChange={handleProviderChange}
                 label="AI 제공사"
               >
@@ -418,10 +272,14 @@ const SettingsView: React.FC = () => {
               <Select
                 labelId="model-name-label"
                 id="model-name"
-                value={isCustomInputMode ? 'custom_input_mode' : customModelConfig.modelName}
+                value={
+                  config.isCustomInputMode
+                    ? 'custom_input_mode'
+                    : config.customModelConfig.modelName
+                }
                 onChange={handleModelNameChange}
                 label="AI 모델"
-                disabled={aiProvider !== AiProvider.GOOGLE}
+                disabled={config.aiProvider !== AiProvider.GOOGLE}
               >
                 {Object.values(GeminiModel).map((model) => (
                   <MenuItem key={model} value={model}>
@@ -480,10 +338,17 @@ const SettingsView: React.FC = () => {
               id="custom-model-name"
               label="모델 이름"
               variant="outlined"
-              value={customModelConfig.modelName}
-              onChange={handleCustomModelNameChange}
+              value={config.customModelConfig.modelName}
+              onChange={(e) =>
+                updateConfig({
+                  customModelConfig: {
+                    ...config.customModelConfig,
+                    modelName: e.target.value as AiModelName,
+                  },
+                })
+              }
               helperText="Gemini 모델 ID"
-              disabled={!isCustomInputMode}
+              disabled={!config.isCustomInputMode}
               required
             />
           </Grid>
@@ -495,18 +360,25 @@ const SettingsView: React.FC = () => {
               label="분당 요청 수(RPM)"
               variant="outlined"
               type="number"
-              value={customModelConfig.requestsPerMinute || ''}
-              onChange={handleRequestsPerMinuteChange}
+              value={config.customModelConfig.requestsPerMinute || ''}
+              onChange={(e) =>
+                updateConfig({
+                  customModelConfig: {
+                    ...config.customModelConfig,
+                    requestsPerMinute: e.target.value === '' ? 0 : parseInt(e.target.value, 10),
+                  },
+                })
+              }
               InputProps={{
                 inputProps: { min: 0 },
               }}
               helperText={
-                isCustomInputMode && !customModelConfig.requestsPerMinute
+                config.isCustomInputMode && !config.customModelConfig.requestsPerMinute
                   ? '이 필드는 번역 실행 시 필수입니다'
                   : 'API 속도 제한에 맞는 분당 요청 수'
               }
-              error={isCustomInputMode && !customModelConfig.requestsPerMinute}
-              disabled={!isCustomInputMode}
+              error={config.isCustomInputMode && !config.customModelConfig.requestsPerMinute}
+              disabled={!config.isCustomInputMode}
               required
             />
           </Grid>
@@ -518,18 +390,25 @@ const SettingsView: React.FC = () => {
               label="최대 출력 토큰 수"
               variant="outlined"
               type="number"
-              value={customModelConfig.maxOutputTokenCount || ''}
-              onChange={handleMaxOutputTokensChange}
+              value={config.customModelConfig.maxOutputTokenCount || ''}
+              onChange={(e) =>
+                updateConfig({
+                  customModelConfig: {
+                    ...config.customModelConfig,
+                    maxOutputTokenCount: e.target.value === '' ? 0 : parseInt(e.target.value, 10),
+                  },
+                })
+              }
               InputProps={{
                 inputProps: { min: 0 },
               }}
               helperText={
-                isCustomInputMode && !customModelConfig.maxOutputTokenCount
+                config.isCustomInputMode && !config.customModelConfig.maxOutputTokenCount
                   ? '이 필드는 번역 실행 시 필수입니다'
                   : '모델이 생성할 최대 토큰 수'
               }
-              error={isCustomInputMode && !customModelConfig.maxOutputTokenCount}
-              disabled={!isCustomInputMode}
+              error={config.isCustomInputMode && !config.customModelConfig.maxOutputTokenCount}
+              disabled={!config.isCustomInputMode}
               required
             />
           </Grid>
@@ -545,7 +424,7 @@ const SettingsView: React.FC = () => {
                     control={
                       <Switch
                         checked={config.useThinking}
-                        onChange={handleThinkingToggle}
+                        onChange={(e) => updateConfig({ useThinking: e.target.checked })}
                         name="thinking-toggle"
                       />
                     }
@@ -557,7 +436,7 @@ const SettingsView: React.FC = () => {
                     control={
                       <Switch
                         checked={config.setThinkingBudget}
-                        onChange={handleSetThinkingBudgetToggle}
+                        onChange={(e) => updateConfig({ setThinkingBudget: e.target.checked })}
                         name="set-thinking-budget-toggle"
                         disabled={!config.useThinking}
                       />
@@ -574,7 +453,7 @@ const SettingsView: React.FC = () => {
                   <Slider
                     aria-labelledby="thinking-budget-slider"
                     value={config.thinkingBudget || 0}
-                    onChange={handleThinkingBudgetChange}
+                    onChange={(_, newValue) => updateConfig({ thinkingBudget: newValue as number })}
                     min={0}
                     max={10000}
                     step={100}
@@ -585,7 +464,7 @@ const SettingsView: React.FC = () => {
                     label="Thinking Budget"
                     type="number"
                     value={config.thinkingBudget}
-                    onChange={handleThinkingBudgetInputChange}
+                    onChange={(e) => updateConfig({ thinkingBudget: Number(e.target.value) })}
                     sx={{ mt: 1 }}
                   />
                 </Box>
@@ -649,9 +528,9 @@ const SettingsView: React.FC = () => {
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                     <Typography variant="body1" fontWeight="medium">
-                      {customModelConfig.modelName}
+                      {config.customModelConfig.modelName}
                     </Typography>
-                    <CopyButton targetValue={customModelConfig.modelName} size="small" />
+                    <CopyButton targetValue={config.customModelConfig.modelName} size="small" />
                   </Box>
                 </Grid>
 
@@ -661,10 +540,10 @@ const SettingsView: React.FC = () => {
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                     <Typography variant="body1" fontWeight="medium">
-                      {customModelConfig.requestsPerMinute}
+                      {config.customModelConfig.requestsPerMinute}
                     </Typography>
                     <CopyButton
-                      targetValue={customModelConfig.requestsPerMinute.toString()}
+                      targetValue={config.customModelConfig.requestsPerMinute.toString()}
                       size="small"
                     />
                   </Box>
@@ -676,10 +555,10 @@ const SettingsView: React.FC = () => {
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                     <Typography variant="body1" fontWeight="medium">
-                      {customModelConfig.maxOutputTokenCount}
+                      {config.customModelConfig.maxOutputTokenCount}
                     </Typography>
                     <CopyButton
-                      targetValue={customModelConfig.maxOutputTokenCount.toString()}
+                      targetValue={config.customModelConfig.maxOutputTokenCount.toString()}
                       size="small"
                     />
                   </Box>
