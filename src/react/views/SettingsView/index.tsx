@@ -315,6 +315,7 @@ const SettingsView: React.FC = () => {
       aiProvider: aiProvider,
       useThinking: config.useThinking,
       thinkingBudget: config.thinkingBudget,
+      setThinkingBudget: config.setThinkingBudget,
     });
 
     // 성공 메시지 표시
@@ -335,8 +336,22 @@ const SettingsView: React.FC = () => {
     });
   };
 
+  const handleSetThinkingBudgetToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const setThinkingBudget = e.target.checked;
+    ConfigStore.getInstance().updateConfig({
+      setThinkingBudget,
+    });
+  };
+
   const handleThinkingBudgetChange = (event: Event, newValue: number | number[]) => {
     const budget = newValue as number;
+    ConfigStore.getInstance().updateConfig({
+      thinkingBudget: isNaN(budget) ? 0 : budget,
+    });
+  };
+
+  const handleThinkingBudgetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const budget = Number(e.target.value);
     ConfigStore.getInstance().updateConfig({
       thinkingBudget: isNaN(budget) ? 0 : budget,
     });
@@ -519,40 +534,63 @@ const SettingsView: React.FC = () => {
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={config.useThinking}
-                  onChange={handleThinkingToggle}
-                  name="thinking-toggle"
-                />
-              }
-              label="AI '생각' 과정 활성화"
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Box>
-              <Typography id="thinking-budget-slider" gutterBottom>
-                Thinking 예산 (토큰 수): {config.thinkingBudget}
+          <Grid item xs={12}>
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography variant="subtitle1" gutterBottom fontWeight="medium">
+                Thinking
               </Typography>
-              <Slider
-                aria-labelledby="thinking-budget-slider"
-                value={config.thinkingBudget || 0}
-                onChange={handleThinkingBudgetChange}
-                min={0}
-                max={10000}
-                step={100}
-                valueLabelDisplay="auto"
-                disabled={!config.useThinking}
-              />
-              <Typography variant="caption" color="text.secondary">
-                {!config.useThinking
-                  ? "'생각' 과정이 비활성화되어 있습니다."
-                  : 'AI가 생각하는 데 사용할 최대 토큰 수'}
-              </Typography>
-            </Box>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={config.useThinking}
+                        onChange={handleThinkingToggle}
+                        name="thinking-toggle"
+                      />
+                    }
+                    label="Thinking mode"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={config.setThinkingBudget}
+                        onChange={handleSetThinkingBudgetToggle}
+                        name="set-thinking-budget-toggle"
+                        disabled={!config.useThinking}
+                      />
+                    }
+                    label="Set thinking budget"
+                  />
+                </Grid>
+              </Grid>
+              <Collapse in={config.useThinking && config.setThinkingBudget}>
+                <Box sx={{ mt: 2 }}>
+                  <Typography id="thinking-budget-slider" gutterBottom>
+                    Thinking Budget (Tokens): {config.thinkingBudget}
+                  </Typography>
+                  <Slider
+                    aria-labelledby="thinking-budget-slider"
+                    value={config.thinkingBudget || 0}
+                    onChange={handleThinkingBudgetChange}
+                    min={0}
+                    max={10000}
+                    step={100}
+                    valueLabelDisplay="auto"
+                  />
+                  <TextField
+                    fullWidth
+                    label="Thinking Budget"
+                    type="number"
+                    value={config.thinkingBudget}
+                    onChange={handleThinkingBudgetInputChange}
+                    sx={{ mt: 1 }}
+                  />
+                </Box>
+              </Collapse>
+            </Paper>
           </Grid>
         </Grid>
 

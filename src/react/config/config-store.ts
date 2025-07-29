@@ -53,7 +53,8 @@ export class ConfigStore {
       typeof typedConfig.isCustomInputMode !== 'boolean' ||
       !Object.values(AiProvider).includes(typedConfig.aiProvider as AiProvider) ||
       typeof typedConfig.useThinking !== 'boolean' ||
-      typeof typedConfig.thinkingBudget !== 'number'
+      typeof typedConfig.thinkingBudget !== 'number' ||
+      typeof typedConfig.setThinkingBudget !== 'boolean'
     ) {
       return false;
     }
@@ -85,6 +86,7 @@ export class ConfigStore {
       lastPresetName: 'default',
       useThinking: false,
       thinkingBudget: 2000,
+      setThinkingBudget: false,
     };
   }
 
