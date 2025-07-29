@@ -27,20 +27,24 @@ import {
   Alert,
   Snackbar,
   SelectChangeEvent,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 import { TranslatorConfig } from '../../../types/config';
-import { Language, SourceLanguage } from '../../../utils/language';
+
 import { ConfigStore } from '../../config/config-store';
 import { useConfirmModal } from '../../components/common/ConfirmModal';
 import { CopyButton } from '../../components/common/CopyButton';
 import '../../styles/ConfigPanel.css';
 import {
   AiModelName,
+  AiProvider,
   getDefaultModelConfig,
   getModelDescription,
   ModelConfig,
 } from '../../../ai/model';
+import { GeminiModel } from '../../../ai/gemini/gemini-models';
 
 // 각 모델의 기본 설정값 정의
 const MODEL_DEFAULT_CONFIGS: Record<AiModelName, ModelConfig> = {
@@ -65,6 +69,7 @@ const SettingsView: React.FC = () => {
   const [config, setConfig] = useState<TranslatorConfig>(() =>
     ConfigStore.getInstance().getConfig()
   );
+  const [aiProvider, setAiProvider] = useState<AiProvider>(config.aiProvider);
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -85,9 +90,13 @@ const SettingsView: React.FC = () => {
     const configStore = ConfigStore.getInstance();
 
     const handleConfigChange = (event: CustomEvent<TranslatorConfig>) => {
-      setConfig(event.detail);
-      if (event.detail.customModelConfig) {
-        setCustomModelConfig(event.detail.customModelConfig);
+      const newConfig = event.detail;
+      setConfig(newConfig);
+      if (newConfig.customModelConfig) {
+        setCustomModelConfig(newConfig.customModelConfig);
+      }
+      if (newConfig.aiProvider) {
+        setAiProvider(newConfig.aiProvider);
       }
     };
 
@@ -130,10 +139,19 @@ const SettingsView: React.FC = () => {
     }
   }, [isCustomInputMode, customModelConfig, apiKeyError]);
 
-  const handleSourceLanguageChange = (e: SelectChangeEvent<Language>) => {
-    const configStore = ConfigStore.getInstance();
-    configStore.updateConfig({
-      sourceLanguage: e.target.value as SourceLanguage,
+  const handleProviderChange = (e: SelectChangeEvent<string>) => {
+    const newProvider = e.target.value as AiProvider;
+    setAiProvider(newProvider);
+
+    // 제공자 변경 시 모델을 기본값으로 리셋
+    const newModelConfig = getDefaultModelConfig();
+    setCustomModelConfig(newModelConfig);
+    setIsCustomInputMode(false);
+
+    ConfigStore.getInstance().updateConfig({
+      aiProvider: newProvider,
+      customModelConfig: newModelConfig,
+      isCustomInputMode: false,
     });
   };
 
@@ -141,37 +159,29 @@ const SettingsView: React.FC = () => {
     const configStore = ConfigStore.getInstance();
     const selectedValue = e.target.value;
 
-    // "직접 입력" 옵션이 선택되었는지 확인
     if (selectedValue === 'custom_input_mode') {
       setIsCustomInputMode(true);
-
-      // 직접 입력 모드로 변경 시 마지막으로 저장된 직접 입력 설정이 있으면 복원
       if (!isCustomInputMode) {
-        const newCustomConfig = lastCustomInputConfig || {
-          ...DEFAULT_CUSTOM_INPUT_CONFIG,
-        };
-        setCustomModelConfig(newCustomConfig as ModelConfig);
+        const newCustomConfig = lastCustomInputConfig || DEFAULT_CUSTOM_INPUT_CONFIG;
+        setCustomModelConfig(newCustomConfig);
         configStore.updateConfig({
-          customModelConfig: newCustomConfig as ModelConfig,
+          customModelConfig: newCustomConfig,
           isCustomInputMode: true,
         });
       }
       return;
     }
 
-    // 직접 입력 모드에서 다른 모델로 변경할 때 현재 설정 저장
     if (isCustomInputMode) {
       setLastCustomInputConfig(customModelConfig);
     }
 
-    // 일반 모델 선택 모드
     setIsCustomInputMode(false);
     const newModelName = selectedValue as AiModelName;
-    const newModelConfig = MODEL_DEFAULT_CONFIGS[newModelName];
+    const newModelConfig =
+      MODEL_DEFAULT_CONFIGS[newModelName] || getDefaultModelConfig({ modelName: newModelName });
 
     setCustomModelConfig(newModelConfig);
-
-    // 모델이 변경되면 복사 상태 초기화
     configStore.updateConfig({
       customModelConfig: newModelConfig,
       isCustomInputMode: false,
@@ -301,6 +311,9 @@ const SettingsView: React.FC = () => {
       apiKey: config.apiKey,
       customModelConfig: savedModelConfig,
       isCustomInputMode: isCustomInputMode,
+      aiProvider: aiProvider,
+      useThinking: config.useThinking,
+      thinkingBudget: config.thinkingBudget,
     });
 
     // 성공 메시지 표시
@@ -312,6 +325,20 @@ const SettingsView: React.FC = () => {
         showSnackbar('알림: API 키 없이는 번역 기능이 작동하지 않습니다.');
       }, 3000);
     }
+  };
+
+  const handleThinkingToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const useThinking = e.target.checked;
+    ConfigStore.getInstance().updateConfig({
+      useThinking,
+    });
+  };
+
+  const handleThinkingBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const budget = parseInt(e.target.value, 10);
+    ConfigStore.getInstance().updateConfig({
+      thinkingBudget: isNaN(budget) ? 0 : budget,
+    });
   };
 
   const toggleApiKeyVisibility = () => {
@@ -357,21 +384,18 @@ const SettingsView: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>
             <FormControl fullWidth variant="outlined">
-              <InputLabel id="source-language-label">원본 언어</InputLabel>
+              <InputLabel id="ai-provider-label">AI 제공사</InputLabel>
               <Select
-                labelId="source-language-label"
-                id="source-language"
-                value={config.sourceLanguage}
-                onChange={handleSourceLanguageChange}
-                label="원본 언어"
+                labelId="ai-provider-label"
+                id="ai-provider"
+                value={aiProvider}
+                onChange={handleProviderChange}
+                label="AI 제공사"
               >
-                <MenuItem value={Language.ENGLISH}>영어</MenuItem>
-                <MenuItem value={Language.JAPANESE}>일본어</MenuItem>
-                <MenuItem value={Language.CHINESE}>중국어</MenuItem>
+                <MenuItem value={AiProvider.GOOGLE}>Google</MenuItem>
               </Select>
             </FormControl>
           </Grid>
-
           <Grid item xs={12} md={4}>
             <FormControl fullWidth variant="outlined">
               <InputLabel id="model-name-label">AI 모델</InputLabel>
@@ -381,31 +405,18 @@ const SettingsView: React.FC = () => {
                 value={isCustomInputMode ? 'custom_input_mode' : customModelConfig.modelName}
                 onChange={handleModelNameChange}
                 label="AI 모델"
+                disabled={aiProvider !== AiProvider.GOOGLE}
               >
-                <MenuItem value={AiModelName.FLASH_EXP}>
-                  <Box>
-                    <Typography>Gemini Flash</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {getModelDescription(AiModelName.FLASH_EXP)}
-                    </Typography>
-                  </Box>
-                </MenuItem>
-                <MenuItem value={AiModelName.GEMINI_PRO_2_POINT_5_EXP}>
-                  <Box>
-                    <Typography>Gemini Pro</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {getModelDescription(AiModelName.GEMINI_PRO_2_POINT_5_EXP)}
-                    </Typography>
-                  </Box>
-                </MenuItem>
-                <MenuItem value={AiModelName.FLASH_THINKING_EXP}>
-                  <Box>
-                    <Typography>Gemini Flash Thinking</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {getModelDescription(AiModelName.FLASH_THINKING_EXP)}
-                    </Typography>
-                  </Box>
-                </MenuItem>
+                {Object.values(GeminiModel).map((model) => (
+                  <MenuItem key={model} value={model}>
+                    <Box>
+                      <Typography>{(model as string).split('/').pop()}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {getModelDescription(model as AiModelName)}
+                      </Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
                 <MenuItem value="custom_input_mode">
                   <Box>
                     <Typography>직접 입력</Typography>
@@ -516,24 +527,47 @@ const SettingsView: React.FC = () => {
               고급 설정
             </Typography>
 
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={config.useThinking}
+                      onChange={handleThinkingToggle}
+                      name="thinking-toggle"
+                    />
+                  }
+                  label="AI '생각' 과정 활성화"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  id="thinking-budget"
+                  label="Thinking 예산 (토큰 수)"
+                  variant="outlined"
+                  type="number"
+                  value={config.thinkingBudget || ''}
+                  onChange={handleThinkingBudgetChange}
+                  disabled={!config.useThinking}
+                  InputProps={{
+                    inputProps: { min: 0 },
+                  }}
+                  helperText={
+                    !config.useThinking
+                      ? "'생각' 과정이 비활성화되어 있습니다."
+                      : 'AI가 생각하는 데 사용할 최대 토큰 수'
+                  }
+                />
+              </Grid>
+            </Grid>
+
             <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'background.default' }}>
               <Typography variant="subtitle1" gutterBottom fontWeight="medium">
                 현재 설정 정보
               </Typography>
 
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    원본 언어:
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <Typography variant="body1" fontWeight="medium">
-                      {config.sourceLanguage}
-                    </Typography>
-                    <CopyButton targetValue={config.sourceLanguage} size="small" />
-                  </Box>
-                </Grid>
-
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     AI 모델:

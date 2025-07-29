@@ -1,4 +1,4 @@
-import { getDefaultModelConfig } from '../../ai/model';
+import { AiProvider, getDefaultModelConfig } from '../../ai/model';
 import { TranslatorConfig, TranslatorConfigUpdate } from '../../types/config';
 import { Language } from '../../utils/language';
 
@@ -50,7 +50,10 @@ export class ConfigStore {
 
     if (
       typeof typedConfig.sourceLanguage !== 'string' ||
-      typeof typedConfig.isCustomInputMode !== 'boolean'
+      typeof typedConfig.isCustomInputMode !== 'boolean' ||
+      !Object.values(AiProvider).includes(typedConfig.aiProvider as AiProvider) ||
+      typeof typedConfig.useThinking !== 'boolean' ||
+      typeof typedConfig.thinkingBudget !== 'number'
     ) {
       return false;
     }
@@ -74,11 +77,14 @@ export class ConfigStore {
 
   private getDefaultConfig(): TranslatorConfig {
     return {
+      aiProvider: AiProvider.GOOGLE,
       sourceLanguage: Language.ENGLISH,
       customModelConfig: getDefaultModelConfig(),
       apiKey: '',
       isCustomInputMode: false,
       lastPresetName: 'default',
+      useThinking: false,
+      thinkingBudget: 2000,
     };
   }
 

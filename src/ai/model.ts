@@ -10,6 +10,10 @@ import {
   isValidGemini,
 } from './gemini/gemini-models';
 
+export enum AiProvider {
+  GOOGLE = 'Google',
+}
+
 export const AiModelName = {
   ...GeminiModel,
 } as const;

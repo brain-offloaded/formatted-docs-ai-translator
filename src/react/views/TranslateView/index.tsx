@@ -1,6 +1,18 @@
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Divider,
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
+import { Language, SourceLanguage } from '../../../utils/language';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
 import { ConfigStore } from '../../config/config-store';
 import { IpcChannel } from '../../../nest/common/ipc.channel';
@@ -31,6 +43,17 @@ export default function TranslateView(): React.ReactElement {
   const [isPromptPresetLoading, setIsPromptPresetLoading] = useState(false);
   const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [sourceLanguage, setSourceLanguage] = useState<SourceLanguage>(() => {
+    return configStore.getConfig().sourceLanguage;
+  });
+
+  const handleSourceLanguageChange = (e: SelectChangeEvent<Language>) => {
+    const newSourceLanguage = e.target.value as SourceLanguage;
+    setSourceLanguage(newSourceLanguage);
+    configStore.updateConfig({
+      sourceLanguage: newSourceLanguage,
+    });
+  };
 
   useEffect(() => {
     const loadInitialExamplePreset = async () => {
@@ -74,7 +97,7 @@ export default function TranslateView(): React.ReactElement {
     if (!currentExamplePresetName) {
       loadInitialExamplePreset();
     }
-  }, []);
+  }, [configStore, currentExamplePresetName, showSnackbar]);
 
   useEffect(() => {
     const loadInitialPromptPreset = async () => {
@@ -131,7 +154,7 @@ export default function TranslateView(): React.ReactElement {
     if (!currentPromptPresetName) {
       loadInitialPromptPreset();
     }
-  }, []);
+  }, [configStore, currentPromptPresetName, showSnackbar]);
 
   const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
     setParserOptions((prevOptions) => {
@@ -251,6 +274,21 @@ export default function TranslateView(): React.ReactElement {
           />
 
           <Box sx={{ mb: 2 }}>
+            <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+              <InputLabel id="source-language-label">원본 언어</InputLabel>
+              <Select
+                labelId="source-language-label"
+                id="source-language"
+                value={sourceLanguage}
+                onChange={handleSourceLanguageChange}
+                label="원본 언어"
+              >
+                <MenuItem value={Language.ENGLISH}>영어</MenuItem>
+                <MenuItem value={Language.JAPANESE}>일본어</MenuItem>
+                <MenuItem value={Language.CHINESE}>중국어</MenuItem>
+              </Select>
+            </FormControl>
+
             <TranslationTypeSelector
               selectedType={translationType}
               onChange={handleTranslationTypeChange}
