@@ -29,6 +29,7 @@ import {
   SelectChangeEvent,
   Switch,
   FormControlLabel,
+  Slider,
 } from '@mui/material';
 import React, { useState, useEffect } from 'react';
 import { TranslatorConfig } from '../../../types/config';
@@ -334,8 +335,8 @@ const SettingsView: React.FC = () => {
     });
   };
 
-  const handleThinkingBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const budget = parseInt(e.target.value, 10);
+  const handleThinkingBudgetChange = (event: Event, newValue: number | number[]) => {
+    const budget = newValue as number;
     ConfigStore.getInstance().updateConfig({
       thinkingBudget: isNaN(budget) ? 0 : budget,
     });
@@ -517,6 +518,42 @@ const SettingsView: React.FC = () => {
               required
             />
           </Grid>
+
+          <Grid item xs={12} md={6}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={config.useThinking}
+                  onChange={handleThinkingToggle}
+                  name="thinking-toggle"
+                />
+              }
+              label="AI '생각' 과정 활성화"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Typography id="thinking-budget-slider" gutterBottom>
+                Thinking 예산 (토큰 수): {config.thinkingBudget}
+              </Typography>
+              <Slider
+                aria-labelledby="thinking-budget-slider"
+                value={config.thinkingBudget || 0}
+                onChange={handleThinkingBudgetChange}
+                min={0}
+                max={10000}
+                step={100}
+                valueLabelDisplay="auto"
+                disabled={!config.useThinking}
+              />
+              <Typography variant="caption" color="text.secondary">
+                {!config.useThinking
+                  ? "'생각' 과정이 비활성화되어 있습니다."
+                  : 'AI가 생각하는 데 사용할 최대 토큰 수'}
+              </Typography>
+            </Box>
+          </Grid>
         </Grid>
 
         <Collapse in={expanded} timeout="auto">
@@ -526,41 +563,6 @@ const SettingsView: React.FC = () => {
             <Typography variant="h6" gutterBottom fontWeight="medium">
               고급 설정
             </Typography>
-
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} md={6}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={config.useThinking}
-                      onChange={handleThinkingToggle}
-                      name="thinking-toggle"
-                    />
-                  }
-                  label="AI '생각' 과정 활성화"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  id="thinking-budget"
-                  label="Thinking 예산 (토큰 수)"
-                  variant="outlined"
-                  type="number"
-                  value={config.thinkingBudget || ''}
-                  onChange={handleThinkingBudgetChange}
-                  disabled={!config.useThinking}
-                  InputProps={{
-                    inputProps: { min: 0 },
-                  }}
-                  helperText={
-                    !config.useThinking
-                      ? "'생각' 과정이 비활성화되어 있습니다."
-                      : 'AI가 생각하는 데 사용할 최대 토큰 수'
-                  }
-                />
-              </Grid>
-            </Grid>
 
             <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'background.default' }}>
               <Typography variant="subtitle1" gutterBottom fontWeight="medium">
