@@ -1,7 +1,6 @@
 import HelpIcon from '@mui/icons-material/Help';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import SaveIcon from '@mui/icons-material/Save';
 import SettingsIcon from '@mui/icons-material/Settings';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -25,16 +24,14 @@ import {
   Collapse,
   Paper,
   Alert,
-  Snackbar,
   SelectChangeEvent,
   Switch,
   FormControlLabel,
   Slider,
 } from '@mui/material';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { useConfigStore } from '../../config/config-store';
-import { useConfirmModal } from '../../components/common/ConfirmModal';
 import { CopyButton } from '../../components/common/CopyButton';
 import '../../styles/ConfigPanel.css';
 import {
@@ -71,16 +68,8 @@ const SettingsView: React.FC = () => {
 
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
   const [apiKeyError, setApiKeyError] = useState('');
   const [lastCustomInputConfig, setLastCustomInputConfig] = useState<ModelConfig | null>(null);
-  const { openConfirmModal } = useConfirmModal();
-
-  const showSnackbar = useCallback((message: string) => {
-    setSnackbarMessage(message);
-    setSnackbarOpen(true);
-  }, []);
 
   useEffect(() => {
     // 직접 입력 모드에서 필수 값이 비어있는지 체크
@@ -159,73 +148,12 @@ const SettingsView: React.FC = () => {
     updateConfig({ apiKey });
   };
 
-  const handleSaveConfig = () => {
-    if (apiKeyError) {
-      showSnackbar('유효하지 않은 API 키가 입력되었습니다.');
-      return;
-    }
-
-    // API 키가 비어있는 경우 확인
-    if (!config.apiKey || config.apiKey.trim() === '') {
-      openConfirmModal({
-        message: 'API 키가 입력되지 않았습니다. API 키 없이 계속하시겠습니까?',
-        variant: 'warning',
-        onConfirm: () => {
-          saveConfigAfterConfirmation();
-        },
-      });
-    } else {
-      saveConfigAfterConfirmation();
-    }
-  };
-
-  // 확인 후 설정 저장 로직을 별도 함수로 분리
-  const saveConfigAfterConfirmation = () => {
-    // 모델 설정 검증
-    if (config.isCustomInputMode) {
-      if (!config.customModelConfig.modelName) {
-        showSnackbar('모델 이름이 설정되지 않았습니다.');
-        return;
-      }
-
-      if (
-        !config.customModelConfig.requestsPerMinute ||
-        config.customModelConfig.requestsPerMinute <= 0
-      ) {
-        showSnackbar('유효한 분당 요청 수(RPM)를 입력해주세요.');
-        return;
-      }
-
-      if (
-        !config.customModelConfig.maxOutputTokenCount ||
-        config.customModelConfig.maxOutputTokenCount <= 0
-      ) {
-        showSnackbar('유효한 최대 출력 토큰 수를 입력해주세요.');
-        return;
-      }
-    }
-
-    // 성공 메시지 표시
-    showSnackbar('설정이 저장되었으며 브라우저 localStorage에 유지됩니다.');
-
-    // API 키 미입력 경우 추가 안내
-    if (!config.apiKey || config.apiKey.trim() === '') {
-      setTimeout(() => {
-        showSnackbar('알림: API 키 없이는 번역 기능이 작동하지 않습니다.');
-      }, 3000);
-    }
-  };
-
   const toggleApiKeyVisibility = () => {
     setIsApiKeyVisible(!isApiKeyVisible);
   };
 
   const toggleExpanded = () => {
     setExpanded(!expanded);
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbarOpen(false);
   };
 
   return (
@@ -302,7 +230,6 @@ const SettingsView: React.FC = () => {
               </Select>
             </FormControl>
           </Grid>
-
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -331,7 +258,6 @@ const SettingsView: React.FC = () => {
               }}
             />
           </Grid>
-
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -352,7 +278,6 @@ const SettingsView: React.FC = () => {
               required
             />
           </Grid>
-
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -382,7 +307,6 @@ const SettingsView: React.FC = () => {
               required
             />
           </Grid>
-
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -412,7 +336,6 @@ const SettingsView: React.FC = () => {
               required
             />
           </Grid>
-
           <Grid item xs={12}>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Typography variant="subtitle1" gutterBottom fontWeight="medium">
@@ -472,20 +395,16 @@ const SettingsView: React.FC = () => {
             </Paper>
           </Grid>
         </Grid>
-
         <Collapse in={expanded} timeout="auto">
           <Box sx={{ mt: 3 }}>
             <Divider sx={{ mb: 3 }} />
-
             <Typography variant="h6" gutterBottom fontWeight="medium">
               고급 설정
             </Typography>
-
             <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'background.default' }}>
               <Typography variant="subtitle1" gutterBottom fontWeight="medium">
                 현재 설정 정보
               </Typography>
-
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
@@ -498,7 +417,6 @@ const SettingsView: React.FC = () => {
                     <CopyButton targetValue={config.customModelConfig.modelName} size="small" />
                   </Box>
                 </Grid>
-
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     입력 모드:
@@ -509,7 +427,6 @@ const SettingsView: React.FC = () => {
                     </Typography>
                   </Box>
                 </Grid>
-
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     API 키 (마스킹됨):
@@ -521,7 +438,6 @@ const SettingsView: React.FC = () => {
                     <CopyButton targetValue={config.apiKey} size="small" />
                   </Box>
                 </Grid>
-
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     모델 이름:
@@ -533,7 +449,6 @@ const SettingsView: React.FC = () => {
                     <CopyButton targetValue={config.customModelConfig.modelName} size="small" />
                   </Box>
                 </Grid>
-
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     분당 요청 수(RPM):
@@ -548,7 +463,6 @@ const SettingsView: React.FC = () => {
                     />
                   </Box>
                 </Grid>
-
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     최대 출력 토큰 수:
@@ -564,7 +478,6 @@ const SettingsView: React.FC = () => {
                   </Box>
                 </Grid>
               </Grid>
-
               <Box sx={{ mt: 2 }}>
                 <Alert
                   severity="info"
@@ -589,29 +502,9 @@ const SettingsView: React.FC = () => {
                 </Alert>
               </Box>
             </Paper>
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<SaveIcon />}
-                onClick={handleSaveConfig}
-                disabled={!!apiKeyError}
-              >
-                설정 저장
-              </Button>
-            </Box>
           </Box>
         </Collapse>
       </CardContent>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
     </Card>
   );
 };

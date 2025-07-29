@@ -44,9 +44,6 @@ export const useConfigStore = create<ConfigState>()(
     {
       name: 'translator_config', // localStorage 키
       storage: createJSONStorage(() => localStorage),
-      // apiKey를 제외한 나머지 상태만 저장
-      partialize: (state) =>
-        Object.fromEntries(Object.entries(state).filter(([key]) => !['apiKey'].includes(key))),
     }
   )
 );
