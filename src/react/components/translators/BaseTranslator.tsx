@@ -29,14 +29,14 @@ export interface BaseTranslatorOptions {
   validateInput?: (input: string | File[]) => boolean;
 
   // 번역 타입
-  translationType: TranslationType;
+  translationType: string;
 
   // 입력 필드 설정
   inputFieldRows?: number;
 
   // 파일 업로더 설정
   fileExtension?: string;
-  fileLabel: string;
+  fileLabel?: string;
 }
 
 export interface BaseTranslatorProps<T extends BaseParseOptionsDto = BaseParseOptionsDto> {
@@ -118,7 +118,9 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   // 유효성 검증 함수 - 메모이제이션
   const validateInput = useMemo(
-    () => initialOptions.validateInput || getDefaultValidatorByMode(initialOptions.translationType),
+    () =>
+      initialOptions.validateInput ||
+      getDefaultValidatorByMode(initialOptions.translationType as TranslationType),
     [initialOptions.validateInput, initialOptions.translationType]
   );
 

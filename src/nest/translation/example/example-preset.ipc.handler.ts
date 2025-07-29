@@ -36,11 +36,17 @@ export class ExamplePresetIpcHandler extends IpcHandler {
       const presets = await this.exampleManagerService.getAllPresets();
       const currentPresetName = this.exampleManagerService.getCurrentPresetName();
 
-      const presetDtos: ExamplePresetDto[] = presets.map((preset) => ({
-        id: preset.id,
-        name: preset.name,
-        description: preset.description, // description 추가
-      }));
+      const presetDtos: ExamplePresetDto[] = presets.map((preset) => {
+        const examples = preset.getExamples();
+        const languages = Object.keys(examples);
+
+        return {
+          id: preset.id,
+          name: preset.name,
+          description: preset.description,
+          languages,
+        };
+      });
 
       return {
         success: true,
@@ -70,11 +76,13 @@ export class ExamplePresetIpcHandler extends IpcHandler {
     try {
       const preset = await this.exampleManagerService.getPresetById(id); // getPresetById 사용
 
+      const examples = preset.getExamples();
       const presetDetailDto: ExamplePresetDetailDto = {
         id: preset.id,
         name: preset.name,
         description: preset.description,
-        examples: preset.getExamples(),
+        examples,
+        languages: Object.keys(examples),
       };
 
       return {
@@ -135,13 +143,19 @@ export class ExamplePresetIpcHandler extends IpcHandler {
     dto: CreateExamplePresetRequestDto
   ): Promise<CreateExamplePresetResponseDto> {
     try {
-      const { name, description, examples } = dto; // dto 분해 할당
-      const preset = await this.exampleManagerService.createPreset(name, description, examples);
+      const { name, description, examples: requestExamples } = dto; // dto 분해 할당
+      const preset = await this.exampleManagerService.createPreset(
+        name,
+        description,
+        requestExamples
+      );
       // 생성된 프리셋 정보 반환 (ExamplePresetDto 사용)
+      const presetExamples = preset.getExamples();
       const presetDto: ExamplePresetDto = {
         id: preset.id,
         name: preset.name,
         description: preset.description,
+        languages: Object.keys(presetExamples || {}),
       };
 
       return {

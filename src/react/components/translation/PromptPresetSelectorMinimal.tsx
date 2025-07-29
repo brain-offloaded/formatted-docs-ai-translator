@@ -6,13 +6,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Tooltip,
   CircularProgress,
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { IpcChannel } from '../../../nest/common/ipc.channel';
 import { PromptPresetDto } from '@/nest/translation/prompt/dto/prompt-preset.dto'; // PromptPresetDto import
-import { PromptPresetDetailDto } from '@/nest/translation/prompt/dto/prompt-preset-detail.dto'; // PromptPresetDetailDto import
 import { useTranslation } from '../../contexts/TranslationContext';
 
 interface PromptPresetSelectorMinimalProps {

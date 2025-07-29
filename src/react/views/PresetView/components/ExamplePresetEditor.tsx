@@ -11,6 +11,13 @@ import {
   Typography,
   Paper,
   Divider,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Chip,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { Edit, Delete, Add } from '@mui/icons-material';
 import { IpcChannel } from '../../../../nest/common/ipc.channel';
@@ -27,17 +34,27 @@ interface ExamplePair {
 }
 
 const ExamplePresetEditor: React.FC = () => {
+  const [allPresets, setAllPresets] = useState<ExamplePresetDto[]>([]);
   const [presets, setPresets] = useState<ExamplePresetDto[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<ExamplePresetDetailDto | null>(null);
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [examples, setExamples] = useState<ExamplePair[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingLanguage, setEditingLanguage] = useState<string>(Language.ENGLISH);
 
   const fetchPresets = useCallback(async () => {
     const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresets);
     if (result.success) {
+      setAllPresets(result.presets);
       setPresets(result.presets);
+      const allLangs = new Set<string>();
+      result.presets.forEach((p: ExamplePresetDto) => {
+        p.languages.forEach((lang) => allLangs.add(lang));
+      });
+      setAvailableLanguages(Array.from(allLangs));
     } else {
       console.error('Failed to fetch presets:', result.message);
     }
@@ -46,6 +63,14 @@ const ExamplePresetEditor: React.FC = () => {
   useEffect(() => {
     fetchPresets();
   }, [fetchPresets]);
+
+  useEffect(() => {
+    if (selectedLanguage === 'all') {
+      setPresets(allPresets);
+    } else {
+      setPresets(allPresets.filter((p) => p.languages.includes(selectedLanguage)));
+    }
+  }, [selectedLanguage, allPresets]);
 
   const handleSelectPreset = async (preset: ExamplePresetDto) => {
     const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresetDetail, {
@@ -56,16 +81,8 @@ const ExamplePresetEditor: React.FC = () => {
       setSelectedPreset(result.preset);
       setName(result.preset.name);
       setDescription(result.preset.description || '');
-      const presetExamples = result.preset.examples[Language.ENGLISH];
-      if (presetExamples) {
-        const pairedExamples = presetExamples.sourceLines.map((source, index) => ({
-          before: source,
-          after: presetExamples.resultLines[index] || '',
-        }));
-        setExamples(pairedExamples);
-      } else {
-        setExamples([]);
-      }
+      const firstLang = result.preset.languages[0] || Language.ENGLISH;
+      setEditingLanguage(firstLang);
       setIsEditing(true);
     } else {
       console.error('Failed to fetch preset detail:', result.message);
@@ -78,6 +95,7 @@ const ExamplePresetEditor: React.FC = () => {
     setDescription('');
     setExamples([]);
     setIsEditing(false);
+    setEditingLanguage(Language.ENGLISH);
   };
 
   const handleAddExample = () => {
@@ -94,6 +112,24 @@ const ExamplePresetEditor: React.FC = () => {
     setExamples(newExamples);
   };
 
+  useEffect(() => {
+    if (selectedPreset) {
+      const presetExamples =
+        selectedPreset.examples[editingLanguage as keyof typeof selectedPreset.examples];
+      if (presetExamples) {
+        const pairedExamples = presetExamples.sourceLines.map((source, index) => ({
+          before: source,
+          after: presetExamples.resultLines[index] || '',
+        }));
+        setExamples(pairedExamples);
+      } else {
+        setExamples([]);
+      }
+    } else {
+      setExamples([]);
+    }
+  }, [selectedPreset, editingLanguage]);
+
   const handleSave = async () => {
     if (!name) {
       alert('프리셋 이름을 입력해주세요.');
@@ -101,12 +137,14 @@ const ExamplePresetEditor: React.FC = () => {
     }
 
     if (isEditing && selectedPreset) {
+      const updatedExamplesForLang = {
+        sourceLines: examples.map((e) => e.before),
+        resultLines: examples.map((e) => e.after),
+      };
+
       const examplesToSave = {
-        ...selectedPreset?.examples,
-        [Language.ENGLISH]: {
-          sourceLines: examples.map((e) => e.before),
-          resultLines: examples.map((e) => e.after),
-        },
+        ...selectedPreset.examples,
+        [editingLanguage as keyof typeof selectedPreset.examples]: updatedExamplesForLang,
       };
 
       const payload: UpdateExamplePresetRequestDto = {
@@ -156,6 +194,24 @@ const ExamplePresetEditor: React.FC = () => {
             새 프리셋
           </Button>
         </Box>
+        <FormControl fullWidth margin="normal" size="small">
+          <InputLabel id="language-filter-label">언어 필터</InputLabel>
+          <Select
+            labelId="language-filter-label"
+            value={selectedLanguage}
+            label="언어 필터"
+            onChange={(e) => setSelectedLanguage(e.target.value as string)}
+          >
+            <MenuItem value="all">
+              <em>전체</em>
+            </MenuItem>
+            {availableLanguages.map((lang) => (
+              <MenuItem key={lang} value={lang}>
+                {lang}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
         <List>
           {presets.map((preset) => (
             <ListItem
@@ -184,7 +240,16 @@ const ExamplePresetEditor: React.FC = () => {
                 onClick={() => handleSelectPreset(preset)}
                 selected={selectedPreset?.id === preset.id}
               >
-                <ListItemText primary={preset.name} />
+                <ListItemText
+                  primary={preset.name}
+                  secondary={
+                    <Box component="span" sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                      {preset.languages.map((lang) => (
+                        <Chip key={lang} label={lang} size="small" variant="outlined" />
+                      ))}
+                    </Box>
+                  }
+                />
               </ListItemButton>
             </ListItem>
           ))}
@@ -218,10 +283,24 @@ const ExamplePresetEditor: React.FC = () => {
           번역 예시
         </Typography>
 
+        {isEditing && selectedPreset && (
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+            <Tabs
+              value={editingLanguage}
+              onChange={(_, newValue) => setEditingLanguage(newValue)}
+              aria-label="language selection tabs"
+            >
+              {selectedPreset.languages.map((lang) => (
+                <Tab key={lang} label={lang} value={lang} />
+              ))}
+            </Tabs>
+          </Box>
+        )}
+
         {examples.map((example, index) => (
           <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
             <TextField
-              label={`Before #${index + 1}`}
+              label={`Source #${index + 1}`}
               value={example.before}
               onChange={(e) => handleExampleChange(index, 'before', e.target.value)}
               fullWidth
@@ -230,7 +309,7 @@ const ExamplePresetEditor: React.FC = () => {
               size="small"
             />
             <TextField
-              label={`After #${index + 1}`}
+              label={`Target #${index + 1}`}
               value={example.after}
               onChange={(e) => handleExampleChange(index, 'after', e.target.value)}
               fullWidth

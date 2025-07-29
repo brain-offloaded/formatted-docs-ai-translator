@@ -2,9 +2,9 @@ import React, { memo } from 'react';
 import { BaseParseOptions } from '../components/options/BaseParseOptions';
 import { TranslationType } from '../contexts/TranslationContext';
 import { OptionItem } from '../components/options/DynamicOptions';
+import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 import {
   OptionComponentType,
-  TranslationTypeToOptionsMap,
   BaseParseOptionsProps,
   CustomOptionComponentProps,
 } from '../types/translation-types';
@@ -43,10 +43,10 @@ export class ParseOptionsRegistry {
    * @param type 번역 타입
    * @param config 파싱 옵션 설정
    */
-  public register(type: TranslationType, config: ParseOptionsConfig): void {
-    this.registry.set(type, config);
+  public register(type: string, config: ParseOptionsConfig): void {
+    this.registry.set(type as TranslationType, config);
     // 등록 시 캐시 초기화
-    this.componentCache.delete(type);
+    this.componentCache.delete(type as TranslationType);
   }
 
   /**
@@ -71,9 +71,10 @@ export class ParseOptionsRegistry {
    * @param type 번역 타입
    * @returns 옵션 컴포넌트
    */
-  public getOrCreateComponent<T extends TranslationType>(type: T): OptionComponentType<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public getOrCreateComponent(type: TranslationType): OptionComponentType<any> {
     // 캐시에서 확인
-    const cachedComponent = this.componentCache.get(type) as OptionComponentType<T>;
+    const cachedComponent = this.componentCache.get(type);
     if (cachedComponent) {
       return cachedComponent;
     }
@@ -85,20 +86,18 @@ export class ParseOptionsRegistry {
     }
 
     // 메모이제이션된 옵션 컴포넌트 생성
-    const OptionComponent = memo(
-      (props: CustomOptionComponentProps<TranslationTypeToOptionsMap[T]>) => {
-        // props에 추가 속성을 병합
-        const combinedProps: BaseParseOptionsProps<TranslationTypeToOptionsMap[T]> = {
-          ...props,
-          translationType: type,
-          label: config.label,
-          optionItems: config.optionItems,
-        };
+    const OptionComponent = memo((props: CustomOptionComponentProps<BaseParseOptionsDto>) => {
+      // props에 추가 속성을 병합
+      const combinedProps: BaseParseOptionsProps<BaseParseOptionsDto> = {
+        ...props,
+        translationType: type,
+        label: config.label,
+        optionItems: config.optionItems,
+      };
 
-        // JSX 사용하여 컴포넌트 생성
-        return <BaseParseOptions {...combinedProps} />;
-      }
-    );
+      // JSX 사용하여 컴포넌트 생성
+      return <BaseParseOptions {...combinedProps} />;
+    });
 
     // displayName 속성 추가
     OptionComponent.displayName = `${type}ParseOptions`;
@@ -121,7 +120,8 @@ export class ParseOptionsFactory {
    * @param type 번역 타입
    * @returns 파싱 옵션 컴포넌트
    */
-  public static createParseOptions<T extends TranslationType>(type: T): OptionComponentType<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public static createParseOptions(type: TranslationType): OptionComponentType<any> {
     return this.registry.getOrCreateComponent(type);
   }
 
@@ -130,7 +130,7 @@ export class ParseOptionsFactory {
    * @param type 번역 타입
    * @param config 파싱 옵션 설정
    */
-  public static registerParseOptions(type: TranslationType, config: ParseOptionsConfig): void {
+  public static registerParseOptions(type: string, config: ParseOptionsConfig): void {
     this.registry.register(type, config);
   }
 }

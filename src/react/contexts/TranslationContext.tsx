@@ -6,7 +6,6 @@ export interface FileState {
   selectedFiles: File[] | null;
 }
 
-// 번역 타입 enum
 export enum TranslationType {
   Text = 'text',
   Json = 'json',

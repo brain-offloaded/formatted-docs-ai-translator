@@ -6,15 +6,14 @@ import {
 } from '../components/translators/BaseTranslator'; // BaseTranslatorProps import
 import { TranslationType } from '../contexts/TranslationContext';
 import { IpcChannel } from '@/nest/common/ipc.channel';
-import {
-  TranslationTypeToOptionsMap,
-  // TranslatorComponentType as OriginalTranslatorComponentType,
-} from '../types/translation-types'; // 이름 변경
+import {} from // TranslatorComponentType as OriginalTranslatorComponentType,
+'../types/translation-types'; // 이름 변경
 import { OptionItem } from '../components/options/DynamicOptions';
+import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 
 // promptPresetContent prop을 포함하도록 TranslatorComponentType 재정의
-type TranslatorComponentType<T extends TranslationType> = React.MemoExoticComponent<
-  (props: BaseTranslatorProps<TranslationTypeToOptionsMap[T]>) => React.ReactElement
+type TranslatorComponentType = React.MemoExoticComponent<
+  (props: BaseTranslatorProps<BaseParseOptionsDto>) => React.ReactElement
 >;
 
 /**
@@ -40,8 +39,7 @@ export class TranslatorRegistry {
   private static instance: TranslatorRegistry;
   private registry: Map<TranslationType, TranslatorConfig> = new Map();
   // 캐시된 번역기 컴포넌트 저장
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private componentCache: Map<TranslationType, TranslatorComponentType<any>> = new Map();
+  private componentCache: Map<TranslationType, TranslatorComponentType> = new Map();
 
   private constructor() {}
 
@@ -57,10 +55,10 @@ export class TranslatorRegistry {
    * @param type 번역 타입
    * @param config 번역기 설정
    */
-  public register(type: TranslationType, config: TranslatorConfig): void {
-    this.registry.set(type, config);
+  public register(type: string, config: TranslatorConfig): void {
+    this.registry.set(type as TranslationType, config);
     // 등록 시 캐시 초기화
-    this.componentCache.delete(type);
+    this.componentCache.delete(type as TranslationType);
   }
 
   /**
@@ -85,9 +83,9 @@ export class TranslatorRegistry {
    * @param type 번역 타입
    * @returns 번역기 컴포넌트
    */
-  public getOrCreateComponent<T extends TranslationType>(type: T): TranslatorComponentType<T> {
+  public getOrCreateComponent(type: TranslationType): TranslatorComponentType {
     // 캐시에서 확인
-    const cachedComponent = this.componentCache.get(type) as TranslatorComponentType<T>;
+    const cachedComponent = this.componentCache.get(type);
     if (cachedComponent) {
       return cachedComponent;
     }
@@ -101,7 +99,7 @@ export class TranslatorRegistry {
     // 메모이제이션된 번역기 컴포넌트 생성
     const TranslatorComponent = memo(
       (props: {
-        parserOptions?: TranslationTypeToOptionsMap[T] | null;
+        parserOptions?: BaseParseOptionsDto | null;
         promptPresetContent?: string; // promptPresetContent prop 추가
       }) => {
         return (
@@ -111,7 +109,7 @@ export class TranslatorRegistry {
             translateChannel={config.translateChannel || IpcChannel.TranslateTextArray}
             applyChannel={config.applyChannel}
             formatOutput={config.formatOutput}
-            parserOptions={props.parserOptions as TranslationTypeToOptionsMap[T]}
+            parserOptions={props.parserOptions}
             promptPresetContent={props.promptPresetContent} // promptPresetContent prop 전달
           />
         );
@@ -139,7 +137,7 @@ export class TranslatorFactory {
    * @param type 번역 타입
    * @returns 번역기 컴포넌트
    */
-  public static createTranslator<T extends TranslationType>(type: T): TranslatorComponentType<T> {
+  public static createTranslator(type: TranslationType): TranslatorComponentType {
     // 반환 타입 명시
     return this.registry.getOrCreateComponent(type);
   }
@@ -149,7 +147,10 @@ export class TranslatorFactory {
    * @param type 번역 타입
    * @param config 번역기 설정
    */
-  public static registerTranslator(type: TranslationType, config: TranslatorConfig): void {
+  public static registerTranslator(type: string, config: TranslatorConfig): void {
     this.registry.register(type, config);
+  }
+  public static getConfig(type: TranslationType): TranslatorConfig | undefined {
+    return this.registry.getConfig(type);
   }
 }
