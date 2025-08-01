@@ -44,28 +44,18 @@ export class CacheManagerService implements ICacheManagerService {
    * @param source 원본 텍스트 (알고 있는 경우에만 제공)
    */
   public async updateTranslation(id: number, translation: string, source?: string): Promise<void> {
-    if (source) {
-      // 원본 텍스트를 알고 있는 경우 메모리 캐시도 업데이트
-      await this.memoryCacheManagerService.setTranslation(source, translation);
+    // 1. DB 업데이트를 먼저 수행하고, 업데이트된 정보를 반환받음
+    const updatedInfo = await this.dbCacheManagerService.updateTranslationInDb(id, translation);
+
+    // 2. DB 업데이트 성공 시 메모리 캐시 업데이트
+    const sourceText = source || updatedInfo?.source;
+    if (sourceText) {
+      await this.memoryCacheManagerService.setTranslation(sourceText, translation);
     } else {
-      // 원본 텍스트를 모르는 경우 해당 ID의 원본 텍스트 가져와서 메모리 캐시 업데이트
-      try {
-        const existingTranslation = await this.dbCacheManagerService.findTranslationById(id);
-
-        if (existingTranslation) {
-          await this.memoryCacheManagerService.setTranslation(
-            existingTranslation.source,
-            translation
-          );
-        }
-      } catch (error) {
-        // DB 조회 중 오류 발생 시 로그만 남기고 진행
-        this.logger.error('메모리 캐시 업데이트를 위한 DB 조회 중 오류:', { error });
-      }
+      this.logger.warn(
+        `Translation (ID: ${id}) updated, but source text is unknown. Cannot update memory cache precisely.`
+      );
     }
-
-    // DB 업데이트
-    await this.dbCacheManagerService.updateTranslationInDb(id, translation);
   }
 
   /**
@@ -73,22 +63,17 @@ export class CacheManagerService implements ICacheManagerService {
    * @param ids 삭제할 번역 ID 배열
    */
   public async deleteTranslations(ids: number[]): Promise<void> {
-    // 삭제할 항목의 원본 텍스트를 먼저 조회해서 메모리 캐시에서도 삭제
-    try {
-      const translationsToDelete = await this.dbCacheManagerService.findTranslationsByIds(ids);
+    // 1. DB에서 삭제하기 전에, 해당 항목들의 source 텍스트를 조회
+    const translationsToDelete = await this.dbCacheManagerService.findTranslationsByIds(ids);
+    const sourceTexts = translationsToDelete.map((t) => t.source);
 
-      const sourceTexts = translationsToDelete.map((t) => t.source);
-      if (sourceTexts.length > 0) {
-        await this.invalidateMemoryCacheMany(sourceTexts);
-      }
-    } catch (error) {
-      // DB 조회 중 오류 발생 시 로그만 남기고 진행
-      this.logger.error('메모리 캐시 무효화를 위한 DB 조회 중 오류:', { error });
-      // 선택적 캐시 무효화 실패 - 작업은 계속 진행
-    }
-
-    // DB에서 삭제
+    // 2. DB에서 번역 삭제
     await this.dbCacheManagerService.deleteTranslationsByIds(ids);
+
+    // 3. DB 작업 성공 후, 메모리 캐시에서 해당 항목들을 무효화
+    if (sourceTexts.length > 0) {
+      await this.invalidateMemoryCacheMany(sourceTexts);
+    }
   }
 
   /**

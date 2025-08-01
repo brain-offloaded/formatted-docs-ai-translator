@@ -34,15 +34,7 @@ export class IpcHandler implements OnModuleInit {
         const originalMethod = prototype[methodName];
 
         ipcMain.handle(channel, async (event, ...args) => {
-          try {
-            return await originalMethod.call(this, event, ...args);
-          } catch (error) {
-            this.logger.error(`Error in IPC handler for channel "${channel}":`, { error });
-            return {
-              success: false,
-              message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.',
-            };
-          }
+          return await originalMethod.call(this, event, ...args);
         });
       }
     }

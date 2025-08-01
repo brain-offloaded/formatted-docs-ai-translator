@@ -7,6 +7,8 @@ import { PlainTextParserOptionsDto } from '@/nest/parser/dto/options/plain-text-
 
 @Injectable()
 export class PlainTextParserService extends BaseParserService<string, PlainTextParserOptionsDto> {
+  readonly type = 'txt';
+
   /**
    * 파일 경로로부터 텍스트 파일을 읽어 문자열로 반환합니다.
    */

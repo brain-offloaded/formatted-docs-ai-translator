@@ -8,6 +8,8 @@ export abstract class BaseParserService<
   ParsedInformation = SimpleTextPath,
   TranslatedInformation = SimpleTranslatedTextPath,
 > {
+  abstract readonly type: string;
+
   /**
    * 기본 파일 읽기.
    * 파일 경로가 주어지면 파일을 읽어 문자열로 반환합니다.

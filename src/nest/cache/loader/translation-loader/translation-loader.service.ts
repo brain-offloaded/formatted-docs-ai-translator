@@ -484,4 +484,66 @@ export class TranslationLoaderService {
       this.logger.error(`다중 번역 저장 중 오류: ${error}`);
     }
   }
+
+  /**
+   * 번역을 업데이트하고 관련 캐시를 무효화합니다.
+   */
+  public async updateTranslation(id: number, newTarget: string): Promise<TranslationData | null> {
+    try {
+      const translation = await this.orm.translation.findOneBy({ id });
+      if (!translation) {
+        this.logger.warn(`ID가 ${id}인 번역을 찾을 수 없습니다.`);
+        return null;
+      }
+
+      const oldSource = translation.source;
+      translation.target = newTarget;
+      translation.lastAccessedAt = new Date();
+
+      await this.orm.translation.save(translation);
+
+      // 캐시 무효화
+      this.clearIdCache(id);
+      this.clearSourceCache(oldSource);
+
+      // 업데이트된 데이터로 캐시 프라이밍
+      this.idLoader.prime(id, translation);
+      this.sourceLoader.prime(oldSource, translation);
+
+      this.logger.info(`ID가 ${id}인 번역이 업데이트되었습니다.`);
+      return translation;
+    } catch (error) {
+      this.logger.error(`ID가 ${id}인 번역 업데이트 중 오류:`, { error });
+      return null;
+    }
+  }
+
+  /**
+   * 여러 번역을 ID로 삭제하고 관련 캐시를 무효화합니다.
+   */
+  public async deleteTranslationsByIds(ids: number[]): Promise<void> {
+    if (ids.length === 0) return;
+
+    try {
+      // 삭제 전, 캐시 무효화를 위해 source를 미리 조회
+      const translationsToDelete = await this.orm.translation.find({
+        where: { id: In(ids) },
+        select: ['id', 'source'],
+      });
+
+      if (translationsToDelete.length === 0) return;
+
+      await this.orm.translation.delete(ids);
+
+      // 캐시 무효화
+      translationsToDelete.forEach((t) => {
+        this.clearIdCache(t.id);
+        this.clearSourceCache(t.source);
+      });
+
+      this.logger.info(`${ids.length}개의 번역이 삭제되었습니다.`);
+    } catch (error) {
+      this.logger.error('ID로 번역 삭제 중 오류:', { error, ids });
+    }
+  }
 }
