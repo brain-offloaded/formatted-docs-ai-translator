@@ -10,7 +10,6 @@ export interface AiTranslateParam {
   requestsPerMinute?: number;
   apiKey: string;
   promptPresetContent?: string;
-  thinkingMode?: boolean;
 }
 
 export interface IAiTranslatorService<ModelName extends AiModelName> {

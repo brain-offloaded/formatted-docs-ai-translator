@@ -257,7 +257,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         textPaths: parsedContent.targets,
         sourceFilePath: '',
         promptPresetContent, // promptPresetContent prop을 직접 사용
-        thinkingMode: config.useThinking,
       };
       return (await window.electron.ipcRenderer.invoke(
         translateChannel,

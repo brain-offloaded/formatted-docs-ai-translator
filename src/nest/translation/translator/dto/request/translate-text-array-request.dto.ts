@@ -6,5 +6,4 @@ export class TranslateTextArrayRequestDto {
   textPaths: TextPath<unknown>[];
   sourceFilePath: string;
   promptPresetContent?: string; // promptPresetContent 필드 추가
-  thinkingMode?: boolean;
 }
