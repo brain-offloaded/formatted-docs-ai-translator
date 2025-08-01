@@ -63,6 +63,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
       requestsPerMinute,
       apiKey,
       promptPresetContent,
+      thinkingMode,
     }: AiTranslateParam
   ): Promise<string[]> {
     this.setRateLimiter(modelName, requestsPerMinute);
@@ -104,6 +105,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
                 maxOutputTokenCount,
                 fileInfo,
                 promptPresetContent,
+                thinkingMode,
               });
 
               // 번역 성공 시 연속 실패 횟수 초기화
@@ -250,6 +252,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
     maxOutputTokenCount,
     fileInfo,
     promptPresetContent, // 구조 분해 할당에 추가
+    thinkingMode,
   }: {
     remainingTexts: Map<string, number[]>;
     sourceLanguage: SourceLanguage;
@@ -258,6 +261,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
     maxOutputTokenCount?: number;
     fileInfo?: FilePathInfo;
     promptPresetContent?: string;
+    thinkingMode?: boolean;
   }): Promise<{
     batchTranslations: Map<string, TranslationResult>;
     response: EnhancedGenerateContentResponse;
@@ -270,6 +274,7 @@ export class GeminiTranslatorService extends AiTranslatorService<GeminiModel, Ge
         content: tagTexts(Array.from(remainingTexts.keys())),
         sourceLanguage,
         promptPresetContent,
+        thinkingMode,
       });
 
       this.logger.debug('번역 요청 전 프롬프트:', {

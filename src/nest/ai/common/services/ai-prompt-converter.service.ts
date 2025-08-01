@@ -100,13 +100,13 @@ I understood. I have translated all sentences without omission. I must response 
     image,
     sourceLanguage,
     promptPresetContent, // promptPresetContent 매개변수 추가
-    // prefill,
+    thinkingMode,
   }: {
     content?: string;
     image?: string; // Base64 인코딩된 이미지 데이터
     sourceLanguage: SourceLanguage;
     promptPresetContent?: string; // 타입 정의에 추가
-    // prefill?: string;
+    thinkingMode?: boolean;
   }): Promise<ChatBlockType> {
     const currentPrompt = await this.replacePrompt({
       promptPresetContent,
@@ -119,6 +119,7 @@ I understood. I have translated all sentences without omission. I must response 
       image,
       currentPrompt,
       promptPresetContent, // parsePromptToChatBlock 호출 시 전달
+      thinkingMode,
     });
   }
 
@@ -126,9 +127,11 @@ I understood. I have translated all sentences without omission. I must response 
     image,
     currentPrompt,
     promptPresetContent, // 추상 메소드 타입 정의에 추가
+    thinkingMode,
   }: {
     image?: string; // Base64 인코딩된 이미지 데이터
     currentPrompt: string;
     promptPresetContent?: string; // 타입 정의에 추가
+    thinkingMode?: boolean;
   }): ChatBlockType;
 }

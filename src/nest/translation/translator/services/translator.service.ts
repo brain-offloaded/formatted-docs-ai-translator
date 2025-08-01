@@ -4,7 +4,7 @@ import { InvokeFunctionRequest } from '../../../../types/electron';
 import { TranslatorResponse } from '../../../../types/translators';
 import { convertFullWidthToHalfWidth } from '../../../../utils/language';
 import { UnifiedAiTranslatorService } from '../../../ai/services/unified-ai-translator.service';
-import { AiModelName } from '../../../../ai/model';
+import { AiModelName, isThinkableModel } from '../../../../ai/model';
 import { IpcChannel } from '../../../common/ipc.channel';
 
 @Injectable()
@@ -22,6 +22,15 @@ export class TranslatorService {
     const lineFeedChangedText = text.replaceAll('\\r', '\r').replaceAll('\\n', '\n');
 
     return lineFeedChangedText;
+  }
+
+  private findModel(thinkingMode: boolean): AiModelName | undefined {
+    const models = Object.values(AiModelName);
+    if (thinkingMode) {
+      return models.find((model) => isThinkableModel(model));
+    } else {
+      return models.find((model) => !isThinkableModel(model));
+    }
   }
 
   private async createBatches({
@@ -62,12 +71,21 @@ export class TranslatorService {
     config: {
       sourceLanguage,
       apiKey,
-      customModelConfig: { modelName, requestsPerMinute, maxOutputTokenCount },
+      customModelConfig: { modelName: initialModelName, requestsPerMinute, maxOutputTokenCount },
     },
     textPaths,
     sourceFilePath,
     promptPresetContent,
+    thinkingMode,
   }: InvokeFunctionRequest<IpcChannel.TranslateTextArray>): Promise<TranslatorResponse<unknown>> {
+    let modelName = initialModelName;
+    if (typeof thinkingMode === 'boolean') {
+      const foundModel = this.findModel(thinkingMode);
+      if (foundModel) {
+        modelName = foundModel;
+      }
+    }
+
     const sourceTexts = textPaths.map((item) => item.text);
 
     const preprocessedTexts = sourceTexts.map((text) => this.preprocessText(text));
@@ -97,6 +115,7 @@ export class TranslatorService {
           maxOutputTokenCount,
           requestsPerMinute,
           promptPresetContent,
+          thinkingMode,
         })
       )
     );
