@@ -5,5 +5,5 @@ export class TranslateTextArrayRequestDto {
   config: TranslatorConfig;
   textPaths: TextPath<unknown>[];
   sourceFilePath: string;
-  promptPresetContent?: string; // promptPresetContent 필드 추가
+  promptPresetContent: string; // promptPresetContent 필드 추가
 }

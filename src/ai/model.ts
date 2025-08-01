@@ -2,8 +2,6 @@ import { ThinkableModelPredicate } from './common/model-config';
 import {
   GeminiModel,
   GeminiModelConfig,
-  getGeminiDefaultMaxInputTokenCountByModel,
-  getGeminiDefaultMaxOutputTokenCountByModel,
   getGeminiDefaultRequestsPerMinuteByModel,
   getGeminiModelDescription,
   isThinkableGemini,
@@ -65,61 +63,18 @@ export const getDefaultRequestsPerMinuteByModel = (
   throw new Error(`Default requests per minute is not supported for model: ${modelName}`);
 };
 
-export const getDefaultMaxOutputTokenCountByModel = (
-  modelName: AiModelName,
-  maxOutputTokenCount?: number
-) => {
-  if (isValidGemini(modelName)) {
-    return getGeminiDefaultMaxOutputTokenCountByModel({
-      modelName,
-      maxOutputTokenCount,
-    });
-  }
-
-  throw new Error(`Default max output token count is not supported for model: ${modelName}`);
-};
-
-export const getDefaultMaxInputTokenCountByModel = ({
-  modelName,
+export const calculateDefaultMaxInputTokenCount = ({
+  useThinking,
   maxInputTokenCount,
   maxOutputTokenCount,
 }: {
-  modelName: AiModelName;
+  useThinking: boolean;
   maxInputTokenCount?: number;
-  maxOutputTokenCount?: number;
+  maxOutputTokenCount: number;
 }) => {
-  if (isValidGemini(modelName)) {
-    return getGeminiDefaultMaxInputTokenCountByModel({
-      modelName,
-      maxInputTokenCount,
-      maxOutputTokenCount,
-    });
+  if (maxInputTokenCount) return maxInputTokenCount;
+  if (useThinking) {
+    return Math.floor(maxOutputTokenCount / 4);
   }
-
-  throw new Error(`Default max input token count is not supported for model: ${modelName}`);
-};
-
-export const getDefaultModelConfig = ({
-  modelName: modelNameOverride,
-  requestsPerMinute: requestsPerMinuteOverride,
-  maxOutputTokenCount: maxOutputTokenCountOverride,
-}: {
-  modelName?: AiModelName;
-  requestsPerMinute?: number;
-  maxOutputTokenCount?: number;
-} = {}) => {
-  const modelName = getDefaultModelName(modelNameOverride);
-  const requestsPerMinute = getDefaultRequestsPerMinuteByModel(
-    modelName,
-    requestsPerMinuteOverride
-  );
-  const maxOutputTokenCount = getDefaultMaxOutputTokenCountByModel(
-    modelName,
-    maxOutputTokenCountOverride
-  );
-  return {
-    modelName: modelName,
-    requestsPerMinute,
-    maxOutputTokenCount,
-  };
+  return maxOutputTokenCount;
 };

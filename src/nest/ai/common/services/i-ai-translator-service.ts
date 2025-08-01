@@ -6,10 +6,11 @@ export interface AiTranslateParam {
   sourceTexts: string[];
   sourceLanguage: SourceLanguage;
   fileInfo?: FilePathInfo;
-  maxOutputTokenCount?: number;
-  requestsPerMinute?: number;
+  maxOutputTokenCount: number;
+  requestsPerMinute: number;
   apiKey: string;
-  promptPresetContent?: string;
+  promptPresetContent: string;
+  useThinking: boolean;
 }
 
 export interface IAiTranslatorService<ModelName extends AiModelName> {

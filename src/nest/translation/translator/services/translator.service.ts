@@ -63,6 +63,7 @@ export class TranslatorService {
       sourceLanguage,
       apiKey,
       customModelConfig: { modelName, requestsPerMinute, maxOutputTokenCount },
+      useThinking,
     },
     textPaths,
     sourceFilePath,
@@ -97,6 +98,7 @@ export class TranslatorService {
           maxOutputTokenCount,
           requestsPerMinute,
           promptPresetContent,
+          useThinking,
         })
       )
     );
