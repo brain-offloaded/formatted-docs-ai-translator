@@ -38,8 +38,7 @@ export class UnifiedAiTranslatorService {
   constructor(
     @Inject(ICacheManagerService) protected readonly cacheManagerService: ICacheManagerService,
     private readonly tokenService: AiTokenService,
-    @Inject(AiResponseService)
-    private readonly geminiResponseService: AiResponseService,
+    private readonly aiResponseService: AiResponseService,
     private readonly logger: LoggerService,
     protected readonly exampleManagerService: ExampleManagerService,
     private readonly promptConverterService: AiPromptConverterService
@@ -296,7 +295,7 @@ export class UnifiedAiTranslatorService {
         top_p: 0.95,
       });
 
-      const batchTranslations = await this.geminiResponseService.parseTranslationResponse(
+      const batchTranslations = await this.aiResponseService.parseTranslationResponse(
         response,
         remainingTexts
       );

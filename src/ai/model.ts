@@ -1,9 +1,5 @@
 export type AiModelName = string;
 
-export enum ModelCategory {
-  GEMINI = 'gemini',
-}
-
 export interface ModelConfig {
   modelName: AiModelName;
   requestsPerMinute: number;

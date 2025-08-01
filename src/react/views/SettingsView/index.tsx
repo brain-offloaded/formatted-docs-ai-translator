@@ -179,7 +179,7 @@ const SettingsView: React.FC = () => {
                   },
                 })
               }
-              helperText="Gemini 모델 ID"
+              helperText="모델 ID"
               required
             />
           </Grid>
@@ -370,7 +370,7 @@ const SettingsView: React.FC = () => {
                   }}
                 >
                   <Typography variant="body2">
-                    Gemini API 키는{' '}
+                    API 키는{' '}
                     <a
                       href="https://ai.google.dev/"
                       target="_blank"
