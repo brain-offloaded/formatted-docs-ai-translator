@@ -1,8 +1,8 @@
 import { EnhancedGenerateContentResponse, FinishReason } from '@google/generative-ai';
 import { Injectable } from '@nestjs/common';
 
-import { TranslationResult } from '../../../../types/translators';
-import { LoggerService } from '../../../logger/logger.service';
+import { TranslationResult } from '../../../types/translators';
+import { LoggerService } from '../../logger/logger.service';
 
 @Injectable()
 export class AiResponseService {

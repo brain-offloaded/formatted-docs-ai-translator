@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InvokeFunctionRequest } from '../../../../types/electron';
 import { TranslatorResponse } from '../../../../types/translators';
 import { convertFullWidthToHalfWidth } from '../../../../utils/language';
-import { UnifiedAiTranslatorService } from '../../../ai/common/services/unified-ai-translator.service';
+import { UnifiedAiTranslatorService } from '../../../ai/services/unified-ai-translator.service';
 import { IpcChannel } from '../../../common/ipc.channel';
 
 @Injectable()

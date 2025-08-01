@@ -5,22 +5,32 @@ import {
   GoogleGenerativeAIFetchError,
 } from '@google/generative-ai';
 import { Inject, Injectable } from '@nestjs/common';
-import { TranslationResult } from '../../../../types/translators';
-import { keyRoundRobin } from '../../../../utils/key-round-robin';
-import { SourceLanguage } from '../../../../utils/language';
-import { sleep } from '../../../../utils/sleep';
-import { tagTexts } from '../../../../utils/string';
-import { ICacheManagerService } from '../../../cache/cache-manager/services/i-cache-manager-service';
-import { LoggerService } from '../../../logger/logger.service';
-import { ExampleManagerService } from '../../../translation/example/services/example-manager.service';
+import { TranslationResult } from '../../../types/translators';
+import { keyRoundRobin } from '../../../utils/key-round-robin';
+import { SourceLanguage } from '../../../utils/language';
+import { sleep } from '../../../utils/sleep';
+import { tagTexts } from '../../../utils/string';
+import { ICacheManagerService } from '../../cache/cache-manager/services/i-cache-manager-service';
+import { LoggerService } from '../../logger/logger.service';
+import { ExampleManagerService } from '../../translation/example/services/example-manager.service';
 import { AiTokenService } from './ai-token.service';
 import { AiResponseService } from './ai-response.service';
 import { FilePathInfo } from '@/types/cache';
-import { AiTranslateParam } from '@/nest/ai/common/services/i-ai-translator-service';
 import { deepClone } from '@/utils/deep-clone';
 import { isNullish } from '@/utils/is-nullish';
 import { RateLimiter } from 'limiter';
 import { AiPromptConverterService } from './ai-prompt-converter.service';
+
+export interface AiTranslateParam {
+  sourceTexts: string[];
+  sourceLanguage: SourceLanguage;
+  fileInfo?: FilePathInfo;
+  maxOutputTokenCount: number;
+  requestsPerMinute: number;
+  apiKey: string;
+  promptPresetContent: string;
+  useThinking: boolean;
+}
 
 @Injectable()
 export class UnifiedAiTranslatorService {
@@ -35,11 +45,6 @@ export class UnifiedAiTranslatorService {
     protected readonly exampleManagerService: ExampleManagerService,
     private readonly promptConverterService: AiPromptConverterService
   ) {}
-
-  protected async getDefaultRequestsPerMinute(_modelName: string): Promise<number> {
-    // 직접입력 모드에서는 사용하지 않음 - 사용자가 RPM을 직접 설정
-    return 10;
-  }
 
   public async translate(
     modelName: string,
