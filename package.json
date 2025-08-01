@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "electron ./dist/main.js",
+    "dev": "yarn build && yarn start",
     "build": "tsc && tsc-alias && webpack",
     "postinstall": "yarn rebuild:electron",
     "rebuild:electron": "electron-rebuild -f -w better-sqlite3",
@@ -71,7 +72,8 @@
     "rxjs": "^7.8.2",
     "tslib": "^2.8.1",
     "typeorm": "^0.3.20",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.5",

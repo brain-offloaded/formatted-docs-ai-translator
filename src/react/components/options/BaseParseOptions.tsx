@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useMemo, useRef } from 'react';
-import { ConfigStore } from '../../config/config-store';
+import { useConfigStore } from '../../config/config-store';
 import { BaseParseOptionsDto } from '@/nest/parser/dto/options/base-parse-options.dto';
 import { TranslationType } from '../../contexts/TranslationContext';
 import { translationConfigs } from '../../config/translation-configs';
@@ -53,9 +53,8 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   showSettings, // props로 showSettings 받기
   onToggleSettings, // props로 onToggleSettings 받기
 }: BaseParseOptionsProps<T>): React.ReactElement => {
-  // ConfigStore and sourceLanguage - 메모이제이션
-  const configStore = useMemo(() => ConfigStore.getInstance(), []);
-  const sourceLanguage = useMemo(() => configStore.getConfig().sourceLanguage, [configStore]);
+  // useConfigStore and sourceLanguage - 메모이제이션
+  const sourceLanguage = useConfigStore((state) => state.sourceLanguage);
 
   // 이전 옵션 저장을 위한 ref 사용
   const prevOptionsRef = useRef<T | null>(null);

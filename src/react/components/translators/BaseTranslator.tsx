@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { Box, useTheme, TextField } from '@mui/material';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
-import { ConfigStore } from '../../config/config-store';
+import { useConfigStore } from '../../config/config-store';
 import { TranslatorConfig } from '../../../types/config';
 import TranslationButton from '../common/TranslationButton';
 import TranslationProgress from '../common/TranslationProgress';
@@ -76,7 +76,40 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   promptPresetContent, // 구조 분해 할당에 추가
 }: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
-  const configStore = useMemo(() => ConfigStore.getInstance(), []);
+  const aiProvider = useConfigStore((state) => state.aiProvider);
+  const sourceLanguage = useConfigStore((state) => state.sourceLanguage);
+  const customModelConfig = useConfigStore((state) => state.customModelConfig);
+  const apiKey = useConfigStore((state) => state.apiKey);
+  const isCustomInputMode = useConfigStore((state) => state.isCustomInputMode);
+  const lastPresetName = useConfigStore((state) => state.lastPresetName);
+  const useThinking = useConfigStore((state) => state.useThinking);
+  const thinkingBudget = useConfigStore((state) => state.thinkingBudget);
+  const setThinkingBudget = useConfigStore((state) => state.setThinkingBudget);
+
+  const config: TranslatorConfig = useMemo(
+    () => ({
+      aiProvider,
+      sourceLanguage,
+      customModelConfig,
+      apiKey,
+      isCustomInputMode,
+      lastPresetName,
+      useThinking,
+      thinkingBudget,
+      setThinkingBudget,
+    }),
+    [
+      aiProvider,
+      sourceLanguage,
+      customModelConfig,
+      apiKey,
+      isCustomInputMode,
+      lastPresetName,
+      useThinking,
+      thinkingBudget,
+      setThinkingBudget,
+    ]
+  );
 
   // 이전 입력값 참조 저장용 ref
   const prevInputRef = useRef<string | File[]>([]); // 초기값을 빈 배열로 변경
@@ -286,7 +319,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
     try {
       setIsTranslating(true);
-      const config = configStore.getConfig();
 
       // 입력 유효성 검사
       if (!validateInput(input)) {
@@ -534,7 +566,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   }, [
     isTranslating,
     input,
-    configStore,
+    config,
     setUIState,
     setResultState,
     setIsTranslating,

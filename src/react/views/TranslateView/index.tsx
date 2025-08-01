@@ -1,8 +1,20 @@
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Divider, Snackbar } from '@mui/material';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Divider,
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
+import { Language, SourceLanguage } from '../../../utils/language';
 import { TranslationType, useTranslation } from '../../contexts/TranslationContext';
-import { ConfigStore } from '../../config/config-store';
+import { useConfigStore } from '../../config/config-store';
 import { IpcChannel } from '../../../nest/common/ipc.channel';
 import { getTranslationTypeLabel } from '../../constants/TranslationTypeMapping';
 import { TranslatorFactory } from '../../factories/TranslatorFactory';
@@ -23,7 +35,7 @@ export default function TranslateView(): React.ReactElement {
     isTranslating,
     showSnackbar,
   } = useTranslation();
-  const configStore = ConfigStore.getInstance();
+  const { sourceLanguage, lastPresetName, lastPromptPresetName, updateConfig } = useConfigStore();
   const [currentExamplePresetName, setCurrentExamplePresetName] = useState<string>('');
   const [isExamplePresetLoading, setIsExamplePresetLoading] = useState(false);
   const [currentPromptPresetName, setCurrentPromptPresetName] = useState<string>('');
@@ -32,6 +44,13 @@ export default function TranslateView(): React.ReactElement {
   const [parserOptions, setParserOptions] = useState<BaseParseOptionsDto | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
+  const handleSourceLanguageChange = (e: SelectChangeEvent<Language>) => {
+    const newSourceLanguage = e.target.value as SourceLanguage;
+    updateConfig({
+      sourceLanguage: newSourceLanguage,
+    });
+  };
+
   useEffect(() => {
     const loadInitialExamplePreset = async () => {
       try {
@@ -39,8 +58,7 @@ export default function TranslateView(): React.ReactElement {
         const result = await window.electron.ipcRenderer.invoke(IpcChannel.GetExamplePresets);
         if (result.success && result.presets.length > 0) {
           const presets: ExamplePresetDto[] = result.presets;
-          const config = configStore.getConfig();
-          const savedPresetName = config.lastPresetName || result.currentPreset;
+          const savedPresetName = lastPresetName || result.currentPreset;
           const presetExists = presets.some((preset) => preset.name === savedPresetName);
           const targetPresetName = presetExists ? savedPresetName : presets[0].name;
 
@@ -54,10 +72,10 @@ export default function TranslateView(): React.ReactElement {
             if (!loadResult.success) {
               console.warn(`초기 예제 프리셋(${targetPresetName}) 로드 실패:`, loadResult.message);
             } else {
-              configStore.updateConfig({ lastPresetName: targetPresetName });
+              updateConfig({ lastPresetName: targetPresetName });
             }
           } else {
-            configStore.updateConfig({ lastPresetName: targetPresetName });
+            updateConfig({ lastPresetName: targetPresetName });
           }
         } else if (!result.success) {
           showSnackbar(`초기 예제 프리셋 목록 불러오기 실패: ${result.message}`);
@@ -74,14 +92,13 @@ export default function TranslateView(): React.ReactElement {
     if (!currentExamplePresetName) {
       loadInitialExamplePreset();
     }
-  }, []);
+  }, [updateConfig, currentExamplePresetName, showSnackbar, lastPresetName]);
 
   useEffect(() => {
     const loadInitialPromptPreset = async () => {
       try {
         setIsPromptPresetLoading(true);
-        const config = configStore.getConfig();
-        const savedPresetName = config.lastPromptPresetName;
+        const savedPresetName = lastPromptPresetName;
 
         if (savedPresetName) {
           const listResult = await window.electron.ipcRenderer.invoke(IpcChannel.GetPromptPresets);
@@ -131,7 +148,7 @@ export default function TranslateView(): React.ReactElement {
     if (!currentPromptPresetName) {
       loadInitialPromptPreset();
     }
-  }, []);
+  }, [updateConfig, currentPromptPresetName, showSnackbar, lastPromptPresetName]);
 
   const handleOptionsChange = useCallback((options: BaseParseOptionsDto) => {
     setParserOptions((prevOptions) => {
@@ -180,7 +197,7 @@ export default function TranslateView(): React.ReactElement {
 
         if (result.success) {
           setCurrentExamplePresetName(newPresetName);
-          configStore.updateConfig({ lastPresetName: newPresetName });
+          updateConfig({ lastPresetName: newPresetName });
           showSnackbar(`'${newPresetName}' 예제 프리셋을 로드했습니다.`);
         } else {
           showSnackbar(`예제 프리셋 로드 실패: ${result.message}`);
@@ -193,16 +210,16 @@ export default function TranslateView(): React.ReactElement {
         setIsExamplePresetLoading(false);
       }
     },
-    [showSnackbar, configStore, currentExamplePresetName]
+    [showSnackbar, updateConfig, currentExamplePresetName]
   );
 
   const handlePromptPresetChange = useCallback(
     (presetName: string, presetContent: string | undefined) => {
       setCurrentPromptPresetName(presetName);
       setPromptPresetContent(presetContent);
-      configStore.updateConfig({ lastPromptPresetName: presetName });
+      updateConfig({ lastPromptPresetName: presetName });
     },
-    [configStore]
+    [updateConfig]
   );
 
   const translatorConfig = useMemo(
@@ -251,6 +268,21 @@ export default function TranslateView(): React.ReactElement {
           />
 
           <Box sx={{ mb: 2 }}>
+            <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+              <InputLabel id="source-language-label">원본 언어</InputLabel>
+              <Select
+                labelId="source-language-label"
+                id="source-language"
+                value={sourceLanguage}
+                onChange={handleSourceLanguageChange}
+                label="원본 언어"
+              >
+                <MenuItem value={Language.ENGLISH}>영어</MenuItem>
+                <MenuItem value={Language.JAPANESE}>일본어</MenuItem>
+                <MenuItem value={Language.CHINESE}>중국어</MenuItem>
+              </Select>
+            </FormControl>
+
             <TranslationTypeSelector
               selectedType={translationType}
               onChange={handleTranslationTypeChange}

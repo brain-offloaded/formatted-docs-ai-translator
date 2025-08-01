@@ -46,7 +46,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChang
   const menuItems = [
     { id: 'translation', label: '번역', icon: <TranslateIcon /> },
     { id: 'presets', label: '프리셋', icon: <StyleIcon /> },
-    { id: 'settings', label: '설정', icon: <MenuIcon /> },
+    { id: 'settings', label: '모델 설정', icon: <MenuIcon /> },
     { id: 'cache', label: '캐시 관리', icon: <StorageIcon /> },
     { id: 'log', label: '로그 보기', icon: <ArticleIcon /> },
     { id: 'bug-report', label: '버그 제보', icon: <BugReportIcon /> },
