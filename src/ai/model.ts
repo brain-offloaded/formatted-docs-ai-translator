@@ -1,8 +1,3 @@
-export enum AiProvider {
-  GOOGLE = 'Google',
-}
-
-// 사전정의된 모델 enum 제거 - 직접입력만 지원
 export type AiModelName = string;
 
 export enum ModelCategory {

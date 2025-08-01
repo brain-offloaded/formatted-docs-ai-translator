@@ -1,8 +1,9 @@
-import { AiProvider, ModelConfig } from '../ai/model';
+import { ModelProvider } from '@/ai/provider';
+import { ModelConfig } from '../ai/model';
 import { SourceLanguage } from '../utils/language';
 
 export interface TranslatorConfig {
-  aiProvider: AiProvider;
+  modelProvider: ModelProvider;
   sourceLanguage: SourceLanguage;
   apiKey: string;
   customModelConfig: ModelConfig;

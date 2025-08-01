@@ -1,10 +1,5 @@
-import {
-  GenerativeModel,
-  GoogleGenerativeAI,
-  EnhancedGenerateContentResponse,
-  GoogleGenerativeAIFetchError,
-} from '@google/generative-ai';
 import { Inject, Injectable } from '@nestjs/common';
+import OpenAI from 'openai';
 import { TranslationResult } from '../../../types/translators';
 import { keyRoundRobin } from '../../../utils/key-round-robin';
 import { SourceLanguage } from '../../../utils/language';
@@ -20,8 +15,12 @@ import { deepClone } from '@/utils/deep-clone';
 import { isNullish } from '@/utils/is-nullish';
 import { RateLimiter } from 'limiter';
 import { AiPromptConverterService } from './ai-prompt-converter.service';
+import { ModelProvider, getProviderUrl } from '@/ai/provider';
 
 export interface AiTranslateParam {
+  modelProvider: ModelProvider;
+  customUrl?: string;
+  modelName: string;
   sourceTexts: string[];
   sourceLanguage: SourceLanguage;
   fileInfo?: FilePathInfo;
@@ -46,9 +45,11 @@ export class UnifiedAiTranslatorService {
     private readonly promptConverterService: AiPromptConverterService
   ) {}
 
-  public async translate(
-    modelName: string,
-    {
+  public async translate(param: AiTranslateParam): Promise<string[]> {
+    const {
+      modelProvider,
+      customUrl,
+      modelName,
       sourceTexts,
       sourceLanguage,
       fileInfo,
@@ -57,8 +58,7 @@ export class UnifiedAiTranslatorService {
       apiKey,
       promptPresetContent,
       useThinking,
-    }: AiTranslateParam
-  ): Promise<string[]> {
+    } = param;
     this.setRateLimiter(modelName, requestsPerMinute);
     const apiKeyIterator = keyRoundRobin(apiKey);
 
@@ -93,6 +93,8 @@ export class UnifiedAiTranslatorService {
               const { batchTranslations, response } = await this.translateUncachedTexts({
                 remainingTexts: batchRemainingTexts,
                 sourceLanguage,
+                modelProvider,
+                customUrl,
                 modelName,
                 apiKeyIterator,
                 maxOutputTokenCount,
@@ -120,18 +122,15 @@ export class UnifiedAiTranslatorService {
 
               const missingTexts = batchTexts.filter((text) => !batchTranslations.has(text));
               const successTexts = batchTexts.filter((text) => batchTranslations.has(text));
-              const finishReason = response.candidates?.[0]?.finishReason;
-              const finishMessage = response.candidates?.[0]?.finishMessage;
+              const finishReason = response.choices?.[0]?.finish_reason;
               if (missingTexts.length > 0) {
                 this.logger.debug(`번역이 누락되었습니다.`, {
                   missingTexts,
                   successTexts,
                   finishReason,
-                  finishMessage,
                   extra: {
-                    candidates: response.candidates,
-                    promptFeedback: response.promptFeedback,
-                    usageMetadata: response.usageMetadata,
+                    choices: response.choices,
+                    usage: response.usage,
                   },
                 });
               }
@@ -156,12 +155,10 @@ export class UnifiedAiTranslatorService {
                 throw new Error(`번역이 연속으로 ${this.MAX_ATTEMPT_COUNT}회 실패하여 중단합니다.`);
               }
 
-              if (error instanceof GoogleGenerativeAIFetchError) {
+              if (error instanceof OpenAI.APIError) {
                 this.logger.error('번역 중 api 오류 발생:', {
                   error,
                   status: error.status,
-                  statusText: error.statusText,
-                  errorDetails: error.errorDetails,
                   stack: error instanceof Error ? error.stack : undefined,
                 });
                 if (error.status === 429) {
@@ -212,25 +209,18 @@ export class UnifiedAiTranslatorService {
     }
   }
 
-  protected async getModel({
-    modelName,
+  protected async getClient({
+    baseURL,
     apiKeyIterator,
-    maxOutputTokenCount,
   }: {
-    modelName: string;
+    baseURL: string;
     apiKeyIterator: Generator<string>;
-    maxOutputTokenCount: number;
-  }): Promise<GenerativeModel> {
+  }): Promise<OpenAI> {
     const apiKey = apiKeyIterator.next().value;
 
-    return new GoogleGenerativeAI(apiKey).getGenerativeModel({
-      model: modelName,
-      safetySettings: [],
-      generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: maxOutputTokenCount,
-        topP: 0.95,
-      },
+    return new OpenAI({
+      apiKey,
+      baseURL,
     });
   }
 
@@ -241,7 +231,9 @@ export class UnifiedAiTranslatorService {
     apiKeyIterator,
     maxOutputTokenCount,
     fileInfo,
-    promptPresetContent, // 구조 분해 할당에 추가
+    promptPresetContent,
+    modelProvider,
+    customUrl,
   }: {
     remainingTexts: Map<string, number[]>;
     sourceLanguage: SourceLanguage;
@@ -250,14 +242,17 @@ export class UnifiedAiTranslatorService {
     maxOutputTokenCount: number;
     fileInfo?: FilePathInfo;
     promptPresetContent?: string;
+    modelProvider: ModelProvider;
+    customUrl?: string;
   }): Promise<{
     batchTranslations: Map<string, TranslationResult>;
-    response: EnhancedGenerateContentResponse;
+    response: OpenAI.Chat.Completions.ChatCompletion;
   }> {
     try {
       const rateLimiter = await this.getRateLimiter(modelName);
       await rateLimiter.removeTokens(1);
-      const model = await this.getModel({ modelName, apiKeyIterator, maxOutputTokenCount });
+      const baseURL = getProviderUrl(modelProvider, customUrl);
+      const openai = await this.getClient({ apiKeyIterator, baseURL });
       const { contents, systemInstruction } = await this.promptConverterService.getChatBlock({
         content: tagTexts(Array.from(remainingTexts.keys())),
         sourceLanguage,
@@ -268,11 +263,39 @@ export class UnifiedAiTranslatorService {
         contents,
         systemInstruction,
       });
-      const result = await model.generateContent({
-        contents,
-        systemInstruction,
+
+      const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+      if (systemInstruction) {
+        messages.push({
+          role: 'system',
+          content: systemInstruction,
+        });
+      }
+      for (const content of contents) {
+        if (content.role === 'USER') {
+          messages.push({
+            role: 'user',
+            content: content.parts,
+          });
+        } else {
+          messages.push({
+            role: 'assistant',
+            content: content.parts
+              .filter((p) => p.type === 'text')
+              .map((p) => (p as OpenAI.Chat.Completions.ChatCompletionContentPartText).text)
+              .join(''),
+          });
+        }
+      }
+
+      const response = await openai.chat.completions.create({
+        model: modelName,
+        messages,
+        temperature: 0.5,
+        max_tokens: maxOutputTokenCount,
+        top_p: 0.95,
       });
-      const response = await result.response;
+
       const batchTranslations = await this.geminiResponseService.parseTranslationResponse(
         response,
         remainingTexts

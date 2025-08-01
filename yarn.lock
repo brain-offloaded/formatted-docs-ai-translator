@@ -974,13 +974,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@google/generative-ai@npm:^0.24.0":
-  version: 0.24.1
-  resolution: "@google/generative-ai@npm:0.24.1"
-  checksum: 10c0/8da77fc648b04fc2ecef53e75230e2ee67a8fd29a34b6b8874e77a7332b2a1e4b51d44dd9eb604fb063ed8ea46d293aac5b1e2a955ae2435e2582a265f2cb80d
-  languageName: node
-  linkType: hard
-
 "@humanwhocodes/config-array@npm:^0.13.0":
   version: 0.13.0
   resolution: "@humanwhocodes/config-array@npm:0.13.0"
@@ -5932,7 +5925,6 @@ __metadata:
   dependencies:
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.0"
-    "@google/generative-ai": "npm:^0.24.0"
     "@mui/icons-material": "npm:^6.4.8"
     "@mui/material": "npm:^6.4.8"
     "@mui/system": "npm:^6.4.8"
@@ -5976,6 +5968,7 @@ __metadata:
     limiter: "npm:^2.1.0"
     lru-cache: "npm:^11.0.2"
     nodemon: "npm:^3.1.0"
+    openai: "npm:latest"
     prettier: "npm:^3.2.5"
     prisma: "npm:^6.5.0"
     react: "npm:^19.0.0"
@@ -8860,6 +8853,23 @@ __metadata:
   dependencies:
     mimic-fn: "npm:^2.1.0"
   checksum: 10c0/ffcef6fbb2692c3c40749f31ea2e22677a876daea92959b8a80b521d95cca7a668c884d8b2045d1d8ee7d56796aa405c405462af112a1477594cc63531baeb8f
+  languageName: node
+  linkType: hard
+
+"openai@npm:latest":
+  version: 5.11.0
+  resolution: "openai@npm:5.11.0"
+  peerDependencies:
+    ws: ^8.18.0
+    zod: ^3.23.8
+  peerDependenciesMeta:
+    ws:
+      optional: true
+    zod:
+      optional: true
+  bin:
+    openai: bin/cli
+  checksum: 10c0/b65918f03ceda49fd295d698d75b0d2395465cdb33571bf5b29929fcc91df7efc56b3a58bdbeabcc7cdb976239314da1b028e5efd0404b90a20d1a8bfc83e81d
   languageName: node
   linkType: hard
 

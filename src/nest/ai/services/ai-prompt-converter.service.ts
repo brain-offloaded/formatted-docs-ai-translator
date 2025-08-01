@@ -1,4 +1,4 @@
-import { Part } from '@google/generative-ai';
+import OpenAI from 'openai';
 import { Injectable } from '@nestjs/common';
 import { SourceLanguage, targetLanguage } from '@/utils/language';
 import { isNullish } from '@/utils/is-nullish';
@@ -24,7 +24,7 @@ export interface IChatBlock {
 
 interface IChatContent {
   role: ChatBlockRole;
-  parts: Part[];
+  parts: OpenAI.Chat.Completions.ChatCompletionContentPart[];
 }
 
 @Injectable()
@@ -192,23 +192,23 @@ I understood. I have translated all sentences without omission. I must response 
         } else if (this.isPromptAssistantRole(role)) {
           tempContents.push({
             role: ChatBlockRole.ASSISTANT,
-            parts: [{ text }],
+            parts: [{ type: 'text', text }],
           });
         } else if (this.isPromptUserRole(role)) {
           if (image && text.includes('{{slot::image}}')) {
             const [beforeImage, afterImage] = text.split('{{slot::image}}');
-            const parts: Part[] = [];
+            const parts: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [];
             if (beforeImage.trim()) {
-              parts.push({ text: beforeImage.trim() });
+              parts.push({ type: 'text', text: beforeImage.trim() });
             }
             parts.push({
-              inlineData: {
-                mimeType: 'image/jpeg', // 이미지 타입은 고정되어 있으므로 필요시 수정
-                data: image,
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${image}`,
               },
             });
             if (afterImage.trim()) {
-              parts.push({ text: afterImage.trim() });
+              parts.push({ type: 'text', text: afterImage.trim() });
             }
             tempContents.push({
               role: ChatBlockRole.USER,
@@ -217,7 +217,7 @@ I understood. I have translated all sentences without omission. I must response 
           } else {
             tempContents.push({
               role: ChatBlockRole.USER,
-              parts: [{ text }],
+              parts: [{ type: 'text', text }],
             });
           }
         }

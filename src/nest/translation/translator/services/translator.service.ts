@@ -58,6 +58,7 @@ export class TranslatorService {
       apiKey,
       customModelConfig: { modelName, requestsPerMinute, maxOutputTokenCount },
       useThinking,
+      modelProvider,
     },
     textPaths,
     sourceFilePath,
@@ -83,7 +84,9 @@ export class TranslatorService {
     // 배치별로 병렬 번역 실행
     const translatedBatches = await Promise.all(
       batches.map((batch) =>
-        this.unifiedAiTranslatorService.translate(modelName, {
+        this.unifiedAiTranslatorService.translate({
+          modelProvider,
+          modelName,
           sourceTexts: batch,
           sourceLanguage,
           fileInfo,

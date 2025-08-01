@@ -34,7 +34,8 @@ import React, { useState, useEffect } from 'react';
 import { useConfigStore } from '../../config/config-store';
 import { CopyButton } from '../../components/common/CopyButton';
 import '../../styles/ConfigPanel.css';
-import { AiProvider, getDefaultModelConfig } from '../../../ai/model';
+import { getDefaultModelConfig } from '../../../ai/model';
+import { ModelProvider } from '@/ai/provider';
 
 const SettingsView: React.FC = () => {
   const config = useConfigStore((state) => state);
@@ -61,12 +62,12 @@ const SettingsView: React.FC = () => {
   }, [config.customModelConfig, apiKeyError]);
 
   const handleProviderChange = (e: SelectChangeEvent<string>) => {
-    const newProvider = e.target.value as AiProvider;
+    const newProvider = e.target.value as ModelProvider;
 
     // 제공자 변경 시 모델을 기본값으로 리셋
     const newModelConfig = getDefaultModelConfig();
     updateConfig({
-      aiProvider: newProvider,
+      modelProvider: newProvider,
       customModelConfig: newModelConfig,
     });
   };
@@ -122,11 +123,11 @@ const SettingsView: React.FC = () => {
               <Select
                 labelId="ai-provider-label"
                 id="ai-provider"
-                value={config.aiProvider}
+                value={config.modelProvider}
                 onChange={handleProviderChange}
                 label="AI 제공사"
               >
-                <MenuItem value={AiProvider.GOOGLE}>Google</MenuItem>
+                <MenuItem value={ModelProvider.GOOGLE}>Google</MenuItem>
               </Select>
             </FormControl>
           </Grid>

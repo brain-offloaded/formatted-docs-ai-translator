@@ -76,7 +76,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   promptPresetContent, // 구조 분해 할당에 추가
 }: BaseTranslatorProps<T>): React.ReactElement {
   const theme = useTheme();
-  const aiProvider = useConfigStore((state) => state.aiProvider);
+  const modelProvider = useConfigStore((state) => state.modelProvider);
   const sourceLanguage = useConfigStore((state) => state.sourceLanguage);
   const customModelConfig = useConfigStore((state) => state.customModelConfig);
   const apiKey = useConfigStore((state) => state.apiKey);
@@ -87,7 +87,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
 
   const config: TranslatorConfig = useMemo(
     () => ({
-      aiProvider,
+      modelProvider,
       sourceLanguage,
       customModelConfig,
       apiKey,
@@ -97,7 +97,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       setThinkingBudget,
     }),
     [
-      aiProvider,
+      modelProvider,
       sourceLanguage,
       customModelConfig,
       apiKey,
