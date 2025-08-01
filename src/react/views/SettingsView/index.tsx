@@ -34,33 +34,7 @@ import React, { useState, useEffect } from 'react';
 import { useConfigStore } from '../../config/config-store';
 import { CopyButton } from '../../components/common/CopyButton';
 import '../../styles/ConfigPanel.css';
-import {
-  AiModelName,
-  AiProvider,
-  getDefaultModelConfig,
-  getModelDescription,
-  ModelConfig,
-} from '../../../ai/model';
-import { GeminiModel } from '../../../ai/gemini/gemini-models';
-
-// 각 모델의 기본 설정값 정의
-const MODEL_DEFAULT_CONFIGS: Record<AiModelName, ModelConfig> = {
-  [AiModelName.FLASH_EXP]: getDefaultModelConfig({
-    modelName: AiModelName.FLASH_EXP,
-  }),
-  [AiModelName.FLASH_THINKING_EXP]: getDefaultModelConfig({
-    modelName: AiModelName.FLASH_THINKING_EXP,
-  }),
-  [AiModelName.GEMINI_PRO_2_POINT_5_EXP]: getDefaultModelConfig({
-    modelName: AiModelName.GEMINI_PRO_2_POINT_5_EXP,
-  }),
-};
-
-// 직접 입력 모델을 위한 기본 설정값
-const DEFAULT_CUSTOM_INPUT_CONFIG: ModelConfig = getDefaultModelConfig({
-  modelName: AiModelName.GEMINI_PRO_2_POINT_5_EXP,
-  requestsPerMinute: 25,
-});
+import { AiProvider, getDefaultModelConfig } from '../../../ai/model';
 
 const SettingsView: React.FC = () => {
   const config = useConfigStore((state) => state);
@@ -69,31 +43,22 @@ const SettingsView: React.FC = () => {
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [apiKeyError, setApiKeyError] = useState('');
-  const [lastCustomInputConfig, setLastCustomInputConfig] = useState<ModelConfig | null>(null);
 
   useEffect(() => {
     // 직접 입력 모드에서 필수 값이 비어있는지 체크
-    if (config.isCustomInputMode) {
-      const isValid = Boolean(
-        config.customModelConfig.modelName &&
-          config.customModelConfig.requestsPerMinute &&
-          config.customModelConfig.maxOutputTokenCount
-      );
+    const isValid = Boolean(
+      config.customModelConfig.modelName &&
+        config.customModelConfig.requestsPerMinute &&
+        config.customModelConfig.maxOutputTokenCount
+    );
 
-      // 번역 버튼 활성화/비활성화 상태를 전역 이벤트로 발행
-      window.dispatchEvent(
-        new CustomEvent('configValidityChanged', {
-          detail: { isValid, apiKeyError: Boolean(apiKeyError) },
-        })
-      );
-    } else {
-      window.dispatchEvent(
-        new CustomEvent('configValidityChanged', {
-          detail: { isValid: true, apiKeyError: Boolean(apiKeyError) },
-        })
-      );
-    }
-  }, [config.isCustomInputMode, config.customModelConfig, apiKeyError]);
+    // 번역 버튼 활성화/비활성화 상태를 전역 이벤트로 발행
+    window.dispatchEvent(
+      new CustomEvent('configValidityChanged', {
+        detail: { isValid, apiKeyError: Boolean(apiKeyError) },
+      })
+    );
+  }, [config.customModelConfig, apiKeyError]);
 
   const handleProviderChange = (e: SelectChangeEvent<string>) => {
     const newProvider = e.target.value as AiProvider;
@@ -103,35 +68,6 @@ const SettingsView: React.FC = () => {
     updateConfig({
       aiProvider: newProvider,
       customModelConfig: newModelConfig,
-      isCustomInputMode: false,
-    });
-  };
-
-  const handleModelNameChange = (e: SelectChangeEvent<string>) => {
-    const selectedValue = e.target.value;
-
-    if (selectedValue === 'custom_input_mode') {
-      if (!config.isCustomInputMode) {
-        const newCustomConfig = lastCustomInputConfig || DEFAULT_CUSTOM_INPUT_CONFIG;
-        updateConfig({
-          customModelConfig: newCustomConfig,
-          isCustomInputMode: true,
-        });
-      }
-      return;
-    }
-
-    if (config.isCustomInputMode) {
-      setLastCustomInputConfig(config.customModelConfig);
-    }
-
-    const newModelName = selectedValue as AiModelName;
-    const newModelConfig =
-      MODEL_DEFAULT_CONFIGS[newModelName] || getDefaultModelConfig({ modelName: newModelName });
-
-    updateConfig({
-      customModelConfig: newModelConfig,
-      isCustomInputMode: false,
     });
   };
 
@@ -194,41 +130,10 @@ const SettingsView: React.FC = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel id="model-name-label">AI 모델</InputLabel>
-              <Select
-                labelId="model-name-label"
-                id="model-name"
-                value={
-                  config.isCustomInputMode
-                    ? 'custom_input_mode'
-                    : config.customModelConfig.modelName
-                }
-                onChange={handleModelNameChange}
-                label="AI 모델"
-                disabled={config.aiProvider !== AiProvider.GOOGLE}
-              >
-                {Object.values(GeminiModel).map((model) => (
-                  <MenuItem key={model} value={model}>
-                    <Box>
-                      <Typography>{(model as string).split('/').pop()}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {getModelDescription(model as AiModelName)}
-                      </Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
-                <MenuItem value="custom_input_mode">
-                  <Box>
-                    <Typography>직접 입력</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      모델명과 분당 요청 수(RPM)를 직접 지정
-                    </Typography>
-                  </Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
+          <Grid item xs={12} md={8}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              모든 설정은 직접 입력해야 합니다. 아래 필드들을 모두 입력해주세요.
+            </Typography>
           </Grid>
           <Grid item xs={12} md={4}>
             <TextField
@@ -269,12 +174,11 @@ const SettingsView: React.FC = () => {
                 updateConfig({
                   customModelConfig: {
                     ...config.customModelConfig,
-                    modelName: e.target.value as AiModelName,
+                    modelName: e.target.value,
                   },
                 })
               }
               helperText="Gemini 모델 ID"
-              disabled={!config.isCustomInputMode}
               required
             />
           </Grid>
@@ -298,12 +202,11 @@ const SettingsView: React.FC = () => {
                 inputProps: { min: 0 },
               }}
               helperText={
-                config.isCustomInputMode && !config.customModelConfig.requestsPerMinute
+                !config.customModelConfig.requestsPerMinute
                   ? '이 필드는 번역 실행 시 필수입니다'
                   : 'API 속도 제한에 맞는 분당 요청 수'
               }
-              error={config.isCustomInputMode && !config.customModelConfig.requestsPerMinute}
-              disabled={!config.isCustomInputMode}
+              error={!config.customModelConfig.requestsPerMinute}
               required
             />
           </Grid>
@@ -327,12 +230,11 @@ const SettingsView: React.FC = () => {
                 inputProps: { min: 0 },
               }}
               helperText={
-                config.isCustomInputMode && !config.customModelConfig.maxOutputTokenCount
+                !config.customModelConfig.maxOutputTokenCount
                   ? '이 필드는 번역 실행 시 필수입니다'
                   : '모델이 생성할 최대 토큰 수'
               }
-              error={config.isCustomInputMode && !config.customModelConfig.maxOutputTokenCount}
-              disabled={!config.isCustomInputMode}
+              error={!config.customModelConfig.maxOutputTokenCount}
               required
             />
           </Grid>
@@ -412,19 +314,9 @@ const SettingsView: React.FC = () => {
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                     <Typography variant="body1" fontWeight="medium">
-                      {config.customModelConfig.modelName}
+                      {config.customModelConfig.modelName || '미설정'}
                     </Typography>
                     <CopyButton targetValue={config.customModelConfig.modelName} size="small" />
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    입력 모드:
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <Typography variant="body1" fontWeight="medium">
-                      {config.isCustomInputMode ? '직접 입력 모드' : '기본 모델 선택 모드'}
-                    </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -440,22 +332,11 @@ const SettingsView: React.FC = () => {
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
-                    모델 이름:
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                    <Typography variant="body1" fontWeight="medium">
-                      {config.customModelConfig.modelName}
-                    </Typography>
-                    <CopyButton targetValue={config.customModelConfig.modelName} size="small" />
-                  </Box>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Typography variant="body2" color="text.secondary">
                     분당 요청 수(RPM):
                   </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                     <Typography variant="body1" fontWeight="medium">
-                      {config.customModelConfig.requestsPerMinute}
+                      {config.customModelConfig.requestsPerMinute || 0}
                     </Typography>
                     <CopyButton
                       targetValue={config.customModelConfig.requestsPerMinute.toString()}

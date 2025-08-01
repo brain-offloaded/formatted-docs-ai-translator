@@ -5,54 +5,44 @@ import {
   GoogleGenerativeAIFetchError,
 } from '@google/generative-ai';
 import { Inject, Injectable } from '@nestjs/common';
-import { GeminiModel } from '../../../../../ai/gemini/gemini-models';
-import { TranslationResult } from '../../../../../types/translators';
-import { keyRoundRobin } from '../../../../../utils/key-round-robin';
-import { SourceLanguage } from '../../../../../utils/language';
-import { sleep } from '../../../../../utils/sleep';
-import { tagTexts } from '../../../../../utils/string';
-import { ICacheManagerService } from '../../../../cache/cache-manager/services/i-cache-manager-service';
-import { LoggerService } from '../../../../logger/logger.service';
-import { ExampleManagerService } from '../../../../translation/example/services/example-manager.service';
-import { GeminiPromptConverterService } from '../../prompt/services/gemini-prompt-converter.service';
-import { AiTokenService } from './gemini-token.service';
-import { GeminiResponseService } from './gemini-response.service';
-import { AiResponseService } from '../../../common/services/ai-response-service';
+import { TranslationResult } from '../../../../types/translators';
+import { keyRoundRobin } from '../../../../utils/key-round-robin';
+import { SourceLanguage } from '../../../../utils/language';
+import { sleep } from '../../../../utils/sleep';
+import { tagTexts } from '../../../../utils/string';
+import { ICacheManagerService } from '../../../cache/cache-manager/services/i-cache-manager-service';
+import { LoggerService } from '../../../logger/logger.service';
+import { ExampleManagerService } from '../../../translation/example/services/example-manager.service';
+import { AiTokenService } from './ai-token.service';
+import { AiResponseService } from './ai-response.service';
 import { FilePathInfo } from '@/types/cache';
 import { AiTranslateParam } from '@/nest/ai/common/services/i-ai-translator-service';
 import { deepClone } from '@/utils/deep-clone';
 import { isNullish } from '@/utils/is-nullish';
 import { RateLimiter } from 'limiter';
+import { AiPromptConverterService } from './ai-prompt-converter.service';
 
 @Injectable()
-export class GeminiTranslatorService {
+export class UnifiedAiTranslatorService {
   protected rateLimiterMapping: Map<string, RateLimiter> = new Map();
   private readonly MAX_ATTEMPT_COUNT = 3;
   constructor(
     @Inject(ICacheManagerService) protected readonly cacheManagerService: ICacheManagerService,
     private readonly tokenService: AiTokenService,
-    @Inject(GeminiResponseService)
-    private readonly geminiResponseService: AiResponseService<EnhancedGenerateContentResponse>,
+    @Inject(AiResponseService)
+    private readonly geminiResponseService: AiResponseService,
     private readonly logger: LoggerService,
     protected readonly exampleManagerService: ExampleManagerService,
-    private readonly promptConverterService: GeminiPromptConverterService
+    private readonly promptConverterService: AiPromptConverterService
   ) {}
 
-  protected async getDefaultRequestsPerMinute(modelName: GeminiModel): Promise<number> {
-    switch (modelName) {
-      case GeminiModel.FLASH_EXP:
-        return 10;
-      case GeminiModel.FLASH_THINKING_EXP:
-        return 10;
-      case GeminiModel.GEMINI_PRO_2_POINT_5_EXP:
-        return 5;
-      default:
-        return 10;
-    }
+  protected async getDefaultRequestsPerMinute(_modelName: string): Promise<number> {
+    // 직접입력 모드에서는 사용하지 않음 - 사용자가 RPM을 직접 설정
+    return 10;
   }
 
   public async translate(
-    modelName: GeminiModel,
+    modelName: string,
     {
       sourceTexts,
       sourceLanguage,
@@ -222,7 +212,7 @@ export class GeminiTranslatorService {
     apiKeyIterator,
     maxOutputTokenCount,
   }: {
-    modelName: GeminiModel;
+    modelName: string;
     apiKeyIterator: Generator<string>;
     maxOutputTokenCount: number;
   }): Promise<GenerativeModel> {
@@ -250,7 +240,7 @@ export class GeminiTranslatorService {
   }: {
     remainingTexts: Map<string, number[]>;
     sourceLanguage: SourceLanguage;
-    modelName: GeminiModel;
+    modelName: string;
     apiKeyIterator: Generator<string>;
     maxOutputTokenCount: number;
     fileInfo?: FilePathInfo;

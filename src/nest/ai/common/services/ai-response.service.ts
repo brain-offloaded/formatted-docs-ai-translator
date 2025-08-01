@@ -1,14 +1,47 @@
 import { EnhancedGenerateContentResponse, FinishReason } from '@google/generative-ai';
 import { Injectable } from '@nestjs/common';
 
-import { TranslationResult } from '../../../../../types/translators';
-import { LoggerService } from '../../../../logger/logger.service';
-import { AiResponseService } from '../../../common/services/ai-response-service';
+import { TranslationResult } from '../../../../types/translators';
+import { LoggerService } from '../../../logger/logger.service';
 
 @Injectable()
-export class GeminiResponseService extends AiResponseService<EnhancedGenerateContentResponse> {
-  constructor(private readonly logger: LoggerService) {
-    super();
+export class AiResponseService {
+  constructor(private readonly logger: LoggerService) {}
+
+  public async parseTranslationResponse(
+    response: EnhancedGenerateContentResponse,
+    remainingTexts: Map<string, number[]>
+  ): Promise<Map<string, TranslationResult>> {
+    const responseText = await this.getResponseText(response);
+    const translations = new Map<string, TranslationResult>();
+    const regex = /<\|(\d+)\|>(.*?)(?=(<\|\d+\|>|$))/gm;
+    const remainingTextArray = Array.from(remainingTexts.keys());
+
+    let match;
+    while ((match = regex.exec(responseText)) !== null) {
+      const [, idStr, translatedText] = match;
+      const id = parseInt(idStr);
+      if (id < 1 || id > remainingTextArray.length) continue;
+
+      const originalText = remainingTextArray[id - 1];
+      const indices = remainingTexts.get(originalText) || [];
+      if (translatedText.trim()) {
+        translations.set(originalText, {
+          text: translatedText.trim(),
+          indices,
+        });
+      }
+    }
+
+    await this.logResponse({
+      response,
+      translations,
+      remainingTexts,
+      responseText,
+      remainingTextArray,
+    });
+
+    return translations;
   }
 
   /**

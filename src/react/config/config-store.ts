@@ -16,7 +16,6 @@ const getDefaultConfig = (): TranslatorConfig => ({
   sourceLanguage: Language.ENGLISH,
   customModelConfig: getDefaultModelConfig(),
   apiKey: '',
-  isCustomInputMode: false,
   lastPresetName: 'default',
   useThinking: false,
   thinkingBudget: 2000,

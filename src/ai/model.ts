@@ -1,67 +1,19 @@
-import { ThinkableModelPredicate } from './common/model-config';
-import {
-  GeminiModel,
-  GeminiModelConfig,
-  getGeminiDefaultRequestsPerMinuteByModel,
-  getGeminiModelDescription,
-  isThinkableGemini,
-  isValidGemini,
-} from './gemini/gemini-models';
-
 export enum AiProvider {
   GOOGLE = 'Google',
 }
 
-export const AiModelName = {
-  ...GeminiModel,
-} as const;
-
-export type AiModelName = (typeof AiModelName)[keyof typeof AiModelName];
+// 사전정의된 모델 enum 제거 - 직접입력만 지원
+export type AiModelName = string;
 
 export enum ModelCategory {
   GEMINI = 'gemini',
 }
 
-export type ModelConfig = GeminiModelConfig;
-
-export interface ModelConfigs {
-  [ModelCategory.GEMINI]: GeminiModelConfig;
+export interface ModelConfig {
+  modelName: AiModelName;
+  requestsPerMinute: number;
+  maxOutputTokenCount: number;
 }
-
-export const isThinkableModel: ThinkableModelPredicate<AiModelName> = (modelName: AiModelName) => {
-  if (isValidGemini(modelName)) {
-    return isThinkableGemini(modelName);
-  }
-  return false;
-};
-
-export const getModelDescription = (model: AiModelName) => {
-  if (isValidGemini(model)) {
-    return getGeminiModelDescription(model);
-  }
-
-  return '설명이 작성되지 않은 모델입니다.';
-};
-
-export const getDefaultModelName = (modelName?: AiModelName) => {
-  if (modelName) return modelName;
-
-  return AiModelName.FLASH_EXP;
-};
-
-export const getDefaultRequestsPerMinuteByModel = (
-  modelName: AiModelName,
-  requestsPerMinute?: number
-) => {
-  if (isValidGemini(modelName)) {
-    return getGeminiDefaultRequestsPerMinuteByModel({
-      modelName,
-      requestsPerMinute,
-    });
-  }
-
-  throw new Error(`Default requests per minute is not supported for model: ${modelName}`);
-};
 
 export const calculateDefaultMaxInputTokenCount = ({
   useThinking,
@@ -77,4 +29,17 @@ export const calculateDefaultMaxInputTokenCount = ({
     return Math.floor(maxOutputTokenCount / 4);
   }
   return maxOutputTokenCount;
+};
+
+// 기본 모델 설정을 생성하는 함수 (직접 입력용)
+export const getDefaultModelConfig = (options?: {
+  modelName?: string;
+  requestsPerMinute?: number;
+  maxOutputTokenCount?: number;
+}): ModelConfig => {
+  return {
+    modelName: (options?.modelName || '') as AiModelName,
+    requestsPerMinute: options?.requestsPerMinute || 0,
+    maxOutputTokenCount: options?.maxOutputTokenCount || 0,
+  };
 };

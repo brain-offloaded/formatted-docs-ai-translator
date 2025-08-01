@@ -3,8 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InvokeFunctionRequest } from '../../../../types/electron';
 import { TranslatorResponse } from '../../../../types/translators';
 import { convertFullWidthToHalfWidth } from '../../../../utils/language';
-import { UnifiedAiTranslatorService } from '../../../ai/services/unified-ai-translator.service';
-import { AiModelName } from '../../../../ai/model';
+import { UnifiedAiTranslatorService } from '../../../ai/common/services/unified-ai-translator.service';
 import { IpcChannel } from '../../../common/ipc.channel';
 
 @Injectable()
@@ -25,18 +24,13 @@ export class TranslatorService {
   }
 
   private async createBatches({
-    modelName,
     array,
     maxOutputTokenCount,
   }: {
-    modelName: AiModelName;
     array: string[];
     maxOutputTokenCount: number;
   }): Promise<string[][]> {
-    const estimatedTokens = await this.unifiedAiTranslatorService.getEstimatedTokenCount(
-      modelName,
-      array
-    );
+    const estimatedTokens = await this.unifiedAiTranslatorService.getEstimatedTokenCount(array);
 
     // 전체 토큰이 최대 출력 토큰보다 작으면 하나의 배치로 반환
     if (estimatedTokens <= maxOutputTokenCount) {
@@ -75,7 +69,6 @@ export class TranslatorService {
 
     // 배치 생성
     const batches = await this.createBatches({
-      modelName,
       array: preprocessedTexts,
       maxOutputTokenCount,
     });

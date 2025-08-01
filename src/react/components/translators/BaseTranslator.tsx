@@ -80,7 +80,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const sourceLanguage = useConfigStore((state) => state.sourceLanguage);
   const customModelConfig = useConfigStore((state) => state.customModelConfig);
   const apiKey = useConfigStore((state) => state.apiKey);
-  const isCustomInputMode = useConfigStore((state) => state.isCustomInputMode);
   const lastPresetName = useConfigStore((state) => state.lastPresetName);
   const useThinking = useConfigStore((state) => state.useThinking);
   const thinkingBudget = useConfigStore((state) => state.thinkingBudget);
@@ -92,7 +91,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       sourceLanguage,
       customModelConfig,
       apiKey,
-      isCustomInputMode,
       lastPresetName,
       useThinking,
       thinkingBudget,
@@ -103,7 +101,6 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
       sourceLanguage,
       customModelConfig,
       apiKey,
-      isCustomInputMode,
       lastPresetName,
       useThinking,
       thinkingBudget,
@@ -256,7 +253,7 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
         config,
         textPaths: parsedContent.targets,
         sourceFilePath: '',
-        promptPresetContent, // promptPresetContent prop을 직접 사용
+        promptPresetContent: promptPresetContent || '', // promptPresetContent prop을 직접 사용 (undefined인 경우 빈 문자열)
       };
       return (await window.electron.ipcRenderer.invoke(
         translateChannel,
