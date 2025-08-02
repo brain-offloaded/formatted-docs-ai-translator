@@ -107,17 +107,7 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
 
   async deleteTranslationsByIds(ids: number[]): Promise<void> {
     try {
-      const translations = await this.translationLoader.loadManyById(ids);
-
-      await this.orm.translation.delete(ids);
-
-      // 캐시 초기화 - 번역과 이력 모두 초기화
-      ids.forEach((id) => this.translationLoader.clearIdCache(id));
-      translations.forEach((t) => {
-        if (t) {
-          this.translationLoader.clearSourceCache(t.source);
-        }
-      });
+      await this.translationLoader.deleteTranslationsByIds(ids);
     } catch (error) {
       this.logger.error('번역 캐시 항목 삭제 중 오류:', { error });
     }
@@ -424,17 +414,16 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
   /**
    * 특정 ID를 가진 번역을 DB에서 업데이트합니다.
    */
-  async updateTranslationInDb(id: number, translation: string): Promise<void> {
+  async updateTranslationInDb(
+    id: number,
+    translation: string
+  ): Promise<{ source: string; target: string } | null> {
     try {
-      await this.orm.translation.update(
-        { id },
-        {
-          target: translation,
-          lastAccessedAt: new Date(),
-        }
-      );
+      const updated = await this.translationLoader.updateTranslation(id, translation);
+      return updated ? { source: updated.source, target: updated.target } : null;
     } catch (error) {
       this.logger.error('번역 DB 업데이트 중 오류:', { error });
+      return null;
     }
   }
 
@@ -469,18 +458,7 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
 
   async updateTranslation(id: number, translation: string): Promise<void> {
     try {
-      const existingTranslation = await this.translationLoader.loadById(id);
-      if (existingTranslation) {
-        await this.translationLoader.saveTranslation(
-          existingTranslation.source,
-          translation,
-          true,
-          existingTranslation.fileInfo || undefined
-        );
-        // 캐시 초기화 - 번역과 이력 모두 초기화
-        this.translationLoader.clearIdCache(id);
-        this.translationLoader.clearSourceCache(existingTranslation.source);
-      }
+      await this.translationLoader.updateTranslation(id, translation);
     } catch (error) {
       this.logger.error('번역 캐시 업데이트 중 오류:', { error });
     }

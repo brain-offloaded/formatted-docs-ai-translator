@@ -7,6 +7,8 @@ import { CsvParserOptionsDto } from '@/nest/parser/dto/options/csv-parser-option
 
 @Injectable()
 export class CsvParserService extends BaseParserService<string, CsvParserOptionsDto> {
+  readonly type = 'csv';
+
   /**
    * 파일 경로로부터 CSV 파일을 읽어 문자열로 반환합니다.
    */

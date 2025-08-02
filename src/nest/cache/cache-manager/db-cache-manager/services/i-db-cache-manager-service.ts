@@ -39,7 +39,10 @@ export interface IDbCacheManagerService {
 
   // DB 직접 액세스 메서드
   findTranslationById(id: number): Promise<{ source: string; target: string } | null>;
-  updateTranslationInDb(id: number, translation: string): Promise<void>;
+  updateTranslationInDb(
+    id: number,
+    translation: string
+  ): Promise<{ source: string; target: string } | null>;
   findTranslationsByIds(ids: number[]): Promise<TranslationBasicInfo[]>;
   deleteTranslationsByIds(ids: number[]): Promise<void>;
   findTranslationsByCondition(

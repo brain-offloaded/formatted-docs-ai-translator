@@ -10,6 +10,8 @@ import { SubtitleBlock } from '../models/subtitle-block.interface';
  */
 @Injectable()
 export class SubtitleParserService extends BaseParserService<string, SubtitleParserOptionsDto> {
+  readonly type = 'subtitle';
+
   /**
    * 자막 파일에서 번역 대상을 추출합니다.
    */

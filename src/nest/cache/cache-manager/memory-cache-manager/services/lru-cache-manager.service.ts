@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { LRUCache } from 'lru-cache';
 
 import { IMemoryCacheManagerService } from './i-memory-cache-manager-service';
@@ -9,14 +10,17 @@ export class LruCacheManagerService implements IMemoryCacheManagerService {
 
   /**
    * LruCacheManagerService 생성자
-   * @param options 캐시 옵션
+   * @param configService NestJS Config Service
    */
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
+    const max = this.configService.get<number>('CACHE_MAX_ITEMS', 1000);
+    const ttl = this.configService.get<number>('CACHE_TTL_MS', 24 * 60 * 60 * 1000); // 기본 24시간
+
     this.cache = new LRUCache<string, string>({
-      max: 1000, // 최대 1000개 항목 저장
-      ttl: 24 * 60 * 60 * 1000, // 24시간
-      updateAgeOnGet: true, // 조회 시 항목 나이 갱신
-      allowStale: false, // 만료된 항목 반환 불허
+      max,
+      ttl,
+      updateAgeOnGet: true,
+      allowStale: false,
     });
   }
 
