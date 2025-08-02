@@ -1,19 +1,24 @@
-import { getDefaultMaxInputTokenCountByModel, AiModelName } from '../../../../ai/model';
+import { Injectable } from '@nestjs/common';
+import { calculateDefaultMaxInputTokenCount } from '@/ai/model';
 
-export abstract class AiTokenService<AvailableModel extends AiModelName> {
-  public abstract getEstimatedTokenCount(texts: string[] | string): Promise<number>;
+@Injectable()
+export class AiTokenService {
+  public async getEstimatedTokenCount(texts: string[] | string): Promise<number> {
+    if (!Array.isArray(texts)) return this.getEstimatedTokenCount([texts]);
+    return texts.reduce((sum, text) => sum + Math.ceil(text.length / 2), 0);
+  }
 
   public async getBatchGroups({
+    useThinking,
     texts,
     maxOutputTokenCount,
-    modelName,
   }: {
+    useThinking: boolean;
     texts: string[];
-    maxOutputTokenCount?: number;
-    modelName: AvailableModel;
+    maxOutputTokenCount: number;
   }): Promise<string[][]> {
-    const maxInputTokens = getDefaultMaxInputTokenCountByModel({
-      modelName,
+    const maxInputTokens = calculateDefaultMaxInputTokenCount({
+      useThinking,
       maxOutputTokenCount,
     });
 
@@ -65,5 +70,3 @@ export abstract class AiTokenService<AvailableModel extends AiModelName> {
     return batchGroups;
   }
 }
-
-// export const ITokenService = Symbol('ITokenService');

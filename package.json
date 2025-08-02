@@ -43,7 +43,6 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@google/generative-ai": "^0.24.0",
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
     "@mui/system": "^6.4.8",
@@ -65,6 +64,7 @@
     "jszip": "^3.10.1",
     "limiter": "^2.1.0",
     "lru-cache": "^11.0.2",
+    "openai": "latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "reflect-metadata": "^0.2.2",

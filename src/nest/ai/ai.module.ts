@@ -1,10 +1,19 @@
 import { Module } from '@nestjs/common';
 import { UnifiedAiTranslatorService } from './services/unified-ai-translator.service';
-import { GeminiModule } from './gemini/gemini.module';
+import { ExampleModule } from '../translation/example/example.module';
+import { CacheManagerModule } from '../cache/cache-manager/cache-manager.module';
+import { AiTokenService } from './services/ai-token.service';
+import { AiPromptConverterService } from './services/ai-prompt-converter.service';
+import { AiResponseService } from './services/ai-response.service';
 
 @Module({
-  imports: [GeminiModule],
-  providers: [UnifiedAiTranslatorService],
+  imports: [CacheManagerModule, ExampleModule],
+  providers: [
+    UnifiedAiTranslatorService,
+    AiTokenService,
+    AiPromptConverterService,
+    AiResponseService,
+  ],
   exports: [UnifiedAiTranslatorService],
 })
 export class AiModule {}

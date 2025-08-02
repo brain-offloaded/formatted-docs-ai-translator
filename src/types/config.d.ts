@@ -1,12 +1,12 @@
-import { AiProvider, ModelConfig } from '../ai/model';
+import { ModelProvider } from '@/ai/provider';
+import { ModelConfig } from '../ai/model';
 import { SourceLanguage } from '../utils/language';
 
 export interface TranslatorConfig {
-  aiProvider: AiProvider;
+  modelProvider: ModelProvider;
   sourceLanguage: SourceLanguage;
   apiKey: string;
   customModelConfig: ModelConfig;
-  isCustomInputMode: boolean;
   lastPresetName?: string; // 예제 프리셋 이름
   lastPromptPresetName?: string; // 프롬프트 프리셋 이름 추가
   useThinking: boolean; // AI의 "생각" 과정 활성화 여부

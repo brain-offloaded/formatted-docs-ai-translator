@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { AiProvider, getDefaultModelConfig } from '../../ai/model';
+import { getDefaultModelConfig } from '../../ai/model';
 import { TranslatorConfig, TranslatorConfigUpdate } from '../../types/config';
 import { Language } from '../../utils/language';
+import { ModelProvider } from '@/ai/provider';
 
 // Zustand 상태 및 액션 타입 정의
 export interface ConfigState extends TranslatorConfig {
@@ -12,11 +13,10 @@ export interface ConfigState extends TranslatorConfig {
 
 // 기본 설정 값
 const getDefaultConfig = (): TranslatorConfig => ({
-  aiProvider: AiProvider.GOOGLE,
+  modelProvider: ModelProvider.GOOGLE,
   sourceLanguage: Language.ENGLISH,
   customModelConfig: getDefaultModelConfig(),
   apiKey: '',
-  isCustomInputMode: false,
   lastPresetName: 'default',
   useThinking: false,
   thinkingBudget: 2000,

@@ -4,7 +4,6 @@ import { InvokeFunctionRequest } from '../../../../types/electron';
 import { TranslatorResponse } from '../../../../types/translators';
 import { convertFullWidthToHalfWidth } from '../../../../utils/language';
 import { UnifiedAiTranslatorService } from '../../../ai/services/unified-ai-translator.service';
-import { AiModelName } from '../../../../ai/model';
 import { IpcChannel } from '../../../common/ipc.channel';
 
 @Injectable()
@@ -25,18 +24,13 @@ export class TranslatorService {
   }
 
   private async createBatches({
-    modelName,
     array,
     maxOutputTokenCount,
   }: {
-    modelName: AiModelName;
     array: string[];
     maxOutputTokenCount: number;
   }): Promise<string[][]> {
-    const estimatedTokens = await this.unifiedAiTranslatorService.getEstimatedTokenCount(
-      modelName,
-      array
-    );
+    const estimatedTokens = await this.unifiedAiTranslatorService.getEstimatedTokenCount(array);
 
     // 전체 토큰이 최대 출력 토큰보다 작으면 하나의 배치로 반환
     if (estimatedTokens <= maxOutputTokenCount) {
@@ -63,6 +57,8 @@ export class TranslatorService {
       sourceLanguage,
       apiKey,
       customModelConfig: { modelName, requestsPerMinute, maxOutputTokenCount },
+      useThinking,
+      modelProvider,
     },
     textPaths,
     sourceFilePath,
@@ -74,7 +70,6 @@ export class TranslatorService {
 
     // 배치 생성
     const batches = await this.createBatches({
-      modelName,
       array: preprocessedTexts,
       maxOutputTokenCount,
     });
@@ -89,7 +84,9 @@ export class TranslatorService {
     // 배치별로 병렬 번역 실행
     const translatedBatches = await Promise.all(
       batches.map((batch) =>
-        this.unifiedAiTranslatorService.translate(modelName, {
+        this.unifiedAiTranslatorService.translate({
+          modelProvider,
+          modelName,
           sourceTexts: batch,
           sourceLanguage,
           fileInfo,
@@ -97,6 +94,7 @@ export class TranslatorService {
           maxOutputTokenCount,
           requestsPerMinute,
           promptPresetContent,
+          useThinking,
         })
       )
     );
