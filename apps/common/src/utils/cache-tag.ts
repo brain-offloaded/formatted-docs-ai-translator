@@ -1,5 +1,5 @@
-import { DEFAULT_CACHE_TAG } from '@/constants/cache';
-import type { SourceLanguage, TargetLanguage } from '@/language';
+import { DEFAULT_CACHE_TAG } from '../constants/cache';
+import type { SourceLanguage, TargetLanguage } from '../language';
 
 /**
  * 캐시 태그 이름을 정규화합니다.

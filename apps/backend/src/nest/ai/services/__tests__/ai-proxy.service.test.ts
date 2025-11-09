@@ -15,7 +15,7 @@ describe('AiProxyService.parseTranslationResponse', () => {
         {
           message: {
             role: 'assistant',
-            content: '<|1|>첫 줄\n둘째 줄<|2|>다음 문장',
+            content: '<line id="1">첫 줄\n둘째 줄</line><line id="2">다음 문장</line>',
           },
         },
       ],
@@ -39,7 +39,7 @@ describe('AiProxyService.parseTranslationResponse', () => {
         {
           message: {
             role: 'assistant',
-            content: '<|5|>첫 번째 번역<|6|>두 번째 번역',
+            content: '<line id="5">첫 번째 번역</line><line id="6">두 번째 번역</line>',
           },
         },
       ],
