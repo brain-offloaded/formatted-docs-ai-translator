@@ -9,7 +9,7 @@ export const calculateDefaultMaxInputTokenCount = ({
 }): number => {
   if (maxInputTokenCount) return maxInputTokenCount;
   if (useThinking) {
-    return Math.floor(maxOutputTokenCount / 4);
+    return Math.floor(maxOutputTokenCount / 6);
   }
-  return Math.floor(maxOutputTokenCount / 2);
+  return Math.floor(maxOutputTokenCount / 1.5);
 };
