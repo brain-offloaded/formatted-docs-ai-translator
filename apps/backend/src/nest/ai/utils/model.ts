@@ -11,5 +11,5 @@ export const calculateDefaultMaxInputTokenCount = ({
   if (useThinking) {
     return Math.floor(maxOutputTokenCount / 4);
   }
-  return maxOutputTokenCount;
+  return Math.floor(maxOutputTokenCount / 2);
 };
