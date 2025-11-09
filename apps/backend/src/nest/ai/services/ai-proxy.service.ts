@@ -8,6 +8,27 @@ import {
   TranslatorAiSettings,
 } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
+import { errorToString } from '@/nest/utils/error-stringify';
+
+export class TranslationParsingError extends Error {
+  public readonly shouldReduceBatchSize: boolean;
+  public readonly cause?: unknown;
+
+  constructor(
+    message: string,
+    options?: {
+      cause?: unknown;
+      shouldReduceBatchSize?: boolean;
+    }
+  ) {
+    super(message);
+    this.name = 'TranslationParsingError';
+    this.shouldReduceBatchSize = !!options?.shouldReduceBatchSize;
+    this.cause = options?.cause;
+  }
+}
+
+type TranslationSegment = { id: number; translated_text: string };
 
 @Injectable()
 export class AiProxyService {
@@ -52,30 +73,51 @@ export class AiProxyService {
     return finishReason ?? 'CUSTOM_UNKNOWN';
   }
 
-  private isFinishedByMaxTokens(response: AiChatResponse): boolean {
+  public isFinishedByMaxTokens(response: AiChatResponse): boolean {
     const finishReason = this.getFinishReason(response);
     return finishReason === 'length';
   }
 
   private getResponseText(response: AiChatResponse): string {
-    const responseText = toTextFromMessageContent(response.choices[0].message.content) || '';
-    if (this.isFinishedByMaxTokens(response)) {
-      const lastTagIndex = responseText.lastIndexOf('<seg id=');
-      if (lastTagIndex > 0) {
-        return responseText.substring(0, lastTagIndex);
-      }
-    }
-    return responseText;
+    return toTextFromMessageContent(response.choices[0].message.content) || '';
   }
 
-  private extractMatches(responseText: string): Array<{ id: number; translatedText: string }> {
-    const regex = /<seg id="(\d+?)">(.*?)<\/seg>/gs;
+  private parseSegmentMatches(responseText: string): Array<{ id: number; translatedText: string }> {
+    let payload: { segments?: TranslationSegment[] };
+    try {
+      payload = responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      this.logger.warn('parseSegmentMatches: JSON parse error', {
+        extra: { responseText },
+        cause: errorToString(error),
+      });
+      throw new TranslationParsingError('Failed to parse JSON translation response', {
+        cause: error,
+        shouldReduceBatchSize: true,
+      });
+    }
+
+    if (!payload?.segments || !Array.isArray(payload.segments)) {
+      this.logger.warn('parseSegmentMatches: Invalid format', {
+        extra: { responseText, payload },
+      });
+      throw new TranslationParsingError('Invalid translation response format', {
+        shouldReduceBatchSize: true,
+      });
+    }
+
     const matches: Array<{ id: number; translatedText: string }> = [];
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(responseText)) !== null) {
-      const [, idStr, translatedText] = match;
-      const id = Number.parseInt(idStr, 10);
-      matches.push({ id, translatedText });
+    for (const segment of payload.segments) {
+      if (!segment || typeof segment !== 'object') continue;
+      const parsedId =
+        typeof segment.id === 'number' ? segment.id : Number.parseInt(String(segment.id ?? ''), 10);
+      if (!Number.isFinite(parsedId)) continue;
+      const translatedText =
+        typeof segment.translated_text === 'string' ? segment.translated_text : '';
+      matches.push({
+        id: parsedId,
+        translatedText,
+      });
     }
     return matches;
   }
@@ -155,7 +197,7 @@ export class AiProxyService {
     const responseText = this.getResponseText(response);
     const remainingTextArray = Array.from(remainingTexts.keys());
 
-    const matches = this.extractMatches(responseText);
+    const matches = this.parseSegmentMatches(responseText);
     const offset = this.calculateOffset(matches);
     const { successfulIds, duplicateIds } = this.determineSuccessAndDuplicates(matches);
     const firstFailure = this.findFirstFailureNormalized(

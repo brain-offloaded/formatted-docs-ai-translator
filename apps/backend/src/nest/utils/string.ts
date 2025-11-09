@@ -1,23 +1,25 @@
-export const removeTags = (text: string): string => {
-  return text.replace(/<seg id="\d+?">(.*?)<\/seg>/g, '$1');
-};
-
 export const trimAndFilterTextArray = (textArray: string[]): string[] => {
   return textArray.map((line) => line.trim()).filter((line) => !!line);
 };
 
+export type SegmentValueKey = 'text' | 'translated_text';
+
 export const tagTexts = (
   texts: string[],
-  startIndex = 1
+  startIndex = 1,
+  valueKey: SegmentValueKey = 'text'
 ): { taggedTexts: string; lastIndex: number; tagCount: number } => {
-  const taggedTextArray = trimAndFilterTextArray(texts).map(
-    (text, index) => `<seg id="${index + startIndex}">${text}</seg>`
-  );
-  const taggedTexts = taggedTextArray.join('\n');
+  const trimmedTexts = trimAndFilterTextArray(texts);
+  const segments = trimmedTexts.map((text, index) => {
+    return {
+      id: index + startIndex,
+      [valueKey]: text,
+    };
+  });
 
   return {
-    taggedTexts,
-    lastIndex: taggedTextArray.length + startIndex - 1,
-    tagCount: taggedTextArray.length,
+    taggedTexts: JSON.stringify({ segments }),
+    lastIndex: segments.length + startIndex - 1,
+    tagCount: segments.length,
   };
 };

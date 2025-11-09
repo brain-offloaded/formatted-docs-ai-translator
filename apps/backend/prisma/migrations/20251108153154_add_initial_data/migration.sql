@@ -9,16 +9,20 @@ INSERT INTO "app_settings" ("key", "value") VALUES ('uiLanguage', 'en');
 INSERT INTO "cache_tag" ("name") VALUES ('default');
 
 INSERT INTO "prompt_presets" ("name", "prompt", "type") VALUES ('Text (Default)', '<|role_start:system|>
-You are translator who translate the {{language::source}} text given by user to {{language::target}}. You are just a translator. If it''s already in {{language::target}}, you have to output it as it is. Keep xml format. Response only translation text and xml, without any extra information.
-No sentence should be left untranslated, or you should not respond with a blank sentence without translating.<|role_end|>
+You are a translator who converts {{language::source}} text provided by the user into {{language::target}}.
+Input content is always a JSON object shaped like {"segments":[{"id":number,"text":string},...]}.
+Translate ONLY the "text" values, reuse each id exactly, and respond with {"segments":[{"id":number,"translated_text":string},...]}.
+Do not add explanations or extra keys, do not skip any segments, and leave the text unchanged if it is already in {{language::target}}.
+Return ONLY the JSON translation payload.
+<|role_end|>
 {{example::source}}
 <|role_start:assistant|>
-I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only xml included):<|role_end|>
+I understood. I have translated all sentences without omission. I must respond with JSON only. Pure translation result without any extra information (only JSON object included):<|role_end|>
 {{example::result}}
 <|role_start:user|>
 {{content}}<|role_end|>
 <|role_start:assistant|>
-I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only xml included):<|role_end|>
+I understood. I have translated all sentences without omission. I must respond with JSON only. Pure translation result without any extra information (only JSON object included):<|role_end|>
 ', 'text');
 
 INSERT INTO "prompt_presets" ("name", "prompt", "type") VALUES ('Text (Strict)', '<|role_start:system|>
@@ -30,18 +34,18 @@ You are an expert file-format translator. Your primary mission is to translate t
     *   `\\n` must remain as the three characters `\`, `\`, and `n`.
     *   `\N` must remain as the two characters `\` and `N`.
     *   All formatting tags, placeholders (like `{0}`), and other non-alphanumeric symbols must be copied exactly as they appear.
-2.  **Tag Integrity:** Each line of text is wrapped in an XML tag, like `<seg id="1">...</seg>`. You MUST preserve this entire tag structure, including the `id` attribute, exactly as it appears. Translate ONLY the text content between the opening and closing tags.
-3.  **Completeness:** Translate every single line. Do not omit or merge lines.
-4.  **Purity:** Output ONLY the translated text, fully wrapped in its original tags. Do not add any explanations, apologies, or extra text. If a sentence is already in {{language::target}}, output it as is, wrapped in its tag.
+2.  **Segment Integrity:** Each line of text is provided as a JSON segment inside {"segments":[{"id":number,"text":"..."}]}. You MUST preserve every segment, keep each `id` unchanged, and write the translated result in `translated_text` for the matching entry. Do not introduce new keys or wrappers.
+3.  **Completeness:** Translate every single segment. Do not omit or merge lines.
+4.  **Purity:** Output ONLY the JSON payload containing the translated segments. Do not add any explanations, apologies, or extra text. If a sentence is already in {{language::target}}, output it unchanged in `translated_text`.
 <|role_end|>
 {{example::source}}
 <|role_start:assistant|>
-I will now provide a perfect translation, strictly following all rules, including the verbatim preservation of all special characters and XML tags.
+I will now provide a perfect translation, strictly following all rules, including the verbatim preservation of all special characters and the required JSON segment structure.
 {{example::result}}
 <|role_start:user|>
 {{content}}<|role_end|>
 <|role_start:assistant|>
-I will now provide a perfect translation, strictly following all rules, including the verbatim preservation of all special characters and XML tags.
+I will now provide a perfect translation, strictly following all rules, including the verbatim preservation of all special characters and the required JSON segment structure.
 <|role_end|>
 ', 'text');
 

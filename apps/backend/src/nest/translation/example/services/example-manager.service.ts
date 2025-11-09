@@ -482,7 +482,11 @@ export class ExampleManagerService {
     const combinedSourceLines = [...fixedExample.sourceLines, ...currentExample.sourceLines];
     const combinedResultLines = [...fixedExample.resultLines, ...currentExample.resultLines];
     const { taggedTexts: source, lastIndex: sourceLastIndex } = tagTexts(combinedSourceLines);
-    const { taggedTexts: result, lastIndex: resultLastIndex } = tagTexts(combinedResultLines);
+    const { taggedTexts: result, lastIndex: resultLastIndex } = tagTexts(
+      combinedResultLines,
+      1,
+      'translated_text'
+    );
     if (sourceLastIndex !== resultLastIndex) {
       throw new Error(
         `Source and result line count mismatch: source=${sourceLastIndex}, result=${resultLastIndex}`
