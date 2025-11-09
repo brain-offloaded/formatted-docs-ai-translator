@@ -1,0 +1,1 @@
+export const DEFAULT_CACHE_TAG = '__CACHE_TAG:DEFAULT__';

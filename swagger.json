@@ -1,0 +1,3168 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/db/path": {
+      "get": {
+        "operationId": "DbController_getDbPath",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Returns the path to the database file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetDbPathResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "db"
+        ]
+      }
+    },
+    "/cache/translations": {
+      "get": {
+        "operationId": "CacheTranslationsController_getTranslations",
+        "parameters": [
+          {
+            "name": "searchType",
+            "required": false,
+            "in": "query",
+            "description": "검색 기준",
+            "schema": {
+              "example": "source",
+              "type": "string",
+              "enum": [
+                "source",
+                "target",
+                "fileName",
+                "filePath",
+                "date",
+                "cacheTag"
+              ]
+            }
+          },
+          {
+            "name": "searchValue",
+            "required": false,
+            "in": "query",
+            "description": "검색어",
+            "schema": {
+              "example": "예제",
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "검색 시작일 (YYYY-MM-DD)",
+            "schema": {
+              "example": "2024-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "검색 종료일 (YYYY-MM-DD)",
+            "schema": {
+              "example": "2024-12-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "요청할 페이지 번호 (1부터 시작)",
+            "schema": {
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "itemsPerPage",
+            "required": false,
+            "in": "query",
+            "description": "페이지당 항목 수",
+            "schema": {
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "번역 캐시 목록을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCacheTranslationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-translations"
+        ]
+      },
+      "delete": {
+        "operationId": "CacheTranslationsController_deleteTranslations",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteCacheTranslationsRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "선택된 번역을 삭제하거나 검색 조건에 맞는 모든 번역을 삭제합니다. `translationIds` 또는 `searchParams` 중 하나는 필수입니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteCacheTranslationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-translations"
+        ]
+      }
+    },
+    "/cache/translations/{translationId}/history": {
+      "get": {
+        "operationId": "CacheTranslationsController_getTranslationHistory",
+        "parameters": [
+          {
+            "name": "translationId",
+            "required": true,
+            "in": "path",
+            "description": "대상 번역 ID",
+            "schema": {
+              "example": 12,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "선택한 번역의 이력을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTranslationHistoryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-translations"
+        ]
+      }
+    },
+    "/cache/translations/{translationId}": {
+      "patch": {
+        "operationId": "CacheTranslationsController_updateTranslation",
+        "parameters": [
+          {
+            "name": "translationId",
+            "required": true,
+            "in": "path",
+            "description": "대상 번역 ID",
+            "schema": {
+              "example": 12,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTranslationBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "번역 결과를 수정합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateTranslationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-translations"
+        ]
+      }
+    },
+    "/cache/translations/{translationId}/cache-tag": {
+      "patch": {
+        "operationId": "CacheTranslationsController_updateTranslationCacheTag",
+        "parameters": [
+          {
+            "name": "translationId",
+            "required": true,
+            "in": "path",
+            "description": "대상 번역 ID",
+            "schema": {
+              "example": 12,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTranslationCacheTagBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "번역의 캐시 태그를 변경합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateTranslationCacheTagResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-translations"
+        ]
+      }
+    },
+    "/cache/translations/export": {
+      "get": {
+        "operationId": "CacheTranslationsController_exportTranslations",
+        "parameters": [
+          {
+            "name": "searchType",
+            "required": false,
+            "in": "query",
+            "description": "검색 기준",
+            "schema": {
+              "example": "source",
+              "type": "string",
+              "enum": [
+                "source",
+                "target",
+                "fileName",
+                "filePath",
+                "date",
+                "cacheTag"
+              ]
+            }
+          },
+          {
+            "name": "searchValue",
+            "required": false,
+            "in": "query",
+            "description": "검색어",
+            "schema": {
+              "example": "예제",
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "검색 시작일 (YYYY-MM-DD)",
+            "schema": {
+              "example": "2024-11-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "검색 종료일 (YYYY-MM-DD)",
+            "schema": {
+              "example": "2024-12-01",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "검색 조건에 맞는 번역을 내보냅니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportTranslationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-translations"
+        ]
+      }
+    },
+    "/cache/translations/import": {
+      "post": {
+        "operationId": "CacheTranslationsController_importTranslations",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportTranslationsRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "번역을 가져옵니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportTranslationsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-translations"
+        ]
+      }
+    },
+    "/cache/tags": {
+      "get": {
+        "operationId": "CacheTagsController_getCacheTags",
+        "parameters": [
+          {
+            "name": "keyword",
+            "required": false,
+            "in": "query",
+            "description": "태그 이름 검색 키워드",
+            "schema": {
+              "example": "회의",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "description": "정렬 기준",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "lastUsedAt",
+                "name",
+                "createdAt"
+              ]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "description": "정렬 순서",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "캐시 태그 목록을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCacheTagsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-tags"
+        ]
+      }
+    },
+    "/cache/tags/{id}": {
+      "delete": {
+        "operationId": "CacheTagsController_deleteCacheTag",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "삭제할 캐시 태그 ID",
+            "schema": {
+              "example": 9,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteCacheTagBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "캐시 태그를 삭제합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteCacheTagResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "cache-tags"
+        ]
+      }
+    },
+    "/logs": {
+      "get": {
+        "operationId": "LoggerController_getLogs",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "description": "조회할 페이지 번호",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "itemsPerPage",
+            "required": true,
+            "in": "query",
+            "description": "페이지당 조회할 항목 수",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "levels",
+            "required": false,
+            "in": "query",
+            "description": "필터링할 로그 레벨 목록",
+            "schema": {
+              "minItems": 1,
+              "maxItems": 10,
+              "example": [
+                "error",
+                "warn"
+              ],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "조회 시작 일자 (YYYY-MM-DD 또는 YYYY/MM/DD)",
+            "schema": {
+              "example": "2024-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "조회 종료 일자 (YYYY-MM-DD 또는 YYYY/MM/DD)",
+            "schema": {
+              "example": "2024-01-31",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "로그 목록을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetLogsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "logs"
+        ]
+      },
+      "delete": {
+        "operationId": "LoggerController_deleteLogs",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteLogsRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "선택한 로그 또는 조건에 맞는 로그를 삭제합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteLogsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "logs"
+        ]
+      }
+    },
+    "/logs/{id}": {
+      "get": {
+        "operationId": "LoggerController_getLogDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "조회 대상 로그 ID",
+            "schema": {
+              "minimum": 1,
+              "example": 42,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "특정 로그의 상세 정보를 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetLogDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "logs"
+        ]
+      }
+    },
+    "/example-presets": {
+      "get": {
+        "operationId": "ExamplePresetController_getExamplePresets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "예제 프리셋 목록을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExamplePresetsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "example-presets"
+        ]
+      },
+      "post": {
+        "operationId": "ExamplePresetController_createExamplePreset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExamplePresetRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "예제 프리셋을 생성합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateExamplePresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "example-presets"
+        ]
+      }
+    },
+    "/example-presets/{id}": {
+      "get": {
+        "operationId": "ExamplePresetController_getExamplePresetDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "프리셋 ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "예제 프리셋 상세 정보를 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExamplePresetDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "example-presets"
+        ]
+      },
+      "delete": {
+        "operationId": "ExamplePresetController_deleteExamplePreset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "프리셋 ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "예제 프리셋을 삭제합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteExamplePresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "example-presets"
+        ]
+      },
+      "patch": {
+        "operationId": "ExamplePresetController_updateExamplePreset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "프리셋 ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExamplePresetRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "예제 프리셋을 수정합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateExamplePresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "example-presets"
+        ]
+      }
+    },
+    "/example-presets/{id}/examples": {
+      "get": {
+        "operationId": "ExamplePresetController_getExamplePresetExamples",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "프리셋 ID",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "sourceLanguage",
+            "required": true,
+            "in": "query",
+            "description": "예제를 조회할 소스 언어",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ko",
+                "en",
+                "ja",
+                "zh"
+              ]
+            }
+          },
+          {
+            "name": "targetLanguage",
+            "required": true,
+            "in": "query",
+            "description": "예제를 조회할 타겟 언어",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ko",
+                "en",
+                "ja",
+                "zh"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "특정 언어 쌍에 대한 예제 문장을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetExamplePresetExamplesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "example-presets"
+        ]
+      }
+    },
+    "/example-presets/load": {
+      "post": {
+        "operationId": "ExamplePresetController_loadExamplePreset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadExamplePresetRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "예제 프리셋을 로드합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadExamplePresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "example-presets"
+        ]
+      }
+    },
+    "/prompt-presets": {
+      "get": {
+        "operationId": "PromptPresetController_getPromptPresets",
+        "parameters": [
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "프롬프트 프리셋 타입 필터",
+            "schema": {
+              "example": "text",
+              "type": "string",
+              "enum": [
+                "text",
+                "image"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "프롬프트 프리셋 목록을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetPromptPresetsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "prompt-presets"
+        ]
+      },
+      "post": {
+        "operationId": "PromptPresetController_createPromptPreset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePromptPresetRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "프롬프트 프리셋을 생성합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePromptPresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "prompt-presets"
+        ]
+      }
+    },
+    "/prompt-presets/{id}": {
+      "get": {
+        "operationId": "PromptPresetController_getPromptPresetDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "프롬프트 프리셋 상세 정보를 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetPromptPresetDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "prompt-presets"
+        ]
+      },
+      "patch": {
+        "operationId": "PromptPresetController_updatePromptPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePromptPresetBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "프롬프트 프리셋을 업데이트합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatePromptPresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "prompt-presets"
+        ]
+      },
+      "delete": {
+        "operationId": "PromptPresetController_deletePromptPreset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "프롬프트 프리셋을 삭제합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletePromptPresetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "prompt-presets"
+        ]
+      }
+    },
+    "/translator/text/translate": {
+      "post": {
+        "operationId": "TextTranslatorController_translateText",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateTextArrayRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "텍스트 배열을 번역합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslateTextArrayResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "text-translator"
+        ]
+      }
+    },
+    "/temp-workspaces/{workspaceId}": {
+      "delete": {
+        "operationId": "TempWorkspaceController_deleteTempWorkspace",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": true,
+            "in": "path",
+            "description": "정리할 임시 작업 공간 ID",
+            "schema": {
+              "example": "2f6d1bc5-1b3d-4c5f-9c8a-dc2a1426dd01",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "임시 작업 공간을 정리합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteTempWorkspaceResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "temp-workspaces"
+        ]
+      }
+    },
+    "/settings/{key}": {
+      "get": {
+        "operationId": "SettingsController_getSetting",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "설정을 조회하거나 수정할 때 사용하는 키",
+            "schema": {
+              "example": "uiLanguage",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "설정 값을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetSettingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "settings"
+        ]
+      },
+      "patch": {
+        "operationId": "SettingsController_updateSetting",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "설정을 조회하거나 수정할 때 사용하는 키",
+            "schema": {
+              "example": "uiLanguage",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "설정 값을 생성하거나 업데이트합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateSettingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "settings"
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsController_deleteSetting",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "description": "설정을 조회하거나 수정할 때 사용하는 키",
+            "schema": {
+              "example": "uiLanguage",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "설정을 삭제합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteSettingResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/settings": {
+      "get": {
+        "operationId": "SettingsController_getAllSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "등록된 모든 설정을 조회합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetAllSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/translator/image/translate": {
+      "post": {
+        "operationId": "ImageTranslatorController_translateImage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateImageRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "이미지를 번역하고 OCR/번역 결과를 반환합니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslateImageResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "image-translator"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "FormattedDocs API",
+    "description": "",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "GetDbPathResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "path": {
+            "type": "string",
+            "description": "The path to the database file.",
+            "example": "/path/to/database.db"
+          }
+        },
+        "required": [
+          "success",
+          "path"
+        ]
+      },
+      "CacheTranslationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "번역 캐시 ID",
+            "example": 42
+          },
+          "source": {
+            "type": "string",
+            "description": "원본 텍스트",
+            "example": "Hello"
+          },
+          "target": {
+            "type": "string",
+            "description": "번역된 텍스트",
+            "example": "안녕하세요"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "항목이 생성된 시각",
+            "example": "2024-12-01T12:34:56.000Z"
+          },
+          "lastAccessedAt": {
+            "type": "string",
+            "description": "마지막으로 접근된 시각",
+            "example": "2024-12-10T09:20:00.000Z"
+          },
+          "cacheTag": {
+            "type": "string",
+            "description": "연결된 캐시 태그 이름",
+            "example": "일반"
+          },
+          "cacheTagId": {
+            "type": "number",
+            "description": "연결된 캐시 태그 ID, 없을 경우 null",
+            "example": 3,
+            "nullable": true
+          },
+          "fileName": {
+            "type": "string",
+            "description": "연관된 파일 이름",
+            "example": "document.txt",
+            "nullable": true
+          },
+          "filePath": {
+            "type": "string",
+            "description": "연관된 파일 경로",
+            "example": "/Users/username/Documents/document.txt",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "createdAt",
+          "lastAccessedAt",
+          "cacheTag"
+        ]
+      },
+      "GetCacheTranslationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "translations": {
+            "description": "조회된 번역 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CacheTranslationDto"
+            }
+          },
+          "totalItems": {
+            "type": "number",
+            "description": "전체 항목 수",
+            "example": 120
+          }
+        },
+        "required": [
+          "success",
+          "translations",
+          "totalItems"
+        ]
+      },
+      "TranslationHistoryDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "원본 텍스트",
+            "example": "Hello"
+          },
+          "target": {
+            "type": "string",
+            "description": "번역된 텍스트",
+            "example": "안녕하세요"
+          },
+          "success": {
+            "type": "boolean",
+            "description": "번역 성공 여부",
+            "example": true
+          },
+          "error": {
+            "type": "string",
+            "description": "번역 실패 시 오류 메시지",
+            "example": "Rate limit exceeded",
+            "nullable": true
+          },
+          "model": {
+            "type": "string",
+            "description": "번역 요청에 사용된 모델 이름",
+            "example": "gpt-4o-mini"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "이력이 기록된 시각",
+            "example": "2024-12-10T12:00:00.000Z"
+          },
+          "cacheTag": {
+            "type": "string",
+            "description": "번역 시 사용된 캐시 태그 이름",
+            "example": "일반"
+          }
+        },
+        "required": [
+          "source",
+          "target",
+          "success",
+          "model",
+          "createdAt",
+          "cacheTag"
+        ]
+      },
+      "GetTranslationHistoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "translationHistory": {
+            "description": "선택한 번역의 이력 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranslationHistoryDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "translationHistory"
+        ]
+      },
+      "UpdateTranslationBodyDto": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "수정할 번역 텍스트",
+            "example": "안녕하세요!"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      },
+      "UpdateTranslationResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "UpdateTranslationCacheTagBodyDto": {
+        "type": "object",
+        "properties": {
+          "cacheTagId": {
+            "type": "number",
+            "description": "변경할 캐시 태그 ID",
+            "example": 5
+          }
+        },
+        "required": [
+          "cacheTagId"
+        ]
+      },
+      "UpdateTranslationCacheTagResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "CacheTranslationsSearchParamsDto": {
+        "type": "object",
+        "properties": {
+          "searchType": {
+            "type": "string",
+            "description": "검색 기준",
+            "enum": [
+              "source",
+              "target",
+              "fileName",
+              "filePath",
+              "date",
+              "cacheTag"
+            ],
+            "example": "source"
+          },
+          "searchValue": {
+            "type": "string",
+            "description": "검색어",
+            "example": "예제"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "검색 시작일 (YYYY-MM-DD)",
+            "example": "2024-11-01"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "검색 종료일 (YYYY-MM-DD)",
+            "example": "2024-12-01"
+          }
+        }
+      },
+      "DeleteCacheTranslationsRequestDto": {
+        "type": "object",
+        "properties": {
+          "translationIds": {
+            "description": "삭제할 번역 ID 목록",
+            "example": [
+              1,
+              2,
+              3
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "searchParams": {
+            "description": "검색 조건에 해당하는 모든 번역 삭제 시 사용되는 조건",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CacheTranslationsSearchParamsDto"
+              }
+            ]
+          }
+        }
+      },
+      "DeleteCacheTranslationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "TranslationExportImportDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "번역 ID",
+            "example": 101
+          },
+          "source": {
+            "type": "string",
+            "description": "원본 텍스트",
+            "example": "How are you?"
+          },
+          "target": {
+            "type": "string",
+            "description": "번역 텍스트",
+            "example": "잘 지내?"
+          },
+          "cacheTag": {
+            "type": "string",
+            "description": "연결된 캐시 태그",
+            "example": "일반"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "cacheTag"
+        ]
+      },
+      "ExportTranslationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "translations": {
+            "description": "내보낸 번역 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranslationExportImportDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "translations"
+        ]
+      },
+      "ImportTranslationItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "번역 ID",
+            "example": 15
+          },
+          "source": {
+            "type": "string",
+            "description": "원본 텍스트",
+            "example": "Sample sentence"
+          },
+          "target": {
+            "type": "string",
+            "description": "번역된 텍스트",
+            "example": "샘플 문장"
+          },
+          "cacheTag": {
+            "type": "string",
+            "description": "연결할 캐시 태그",
+            "example": "일반"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "cacheTag"
+        ]
+      },
+      "ImportTranslationsRequestDto": {
+        "type": "object",
+        "properties": {
+          "translations": {
+            "description": "가져올 번역 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportTranslationItemDto"
+            }
+          }
+        },
+        "required": [
+          "translations"
+        ]
+      },
+      "ImportTranslationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "updatedCount": {
+            "type": "number",
+            "description": "업데이트되거나 생성된 번역 수",
+            "example": 25
+          }
+        },
+        "required": [
+          "success",
+          "updatedCount"
+        ]
+      },
+      "CacheTagSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "캐시 태그 ID",
+            "example": 7
+          },
+          "name": {
+            "type": "string",
+            "description": "캐시 태그 이름",
+            "example": "기본"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "태그가 생성된 시각",
+            "example": "2024-10-01T08:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "태그가 마지막으로 수정된 시각",
+            "example": "2024-11-01T08:00:00.000Z"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "description": "태그가 마지막으로 사용된 시각",
+            "example": "2024-12-05T10:00:00.000Z",
+            "nullable": true
+          },
+          "translationCount": {
+            "type": "number",
+            "description": "태그에 연결된 번역 개수",
+            "example": 54
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "updatedAt",
+          "translationCount"
+        ]
+      },
+      "GetCacheTagsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "cacheTags": {
+            "description": "캐시 태그 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CacheTagSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "cacheTags"
+        ]
+      },
+      "DeleteCacheTagBodyDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "삭제 모드",
+            "enum": [
+              "strict",
+              "cascade",
+              "reassign"
+            ],
+            "default": "strict"
+          },
+          "targetTagId": {
+            "type": "number",
+            "description": "재할당 대상 캐시 태그 ID (mode가 reassign일 경우 필수)",
+            "example": 3
+          }
+        }
+      },
+      "DeleteCacheTagResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "LogListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "로그 ID",
+            "example": 1
+          },
+          "level": {
+            "type": "string",
+            "description": "로그 레벨",
+            "example": "error"
+          },
+          "message": {
+            "type": "string",
+            "description": "로그 메시지",
+            "example": "Unhandled exception occurred."
+          },
+          "context": {
+            "type": "string",
+            "description": "로그 컨텍스트",
+            "nullable": true,
+            "example": "ImageTranslatorService"
+          },
+          "metadataPreview": {
+            "type": "string",
+            "description": "메타데이터 미리보기 문자열",
+            "nullable": true,
+            "example": "{\"file\":\"example.png\"}"
+          },
+          "hasMetadata": {
+            "type": "boolean",
+            "description": "메타데이터 존재 여부",
+            "example": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "로그 발생 시각 (ISO 문자열)",
+            "example": "2024-01-01T12:34:56.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "level",
+          "message",
+          "hasMetadata",
+          "timestamp"
+        ]
+      },
+      "GetLogsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "logs": {
+            "description": "로그 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogListItemDto"
+            }
+          },
+          "totalItems": {
+            "type": "number",
+            "description": "총 로그 개수",
+            "example": 120
+          }
+        },
+        "required": [
+          "success",
+          "logs",
+          "totalItems"
+        ]
+      },
+      "LogDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "로그 ID",
+            "example": 1
+          },
+          "level": {
+            "type": "string",
+            "description": "로그 레벨",
+            "example": "error"
+          },
+          "message": {
+            "type": "string",
+            "description": "로그 메시지",
+            "example": "Unhandled exception occurred."
+          },
+          "context": {
+            "type": "string",
+            "description": "로그 컨텍스트",
+            "nullable": true,
+            "example": "ImageTranslatorService"
+          },
+          "metadataPreview": {
+            "type": "string",
+            "description": "메타데이터 미리보기 문자열",
+            "nullable": true,
+            "example": "{\"file\":\"example.png\"}"
+          },
+          "hasMetadata": {
+            "type": "boolean",
+            "description": "메타데이터 존재 여부",
+            "example": true
+          },
+          "timestamp": {
+            "type": "string",
+            "description": "로그 발생 시각 (ISO 문자열)",
+            "example": "2024-01-01T12:34:56.000Z"
+          },
+          "metadata": {
+            "type": "string",
+            "description": "로그 전체 메타데이터(JSON 문자열)",
+            "nullable": true,
+            "example": "{\"file\":\"example.png\",\"line\":42}"
+          },
+          "stack": {
+            "type": "string",
+            "description": "스택 트레이스 문자열",
+            "nullable": true,
+            "example": "Error: Something bad\n    at ..."
+          },
+          "meta": {
+            "type": "object",
+            "description": "파싱된 메타데이터 객체",
+            "nullable": true,
+            "example": {
+              "file": "example.png",
+              "line": 42
+            }
+          }
+        },
+        "required": [
+          "id",
+          "level",
+          "message",
+          "hasMetadata",
+          "timestamp"
+        ]
+      },
+      "GetLogDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "log": {
+            "description": "요청한 로그 상세 정보",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LogDetailDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "LogSearchParamsDto": {
+        "type": "object",
+        "properties": {
+          "levels": {
+            "description": "필터링할 로그 레벨 목록",
+            "example": [
+              "error",
+              "warn"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "description": "조회 시작 일자 (YYYY-MM-DD 또는 YYYY/MM/DD)",
+            "example": "2024-01-01"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "조회 종료 일자 (YYYY-MM-DD 또는 YYYY/MM/DD)",
+            "example": "2024-01-31"
+          }
+        }
+      },
+      "DeleteLogsRequestDto": {
+        "type": "object",
+        "properties": {
+          "logIds": {
+            "description": "삭제할 로그 ID 목록",
+            "example": [
+              1,
+              2,
+              3
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "searchParams": {
+            "description": "검색 조건과 일치하는 로그를 삭제할 때 사용하는 필터",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LogSearchParamsDto"
+              }
+            ]
+          }
+        }
+      },
+      "DeleteLogsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "ExamplePresetDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "프리셋 ID",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "프리셋 이름",
+            "example": "기본 프리셋"
+          },
+          "description": {
+            "type": "object",
+            "description": "프리셋 설명",
+            "example": "이것은 기본 프리셋입니다.",
+            "nullable": true
+          },
+          "languages": {
+            "description": "프리셋에 포함된 언어 목록",
+            "example": [
+              "ko",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "languages"
+        ]
+      },
+      "GetExamplePresetsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "presets": {
+            "description": "예제 프리셋 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExamplePresetDto"
+            }
+          },
+          "currentPreset": {
+            "type": "string",
+            "description": "현재 선택된 프리셋 이름",
+            "example": "기본 프리셋"
+          }
+        },
+        "required": [
+          "success",
+          "presets",
+          "currentPreset"
+        ]
+      },
+      "ExamplePresetDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "프리셋 ID",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "프리셋 이름",
+            "example": "기본 프리셋"
+          },
+          "description": {
+            "type": "object",
+            "description": "프리셋 설명",
+            "example": "이것은 기본 프리셋입니다.",
+            "nullable": true
+          },
+          "languages": {
+            "description": "프리셋에 포함된 언어 목록",
+            "example": [
+              "ko",
+              "en"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "languages"
+        ]
+      },
+      "GetExamplePresetDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "preset": {
+            "description": "예제 프리셋 상세 정보",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExamplePresetDetailDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "preset"
+        ]
+      },
+      "ExamplePresetExampleLineDto": {
+        "type": "object",
+        "properties": {
+          "sourceText": {
+            "type": "string",
+            "description": "원문 예제 문장",
+            "example": "안녕하세요"
+          },
+          "resultText": {
+            "type": "string",
+            "description": "번역 예제 문장",
+            "example": "Hello"
+          }
+        },
+        "required": [
+          "sourceText",
+          "resultText"
+        ]
+      },
+      "GetExamplePresetExamplesResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "description": "예제를 조회한 소스 언어",
+            "enum": [
+              "ko",
+              "en",
+              "ja",
+              "zh"
+            ]
+          },
+          "targetLanguage": {
+            "type": "string",
+            "description": "예제를 조회한 타겟 언어",
+            "enum": [
+              "ko",
+              "en",
+              "ja",
+              "zh"
+            ]
+          },
+          "examples": {
+            "description": "요청한 언어 쌍에 해당하는 예제 문장 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExamplePresetExampleLineDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "sourceLanguage",
+          "targetLanguage",
+          "examples"
+        ]
+      },
+      "LoadExamplePresetRequestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "로드할 프리셋 이름",
+            "example": "기본 프리셋"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "LoadExamplePresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "CreateExamplePresetRequestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "새 프리셋 이름",
+            "example": "나만의 프리셋"
+          },
+          "description": {
+            "type": "object",
+            "description": "프리셋 설명",
+            "example": "이것은 나만의 프리셋입니다.",
+            "nullable": true
+          },
+          "examples": {
+            "type": "object",
+            "description": "언어별 번역 예제 목록",
+            "example": {
+              "Korean": {
+                "English": {
+                  "sourceLines": [
+                    "안녕하세요"
+                  ],
+                  "resultLines": [
+                    "Hello"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ]
+      },
+      "CreateExamplePresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "preset": {
+            "description": "생성된 예제 프리셋 정보",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExamplePresetDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "preset"
+        ]
+      },
+      "DeleteExamplePresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "UpdateExamplePresetRequestDto": {
+        "type": "object",
+        "properties": {
+          "examples": {
+            "type": "object",
+            "description": "언어별 번역 예제 목록",
+            "example": {
+              "Korean": {
+                "English": {
+                  "sourceLines": [
+                    "안녕하세요"
+                  ],
+                  "resultLines": [
+                    "Hello"
+                  ]
+                }
+              }
+            }
+          },
+          "description": {
+            "type": "object",
+            "description": "프리셋 설명",
+            "example": "이것은 업데이트된 프리셋입니다.",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "description": "프리셋 이름",
+            "example": "업데이트된 프리셋"
+          }
+        },
+        "required": [
+          "examples"
+        ]
+      },
+      "UpdateExamplePresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "PromptPresetDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "프롬프트 프리셋 ID",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "프롬프트 프리셋 이름",
+            "example": "기본 프롬프트"
+          },
+          "type": {
+            "type": "string",
+            "description": "프롬프트 프리셋 타입",
+            "enum": [
+              "text",
+              "image"
+            ],
+            "example": "text"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ]
+      },
+      "GetPromptPresetsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "presets": {
+            "description": "프롬프트 프리셋 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PromptPresetDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "presets"
+        ]
+      },
+      "PromptPresetDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "프롬프트 프리셋 ID",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "프롬프트 프리셋 이름",
+            "example": "기본 프롬프트"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "프롬프트 내용",
+            "example": "당신은 번역 전문가입니다."
+          },
+          "type": {
+            "type": "string",
+            "description": "프롬프트 프리셋 타입",
+            "enum": [
+              "text",
+              "image"
+            ],
+            "example": "text"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prompt",
+          "type"
+        ]
+      },
+      "GetPromptPresetDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "preset": {
+            "description": "프롬프트 프리셋 상세 정보",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PromptPresetDetailDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "CreatePromptPresetRequestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "프롬프트 프리셋 이름",
+            "example": "기본 프롬프트"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "프롬프트 내용",
+            "example": "당신은 번역 전문가입니다."
+          },
+          "type": {
+            "type": "string",
+            "description": "프롬프트 프리셋 타입",
+            "enum": [
+              "text",
+              "image"
+            ],
+            "example": "text"
+          }
+        },
+        "required": [
+          "name",
+          "prompt",
+          "type"
+        ]
+      },
+      "CreatePromptPresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "preset": {
+            "description": "생성된 프롬프트 프리셋",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PromptPresetDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "UpdatePromptPresetBodyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "프롬프트 프리셋 이름",
+            "example": "수정된 프롬프트"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "프롬프트 내용",
+            "example": "당신은 번역 전문가입니다."
+          },
+          "type": {
+            "type": "string",
+            "description": "프롬프트 프리셋 타입",
+            "enum": [
+              "text",
+              "image"
+            ],
+            "example": "text"
+          }
+        }
+      },
+      "UpdatePromptPresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "preset": {
+            "description": "업데이트된 프롬프트 프리셋",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PromptPresetDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "DeletePromptPresetResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "TranslatorModelConfigDto": {
+        "type": "object",
+        "properties": {
+          "modelName": {
+            "type": "string",
+            "description": "번역 모델 이름",
+            "example": "gpt-4o-mini"
+          },
+          "requestsPerMinute": {
+            "type": "number",
+            "description": "분당 허용 요청 수",
+            "example": 60
+          },
+          "maxOutputTokenCount": {
+            "type": "number",
+            "description": "출력 토큰의 최대 개수",
+            "example": 4096
+          }
+        },
+        "required": [
+          "modelName",
+          "requestsPerMinute",
+          "maxOutputTokenCount"
+        ]
+      },
+      "TranslatorAiSettingsDto": {
+        "type": "object",
+        "properties": {
+          "modelProvider": {
+            "type": "string",
+            "description": "사용할 AI 모델 제공자",
+            "enum": [
+              "Google",
+              "vertex-ai"
+            ],
+            "example": "Google"
+          },
+          "sourceLanguage": {
+            "type": "string",
+            "description": "원본 언어",
+            "enum": [
+              "any",
+              "ko",
+              "en",
+              "ja",
+              "zh"
+            ],
+            "example": "en"
+          },
+          "targetLanguage": {
+            "type": "string",
+            "description": "번역 대상 언어",
+            "enum": [
+              "ko",
+              "en",
+              "ja",
+              "zh"
+            ],
+            "example": "ko"
+          },
+          "apiKey": {
+            "type": "string",
+            "description": "AI 제공자에 전달할 API 키 (공백으로 구분된 복수 키 허용)",
+            "example": "key-1 key-2 key-3"
+          },
+          "customModelConfig": {
+            "description": "AI 모델 동작에 필요한 설정",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TranslatorModelConfigDto"
+              }
+            ]
+          },
+          "useThinking": {
+            "type": "boolean",
+            "description": "모델의 생각(Reasoning) 모드를 사용할지 여부",
+            "example": false
+          },
+          "setThinkingBudget": {
+            "type": "boolean",
+            "description": "커스텀 생각 예산을 구성할지 여부",
+            "example": false
+          },
+          "thinkingBudget": {
+            "type": "number",
+            "description": "생각 모드 활성화 시 사용하는 토큰 예산",
+            "example": 1024
+          }
+        },
+        "required": [
+          "modelProvider",
+          "sourceLanguage",
+          "targetLanguage",
+          "apiKey",
+          "customModelConfig",
+          "useThinking",
+          "setThinkingBudget"
+        ]
+      },
+      "TranslationTextPathDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "번역 대상 텍스트",
+            "example": "こんにちは"
+          },
+          "path": {
+            "type": "string",
+            "description": "텍스트를 식별하기 위한 경로 또는 키",
+            "example": "document.sections[0].paragraphs[3]"
+          },
+          "extra": {
+            "type": "object",
+            "description": "추가 메타데이터"
+          }
+        },
+        "required": [
+          "text",
+          "path"
+        ]
+      },
+      "TranslateTextArrayRequestDto": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "description": "번역 요청 식별자",
+            "example": "9c3e6de9-33c2-4a3f-a5e1-4a03bddf10cf"
+          },
+          "aiSettings": {
+            "description": "AI 번역기에 전달할 설정 값",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TranslatorAiSettingsDto"
+              }
+            ]
+          },
+          "textPaths": {
+            "description": "번역 대상 텍스트 배열",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranslationTextPathDto"
+            }
+          },
+          "sourceFilePath": {
+            "type": "string",
+            "description": "번역 대상 원본 파일 경로",
+            "example": "/Users/john/Documents/example.json"
+          },
+          "promptPresetContent": {
+            "type": "string",
+            "description": "프롬프트 프리셋 내용",
+            "example": "번역 시 존댓말을 사용해 주세요."
+          },
+          "cacheTag": {
+            "type": "string",
+            "description": "번역 결과를 저장할 캐시 태그",
+            "example": "default"
+          }
+        },
+        "required": [
+          "requestId",
+          "aiSettings",
+          "textPaths",
+          "cacheTag"
+        ]
+      },
+      "TranslatedTextPathDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "번역 대상 텍스트",
+            "example": "こんにちは"
+          },
+          "path": {
+            "type": "string",
+            "description": "텍스트를 식별하기 위한 경로 또는 키",
+            "example": "document.sections[0].paragraphs[3]"
+          },
+          "extra": {
+            "type": "object",
+            "description": "추가 메타데이터"
+          },
+          "translatedText": {
+            "type": "string",
+            "description": "번역 결과 텍스트",
+            "example": "안녕하세요"
+          }
+        },
+        "required": [
+          "text",
+          "path",
+          "translatedText"
+        ]
+      },
+      "TranslateTextArrayResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "translatedTextPaths": {
+            "description": "번역 결과 텍스트 경로 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TranslatedTextPathDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "translatedTextPaths"
+        ]
+      },
+      "DeleteTempWorkspaceResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "GetSettingResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "result": {
+            "type": "string",
+            "description": "해당 키에 저장된 설정 값",
+            "example": "ko",
+            "nullable": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "UpdateSettingRequestDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string",
+            "description": "저장할 설정 값",
+            "example": "ko"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "AppSettingDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "설정 키",
+            "example": "uiLanguage"
+          },
+          "value": {
+            "type": "string",
+            "description": "설정 값",
+            "example": "ko"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "설정이 생성된 시각",
+            "example": "2024-04-01T12:34:56.000Z",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "설정이 마지막으로 업데이트된 시각",
+            "example": "2024-04-03T08:15:30.000Z",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "key",
+          "value",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateSettingResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "result": {
+            "description": "저장된 설정 정보",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AppSettingDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "result"
+        ]
+      },
+      "GetAllSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "result": {
+            "description": "저장된 모든 설정 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppSettingDto"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "result"
+        ]
+      },
+      "DeleteSettingResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "TranslateImageRequestDto": {
+        "type": "object",
+        "properties": {
+          "base64": {
+            "type": "string",
+            "description": "Base64로 인코딩된 원본 이미지 데이터",
+            "example": "iVBORw0KGgoAAAANSUhEUgAA..."
+          },
+          "sourceFilePath": {
+            "type": "string",
+            "description": "원본 이미지 파일 경로",
+            "example": "/Users/john/Desktop/example.png"
+          },
+          "promptPresetContent": {
+            "type": "string",
+            "description": "이미지 번역에 사용할 프롬프트 프리셋 내용",
+            "example": "이 이미지를 한국어로 번역해 주세요."
+          },
+          "cacheTag": {
+            "type": "string",
+            "description": "번역 결과를 저장할 캐시 태그",
+            "example": "default"
+          },
+          "requestId": {
+            "type": "string",
+            "description": "번역 요청을 구분하기 위한 고유 ID",
+            "example": "a3e6c6b4-2b80-4f5c-b75d-0e1d1f487af6"
+          },
+          "aiSettings": {
+            "description": "AI 번역기에 전달할 설정 값",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TranslatorAiSettingsDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "base64",
+          "requestId",
+          "aiSettings"
+        ]
+      },
+      "ImageTextBoundingBoxDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "번역 대상 텍스트",
+            "example": "Hello world"
+          },
+          "box_2d": {
+            "description": "이미지 내 텍스트의 위치를 나타내는 [y1, x1, y2, x2] 좌표",
+            "minItems": 4,
+            "maxItems": 4,
+            "example": [
+              100,
+              120,
+              220,
+              360
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "text",
+          "box_2d"
+        ]
+      },
+      "ImageOcrTranslationResultDto": {
+        "type": "object",
+        "properties": {
+          "ocr_result": {
+            "description": "OCR 결과 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageTextBoundingBoxDto"
+            }
+          },
+          "translated_result": {
+            "description": "번역된 텍스트 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImageTextBoundingBoxDto"
+            }
+          }
+        },
+        "required": [
+          "ocr_result",
+          "translated_result"
+        ]
+      },
+      "TranslateImageResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "요청이 성공했는지 여부",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "요청 처리 결과 메시지",
+            "example": "처리가 완료되었습니다."
+          },
+          "result": {
+            "description": "이미지 번역 결과",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ImageOcrTranslationResultDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "result"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": "../../dist/tsconfig.swagger.tsbuildinfo"
+  },
+  "exclude": ["../frontend/src/**/*", "../../node_modules", "../../dist", "../../test", "**/*spec.ts"],
+  "include": ["./src/nest/**/*", "./src/env.ts", "./src/main.ts"],
+  "references": [
+    {
+      "path": "../common"
+    }
+  ]
+}

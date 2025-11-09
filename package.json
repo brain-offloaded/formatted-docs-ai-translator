@@ -1,0 +1,192 @@
+{
+  "name": "formatted-docs-ai-translator",
+  "version": "0.1.1",
+  "description": "Formatted Docs such as Json Translation Tool using Artificial Intelligence",
+  "main": "dist/main.js",
+  "author": "brain-offloaded",
+  "engines": {
+    "node": "22.14.0"
+  },
+  "workspaces": {
+    "packages": [
+      "apps/common",
+      "apps/backend",
+      "apps/frontend"
+    ]
+  },
+  "scripts": {
+    "start": "yarn workspace @apps/backend start",
+    "start:debug": "yarn workspace @apps/backend start:debug",
+    "dev": "cross-env NODE_ENV=development yarn build && cross-env NODE_ENV=development yarn workspace @apps/backend start",
+    "dev:debug": "cross-env NODE_ENV=development yarn build && cross-env NODE_ENV=development yarn workspace @apps/backend start:debug",
+    "dev:watch": "turbo build && concurrently \"turbo watch\" \"nodemon --config nodemon.json --exec \\\"yarn workspace @apps/backend start\\\"\"",
+    "dev:watch:debug": "turbo build && concurrently \"turbo watch\" \"nodemon --config nodemon.json --exec \\\"yarn workspace @apps/backend start:debug\\\"\"",
+    "start:dev": "yarn dev",
+    "build": "turbo build",
+    "build:ts": "turbo build",
+    "build:backend": "yarn workspace @apps/backend build",
+    "build:frontend": "yarn workspace @apps/frontend build",
+    "build:common": "yarn workspace @apps/common build",
+    "build:swagger": "yarn workspace @apps/backend build:swagger",
+    "watch": "turbo watch",
+    "watch-ts": "turbo watch",
+    "clean": "turbo clean && rimraf dist apps/common/dist",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix",
+    "format": "turbo format",
+    "fix:aliases": "turbo fix:aliases",
+    "validate:i18n": "ts-node scripts/validate-i18n-keys.ts",
+    "validate:i18n:fix": "ts-node scripts/validate-i18n-keys.ts --fix",
+    "prebuild": "yarn validate:i18n",
+    "test": "turbo test",
+    "test:watch": "turbo test:watch",
+    "test:cov": "turbo test:cov",
+    "test:debug": "yarn workspace @apps/backend test:debug",
+    "test:unit": "yarn workspace @apps/backend test:unit",
+    "package:prepare": "node scripts/prepare-package-optimized.mjs",
+    "package:win": "yarn build && yarn package:prepare && electron-builder build --win --dir",
+    "package:linux": "yarn build && yarn package:prepare && electron-builder build --linux --dir",
+    "package:win:dist": "yarn build && yarn package:prepare && electron-builder build --win",
+    "package:linux:dist": "yarn build && yarn package:prepare && electron-builder build --linux",
+    "postinstall": "yarn workspace @apps/backend exec prisma generate && yarn rebuild:electron",
+    "rebuild:electron": "yarn workspace @apps/backend rebuild:electron",
+    "rebuild:local": "yarn workspace @apps/backend rebuild:local",
+    "nest:generate": "yarn workspace @apps/backend nest:generate",
+    "nest:g:module": "yarn workspace @apps/backend nest:g:module",
+    "nest:g:controller": "yarn workspace @apps/backend nest:g:controller",
+    "nest:g:service": "yarn workspace @apps/backend nest:g:service",
+    "nest:g:provider": "yarn workspace @apps/backend nest:g:provider",
+    "nest:g:class": "yarn workspace @apps/backend nest:g:class",
+    "swagger:gen": "yarn workspace @apps/backend swagger:gen",
+    "client:gen": "yarn workspace @apps/frontend client:gen",
+    "codegen": "yarn swagger:gen && yarn client:gen",
+    "prisma:studio": "yarn workspace @apps/backend exec prisma studio"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@types/node": "^20.17.27",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron-builder": "^24.13.3",
+    "eslint": "^9.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.2.5",
+    "prisma": "^6.19.0",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.15",
+    "tsconfig-paths": "^4.2.0",
+    "turbo": "^2.6.0",
+    "typescript": "^5.8.2"
+  },
+  "build": {
+    "appId": "com.brain-offloaded.formatted-docs-ai-translator",
+    "productName": "Formatted Docs AI Translator",
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "buildDependenciesFromSource": false,
+    "directories": {
+      "app": "apps/backend/app",
+      "output": "release"
+    },
+    "asarUnpack": [
+      "node_modules/sharp/**",
+      "node_modules/@img/**",
+      "**/node_modules/prisma/build/index.js",
+      "**/node_modules/@prisma/engines/**",
+      "**/node_modules/@prisma/client/runtime/**",
+      "**/node_modules/@prisma/client/libquery_engine-*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/.prisma",
+        "to": "node_modules/.prisma"
+      },
+      {
+        "from": "node_modules/@prisma",
+        "to": "node_modules/@prisma"
+      },
+      {
+        "from": "apps/backend/prisma/schema.prisma",
+        "to": "prisma/schema.prisma"
+      },
+      {
+        "from": "apps/backend/prisma/migrations",
+        "to": "prisma/migrations"
+      }
+    ],
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache",
+      "package.json",
+      "index.html"
+    ],
+    "asar": {
+      "smartUnpack": false
+    },
+    "win": {
+      "target": [
+        "zip"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "dir"
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "brain-offloaded",
+        "repo": "formatted-docs-ai-translator"
+      }
+    ]
+  },
+  "keywords": [],
+  "repository": {
+    "type": "git",
+    "repo": "formatted-docs-ai-translator"
+  },
+  "packageManager": "yarn@4.9.2",
+  "dependencies": {
+    "@fastify/swagger": "^9.5.2",
+    "@fastify/swagger-ui": "^5.2.3",
+    "@google/genai": "^1.25.0",
+    "@nestjs/common": "^11.0.12",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.12",
+    "@nestjs/platform-fastify": "^11.1.7",
+    "@nestjs/swagger": "^11.2.1",
+    "@prisma/client": "^6.19.0",
+    "better-sqlite3": "^12.2.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "dataloader": "^2.2.3",
+    "dotenv": "^16.4.5",
+    "electron-dl": "^4.0.0",
+    "jszip": "^3.10.1",
+    "limiter": "^2.1.0",
+    "lru-cache": "^11.0.2",
+    "openai": "latest",
+    "prisma": "^6.19.0",
+    "reflect-metadata": "^0.2.2",
+    "rfdc": "^1.4.1",
+    "rxjs": "^7.8.2",
+    "sharp": "^0.34.3",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0"
+  }
+}

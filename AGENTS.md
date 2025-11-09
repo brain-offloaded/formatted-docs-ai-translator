@@ -1,0 +1,16 @@
+# Repository Guidelines
+
+## Project Structure & Module Organization
+Source now lives under the Yarn workspaces inside `apps/`. The Electron main process and Nest backend run from `apps/backend/src` (with `main.ts`, `env.ts`, and all Nest modules). React renderer code lives in `apps/frontend/src/react`, while shared types/utilities are published from `apps/common/src`. Compiled assets are emitted to `dist/`; keep it clean with `yarn clean`. Examples and documentation drafts remain under `examples/` and `docs/`.
+
+## Build, Test, and Development Commands
+Use `yarn dev` for a quick build followed by the packaged Electron start; switch to `yarn dev:watch` if you need hot reload via `turbo watch + nodemon`. Run `yarn build` to produce distributable bundles using Turbo for intelligent caching and parallel execution. Turbo automatically handles dependency ordering (`common` → `backend`/`frontend`) and caches build outputs for faster rebuilds. Package artifacts are created with `yarn package:win` or `yarn package:linux`. When native modules drift, rebuild them with `yarn rebuild:electron` (or `yarn rebuild:local`). Common Turbo commands: `yarn build` (cached builds), `yarn lint` (parallel linting), `yarn clean` (clean all workspaces).
+
+## Coding Style & Naming Conventions
+All TypeScript and TSX follow ESLint + Prettier defaults (2-space indents, single quotes, semicolons). Run `yarn lint` and `yarn build` before committing. Keep React components and Nest providers in PascalCase (e.g., `TranslationDashboard`), functions in camelCase, and constants in UPPER_SNAKE. Favor named exports within each workspace so path aliases (`@/` for internal code, `@apps/common/dist/*` across workspaces) stay explicit. Renderer styling tokens continue to live in `apps/frontend/src/react/theme.ts`.
+
+## Commit & Pull Request Guidelines
+Git history favors compact, present-tense subjects (often Korean verbs such as `문제 번호 수정`). Keep to one change per commit and document noteworthy migrations in `change-log.txt` when relevant. 모든 커밋 메시지, PR 설명, 리뷰 코멘트, 이슈 본문/댓글 등 사용자가 확인할 수 있는 출력은 반드시 한국어로 작성한다. Pull requests should include a concise summary, linked issue or task reference, screenshots/GIFs for UI tweaks, and a clear test plan (commands run, manual checks). Ensure the branch builds (`yarn build`) and passes Jest locally before requesting review. If there is any failure in CI(build, lint, test), address it before merging.
+
+## Environment & Configuration Tips
+Runtime variables are loaded via `apps/backend/src/env.ts`; mirror production secrets in a local `.env` and never commit sensitive keys. Native rebuild steps rely on Node 22.14.0—match the engine to avoid electron-rebuild churn. Persisted translation data lives in `translation-cache.db` under the repo root; back it up or reset it explicitly when debugging data flows. 모든 DB 접근은 Prisma(`prisma/schema.prisma`)로 관리하며, 스키마 변경이나 동기화가 필요할 때는 `yarn exec prisma db pull`과 `yarn exec prisma generate`를 실행하고, Studio는 `yarn prisma:studio`로 바로 띄운다.

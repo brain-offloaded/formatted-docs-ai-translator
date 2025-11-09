@@ -1,0 +1,11 @@
+{
+  "input": "./swagger.json",
+  "output": "./apps/frontend/src/react/api/generated",
+  "client": "fetch",
+  "useOptions": true,
+  "useUnionTypes": true,
+  "exportCore": true,
+  "exportServices": true,
+  "exportModels": true,
+  "indent": 2
+}

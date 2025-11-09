@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../dist/apps/frontend",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "composite": true,
+    "tsBuildInfoFile": "../../dist/tsconfig.frontend.tsbuildinfo",
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "references": [
+    {
+      "path": "../common"
+    }
+  ],
+  "include": ["src/**/*", "src/**/*.json"]
+}

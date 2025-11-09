@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PromptPresetType {
+  text
+  image
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("app_settings")
+}
+
+model CacheTag {
+  id         Int                  @id @default(autoincrement())
+  name       String               @unique(map: "IDX_cache_tag_name")
+  createdAt  DateTime             @default(now()) @map("created_at")
+  updatedAt  DateTime             @default(now()) @map("updated_at")
+  histories  TranslationHistory[]
+  entries    Translation[]
+
+  @@map("cache_tag")
+}
+
+model ExamplePreset {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique(map: "IDX_13598c5555dba81077a3cf8ba4")
+  description String?
+  examples    String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  @@map("example_preset")
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  level     String
+  message   String
+  context   String?
+  timestamp DateTime @default(now())
+  metadata  String?
+
+  @@index([timestamp], map: "IDX_d8b227f0e8c205a131e303f3ce")
+  @@index([level], map: "IDX_584b536b49e53ac81beb39a177")
+  @@map("log")
+}
+
+model Migration {
+  id        Int    @id @default(autoincrement())
+  timestamp BigInt
+  name      String
+
+  @@map("migrations")
+  @@ignore
+}
+
+model PromptPreset {
+  id        Int              @id @default(autoincrement())
+  name      String           @unique(map: "sqlite_autoindex_prompt_presets_1")
+  prompt    String
+  type      PromptPresetType @default(text)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @default(now()) @map("updated_at")
+
+  @@map("prompt_presets")
+}
+
+model Translation {
+  id              Int                  @id @default(autoincrement())
+  source          String
+  target          String
+  success         Boolean              @default(true)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  lastAccessedAt  DateTime             @default(now()) @map("last_accessed_at")
+  cacheTagId      Int                  @map("cache_tag_id")
+  cacheTag        CacheTag             @relation(fields: [cacheTagId], references: [id], onDelete: Cascade)
+  histories       TranslationHistory[]
+
+  @@unique([source, cacheTagId], map: "IDX_translation_source_cache_tag")
+  @@index([lastAccessedAt], map: "IDX_90098ba907c41e91fd6c745574")
+  @@map("translation")
+}
+
+model TranslationHistory {
+  id            Int         @id @default(autoincrement())
+  translationId Int         @map("translation_id")
+  source        String
+  target        String
+  success       Boolean
+  error         String?
+  model         String
+  createdAt     DateTime    @default(now()) @map("created_at")
+  cacheTagId    Int         @map("cache_tag_id")
+  cacheTag      CacheTag    @relation(fields: [cacheTagId], references: [id], onDelete: Cascade)
+  translation   Translation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+
+  @@index([cacheTagId], map: "IDX_translation_history_cache_tag")
+  @@index([source], map: "IDX_translation_history_source")
+  @@index([createdAt], map: "IDX_translation_history_created_at")
+  @@index([translationId], map: "IDX_translation_history_translation_id")
+  @@map("translation_history")
+}

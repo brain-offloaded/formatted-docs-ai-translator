@@ -1,0 +1,578 @@
+import { Inject, Injectable } from '@nestjs/common';
+import { keyRoundRobin } from '@/nest/ai/utils/key-round-robin';
+import { SourceLanguage, TargetLanguage } from '@apps/common/dist/language';
+import { sleep } from '@/nest/utils/sleep';
+import { ICacheManagerService } from '../../cache/cache-manager/services/i-cache-manager-service';
+import { LoggerService } from '../../logger/logger.service';
+import { ExampleManagerService } from '../../translation/example/services/example-manager.service';
+import { AiTokenService } from './ai-token.service';
+import { deepClone } from '@/nest/utils/deep-clone';
+import { isNullish } from '@/nest/utils/is-nullish';
+import { RateLimiter } from 'limiter';
+import { AiPromptConverterService } from './ai-prompt-converter.service';
+import { imageOcrTranslationJsonSchema } from '@/nest/ai/schema/image-ocr-translation.schema';
+import { AiProxyService } from './ai-proxy.service';
+import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
+import { TranslatorAiSettings } from '@/nest/translator/common/dto/translator-settings.dto';
+import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
+import {
+  AiChatRequest,
+  AiChatResponse,
+  AiMessage,
+  AiProxyError,
+  toTextFromMessageContent,
+} from '../dto/common-ai.dto';
+import { ImageOcrTranslationResultDto } from '@/nest/translator/image/dto/response/translate-image-response.dto';
+
+export interface TextTranslateParam {
+  requestId: string;
+  sourceTexts: string[];
+  promptPresetContent: string;
+  aiSettings: TranslatorAiSettings;
+  cacheTag: string;
+}
+
+export interface ImageTranslateParam {
+  requestId: string;
+  fileName?: string;
+  imageData: string; // base64 encoded image data
+  promptPresetContent: string;
+  aiSettings: TranslatorAiSettings;
+  cacheTag?: string;
+}
+
+export type TranslateParam = TextTranslateParam | ImageTranslateParam;
+
+@Injectable()
+export class UnifiedAiTranslatorService {
+  protected rateLimiterMapping: Map<string, RateLimiter> = new Map();
+  private readonly MAX_ATTEMPT_COUNT = 3;
+  constructor(
+    @Inject(ICacheManagerService)
+    protected readonly cacheManagerService: ICacheManagerService,
+    private readonly tokenService: AiTokenService,
+    // AiResponseService 기능은 AiProxyService로 통합됨
+    private readonly logger: LoggerService,
+    protected readonly exampleManagerService: ExampleManagerService,
+    private readonly promptConverterService: AiPromptConverterService,
+    private readonly aiProxy: AiProxyService
+  ) {}
+
+  public async translate(param: TextTranslateParam): Promise<string[]>;
+  public async translate(param: ImageTranslateParam): Promise<ImageOcrTranslationResultDto>;
+  public async translate(param: TranslateParam): Promise<string[] | ImageOcrTranslationResultDto> {
+    if ('sourceTexts' in param) {
+      return this.translateText(param);
+    } else {
+      const imageParam = param as ImageTranslateParam;
+      if (!imageParam.fileName && !imageParam.imageData) {
+        throw new Error('Either file path or image data is required for image translation.');
+      }
+
+      return this.translateImage(imageParam);
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async logPrompt(params: { messages: any }) {
+    const s = JSON.stringify(params.messages);
+    const front = s.substring(0, s.indexOf('data:image/jpeg;base64,'));
+    const back = s.substring(
+      s.indexOf('"', s.indexOf('data:image/jpeg;base64,') + 'data:image/jpeg;base64,'.length)
+    );
+    const middle = 'this is image';
+    const messages = JSON.parse(`${front}${middle}${back}`);
+
+    this.logger.debug('번역 요청 전 프롬프트:', {
+      messages,
+    });
+  }
+
+  private async translateImage(param: ImageTranslateParam): Promise<ImageOcrTranslationResultDto> {
+    const {
+      requestId,
+      fileName = 'temp-file',
+      imageData,
+      promptPresetContent,
+      aiSettings,
+      cacheTag,
+    } = param;
+    const {
+      customModelConfig: { maxOutputTokenCount, modelName, requestsPerMinute },
+    } = aiSettings;
+
+    const cacheKey = await this.cacheManagerService.getCacheKeyFromImage(imageData);
+    const normalizedCacheTag = buildLanguageScopedCacheTag(
+      cacheTag ?? '',
+      aiSettings.sourceLanguage,
+      aiSettings.targetLanguage
+    );
+    await this.setRateLimiter(modelName, requestsPerMinute);
+
+    const cachedResult = await this.cacheManagerService.getTranslation(
+      cacheKey,
+      normalizedCacheTag
+    );
+    if (cachedResult) {
+      this.logger.debug(`[UnifiedAiTranslatorService] Cache hit for image ${fileName}`);
+      return JSON.parse(cachedResult);
+    }
+
+    this.logger.debug(
+      `[UnifiedAiTranslatorService] Cache miss for image ${fileName}. Translating...`
+    );
+
+    const dataUrl = `data:image/jpeg;base64,${imageData}`;
+
+    const messages = await this.promptConverterService.getChatBlock({
+      requestId,
+      content: 'dataUrl', // NOTE: 현재 getChatBlock은 content에 이미지 url을 넣는 것을 지원하지 않음. 추후 수정 필요
+      sourceLanguage: aiSettings.sourceLanguage, // TODO: 이미지 번역 시 언어 감지 또는 설정 필요
+      targetLanguage: aiSettings.targetLanguage,
+      promptPresetContent,
+      imageDataUrl: dataUrl,
+    });
+
+    const iter = keyRoundRobin(aiSettings.apiKey);
+    if (!iter) throw new Error('API key is required for image translation');
+    const firstKey = iter.next();
+    const apiKey = !firstKey.done ? (firstKey.value as string) : undefined;
+    if (!apiKey) throw new Error('API key is required for image translation');
+
+    const rateLimiter = await this.getRateLimiter(modelName);
+    await rateLimiter.removeTokens(1);
+
+    // this.logger.debug('번역 요청 전 프롬프트:', {
+    //   messages,
+    // });
+    this.logPrompt({ messages });
+    const response = await this.aiProxy.chat({
+      aiSettings,
+      apiKey,
+      request: {
+        model: modelName,
+        messages: this.castMessagesToAi(messages),
+        responseFormat: { type: 'json_schema', jsonSchema: imageOcrTranslationJsonSchema },
+        temperature: 0.5,
+        maxTokens: maxOutputTokenCount,
+        topP: 0.95,
+      },
+    });
+
+    const content = toTextFromMessageContent(response.choices[0].message.content);
+    this.logger.debug(`[UnifiedAiTranslatorService] content in response for image ${fileName}`, {
+      response,
+      length: response.choices.length,
+      chocies: response.choices,
+      messages: response.choices.map((choice) => choice.message),
+      contents: response.choices.map((choice) => choice.message.content),
+    });
+    if (!content) {
+      throw new Error('Failed to get translation from AI');
+    }
+
+    const result = JSON.parse(content) as ImageOcrTranslationResultDto;
+
+    await this.cacheManagerService.setTranslation(
+      cacheKey,
+      JSON.stringify(result),
+      true,
+      modelName,
+      normalizedCacheTag
+    );
+
+    return result;
+  }
+
+  private async translateText(param: TextTranslateParam): Promise<string[]> {
+    const { sourceTexts, promptPresetContent, aiSettings, cacheTag } = param;
+    const { sourceLanguage, targetLanguage, apiKey, customModelConfig, useThinking } = aiSettings;
+    const normalizedCacheTag = buildLanguageScopedCacheTag(
+      cacheTag,
+      sourceLanguage,
+      targetLanguage
+    );
+    const { maxOutputTokenCount, requestsPerMinute, modelName } = customModelConfig;
+    this.setRateLimiter(modelName, requestsPerMinute);
+    const apiKeyIterator = keyRoundRobin(apiKey);
+    if (!apiKeyIterator) throw new Error('API key is required for translation');
+
+    try {
+      const { texts, remainingTexts } = await this.applyTranslationCache(
+        sourceTexts,
+        normalizedCacheTag
+      );
+
+      if (remainingTexts.size > 0) {
+        const newTranslations = new Map<string, TranslationResult>();
+        const currentRemainingTexts = new Map(remainingTexts);
+        let consecutiveFailures = 0;
+        let intermediateTexts = [...texts];
+
+        while (currentRemainingTexts.size > 0) {
+          const remainingTextArray = Array.from(currentRemainingTexts.keys());
+          const batchGroups = await this.tokenService.getBatchGroups({
+            texts: remainingTextArray,
+            maxOutputTokenCount,
+            useThinking,
+          });
+
+          for (const batchTexts of batchGroups) {
+            const batchRemainingTexts = new Map<string, number[]>();
+
+            try {
+              for (const text of batchTexts) {
+                const indices = currentRemainingTexts.get(text) || [];
+                if (indices.length == 0) continue;
+                batchRemainingTexts.set(text, indices);
+                currentRemainingTexts.delete(text);
+              }
+
+              const { batchTranslations, response } = await this.translateUncachedTexts({
+                requestId: param.requestId,
+                remainingTexts: batchRemainingTexts,
+                apiKeyIterator,
+                promptPresetContent,
+                aiSettings,
+                cacheTag: normalizedCacheTag,
+              });
+
+              // 번역 성공 시 연속 실패 횟수 초기화
+              consecutiveFailures = 0;
+
+              for (const [originalText, result] of batchTranslations.entries()) {
+                newTranslations.set(originalText, result);
+              }
+
+              // 배치 번역 성공 후 중간 결과 즉시 업데이트 및 캐싱
+              if (batchTranslations.size > 0) {
+                intermediateTexts = await this.updateTranslationsAndCache({
+                  requestId: param.requestId,
+                  newTranslations: new Map([...batchTranslations]),
+                  translations: intermediateTexts,
+                  sourceLanguage,
+                  targetLanguage,
+                  modelName,
+                  cacheTag: normalizedCacheTag,
+                });
+              }
+
+              const missingTexts = batchTexts.filter((text) => !batchTranslations.has(text));
+              const successTexts = batchTexts.filter((text) => batchTranslations.has(text));
+              const finishReason = response.choices?.[0]?.finishReason;
+              if (missingTexts.length > 0) {
+                this.logger.debug(`번역이 누락되었습니다.`, {
+                  missingTexts,
+                  successTexts,
+                  finishReason,
+                  extra: {
+                    choices: response.choices,
+                    usage: response.usage,
+                  },
+                });
+              }
+
+              for (const text of batchTexts) {
+                if (!batchTranslations.has(text)) {
+                  const indices = batchRemainingTexts.get(text) || [];
+                  currentRemainingTexts.set(text, indices);
+                }
+              }
+            } catch (error) {
+              consecutiveFailures++;
+
+              if (consecutiveFailures >= this.MAX_ATTEMPT_COUNT) {
+                this.logger.error(
+                  `번역이 연속으로 ${this.MAX_ATTEMPT_COUNT}회 실패하여 중단합니다.`,
+                  {
+                    error,
+                    stack: error instanceof Error ? error.stack : undefined,
+                  }
+                );
+                throw new Error(`번역이 연속으로 ${this.MAX_ATTEMPT_COUNT}회 실패하여 중단합니다.`);
+              }
+
+              if (error instanceof AiProxyError) {
+                this.logger.error('번역 중 api 오류 발생:', {
+                  error,
+                  status: error.status,
+                  stack: error instanceof Error ? error.stack : undefined,
+                });
+                if (error.status === 429) {
+                  await sleep(10000);
+                }
+              } else {
+                this.logger.error('번역 중 오류 발생:', {
+                  error,
+                  stack: error instanceof Error ? error.stack : undefined,
+                });
+              }
+
+              for (const [originalText, indices] of batchRemainingTexts.entries()) {
+                if (!newTranslations.has(originalText)) {
+                  currentRemainingTexts.set(originalText, indices);
+                }
+              }
+            }
+          }
+        }
+
+        for (const [originalText, indices] of currentRemainingTexts.entries()) {
+          newTranslations.set(originalText, { text: originalText, indices });
+        }
+
+        this.logger.debug('완전 번역 완료:', {
+          newTranslations,
+          intermediateTexts,
+        });
+        return intermediateTexts;
+      }
+
+      return texts;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Translation failed: ${errorMessage}`);
+    }
+  }
+
+  // Convert OpenAI-like messages from prompt converter to provider-agnostic messages
+  private castMessagesToAi(
+    messages: ReadonlyArray<{ role: string; content?: unknown }>
+  ): AiMessage[] {
+    return messages.map((m) => ({
+      role: (m.role as AiMessage['role']) || 'user',
+      content: this.castContentToAi(m.content),
+    }));
+  }
+
+  private castContentToAi(content: unknown | undefined): AiMessage['content'] {
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return '';
+    const parts: Array<{ type: 'text'; text: string } | { type: 'image'; imageUrl: string }> = [];
+    for (const raw of content as unknown[]) {
+      if (raw && typeof raw === 'object' && 'type' in (raw as Record<string, unknown>)) {
+        const part = raw as {
+          type: string;
+          text?: unknown;
+          image_url?: { url?: unknown };
+        };
+        if (part.type === 'text' && typeof part.text === 'string') {
+          parts.push({ type: 'text', text: part.text });
+        } else if (
+          part.type === 'image_url' &&
+          part.image_url &&
+          typeof part.image_url.url === 'string'
+        ) {
+          parts.push({ type: 'image', imageUrl: part.image_url.url });
+        }
+        // ignore other part types (e.g., input_audio, tool, etc.)
+      }
+    }
+    return parts;
+  }
+
+  //
+
+  protected async translateUncachedTexts({
+    requestId,
+    remainingTexts,
+    apiKeyIterator,
+    aiSettings,
+    promptPresetContent,
+    cacheTag,
+  }: {
+    requestId: string;
+    remainingTexts: Map<string, number[]>;
+    apiKeyIterator: Generator<string>;
+    aiSettings: TranslatorAiSettings;
+    promptPresetContent: string;
+    cacheTag: string;
+  }): Promise<{
+    batchTranslations: Map<string, TranslationResult>;
+    response: AiChatResponse;
+  }> {
+    const {
+      sourceLanguage,
+      targetLanguage,
+      customModelConfig: { maxOutputTokenCount, modelName },
+    } = aiSettings;
+    try {
+      const rateLimiter = await this.getRateLimiter(modelName);
+      await rateLimiter.removeTokens(1);
+      const next = apiKeyIterator.next();
+      const apiKey = !next.done ? (next.value as string) : undefined;
+      if (!apiKey) throw new Error('API key is required');
+      const messages = await this.promptConverterService.getChatBlock({
+        requestId,
+        content: Array.from(remainingTexts.keys()),
+        sourceLanguage,
+        targetLanguage,
+        promptPresetContent,
+      });
+
+      this.logger.debug('번역 요청 전 프롬프트:', {
+        messages,
+      });
+
+      const thinkingConfig = this.buildThinkingConfig(aiSettings);
+      const response = await this.aiProxy.chat({
+        aiSettings,
+        apiKey,
+        request: {
+          model: modelName,
+          messages: this.castMessagesToAi(messages as Array<{ role: string; content: unknown }>),
+          temperature: 0.5,
+          maxTokens: maxOutputTokenCount,
+          topP: 0.95,
+          thinking: thinkingConfig,
+        },
+      });
+
+      const batchTranslations = await this.aiProxy.parseTranslationResponse(
+        response,
+        remainingTexts
+      );
+      return {
+        batchTranslations,
+        response,
+      };
+    } catch (error) {
+      // 번역 실패 처리
+      const translationsToCache = new Map<string, string>();
+
+      for (const [text] of remainingTexts) {
+        translationsToCache.set(text, '');
+      }
+
+      // 실패한 번역도 캐시에 저장 (success: false) - 이제 자동으로 이력도 생성됨
+      await this.cacheManagerService.setTranslations(
+        translationsToCache,
+        false,
+        modelName,
+        cacheTag
+      );
+
+      throw error;
+    }
+  }
+
+  private buildThinkingConfig(aiSettings: TranslatorAiSettings): AiChatRequest['thinking'] {
+    return {
+      enabled: !!aiSettings.useThinking,
+      useCustomBudget: !!aiSettings.setThinkingBudget,
+      budget: aiSettings.thinkingBudget,
+    };
+  }
+
+  public async getEstimatedTokenCount(texts: string[] | string): Promise<number> {
+    return await this.tokenService.getEstimatedTokenCount(texts);
+  }
+
+  protected async setRateLimiter(modelName: string, requestsPerMinute: number): Promise<void> {
+    if (this.rateLimiterMapping.has(modelName)) return;
+
+    this.rateLimiterMapping.set(
+      modelName,
+      new RateLimiter({
+        tokensPerInterval: requestsPerMinute,
+        interval: 'minute',
+      })
+    );
+  }
+
+  protected async getRateLimiter(modelName: string): Promise<RateLimiter> {
+    if (!this.rateLimiterMapping.has(modelName)) await this.setRateLimiter(modelName, 100);
+    return this.rateLimiterMapping.get(modelName)!;
+  }
+
+  protected async applyTranslationCache(
+    sourceTexts: string[],
+    cacheTag: string
+  ): Promise<{
+    texts: string[];
+    remainingTexts: Map<string, number[]>;
+  }> {
+    const texts = new Array<string>(sourceTexts.length);
+    const remainingTexts = new Map<string, number[]>();
+    const cachedResults = await this.cacheManagerService.getTranslations(sourceTexts, cacheTag);
+
+    sourceTexts.forEach((text, index) => {
+      const { translatedText, isCacheHit } = this.getTranslationFromCachedResult(
+        text,
+        cachedResults
+      );
+
+      if (isCacheHit) {
+        texts[index] = translatedText;
+      } else {
+        const indices = remainingTexts.get(text) || [];
+        indices.push(index);
+        remainingTexts.set(text, indices);
+      }
+    });
+
+    return { texts, remainingTexts };
+  }
+
+  protected getTranslationFromCachedResult(
+    originalText: string,
+    cachedResults: Map<string, string | null>
+  ): { translatedText: string; isCacheHit: boolean } {
+    if (originalText.trim() === '') return { translatedText: originalText, isCacheHit: true };
+
+    const cachedTranslation = cachedResults.get(originalText);
+    const translatedText = isNullish(cachedTranslation) ? originalText : cachedTranslation;
+    const isCacheHit = !isNullish(cachedTranslation);
+
+    return { translatedText, isCacheHit };
+  }
+
+  protected async updateTranslationsAndCache({
+    requestId,
+    newTranslations,
+    translations,
+    sourceLanguage,
+    targetLanguage,
+    modelName,
+    cacheTag,
+  }: {
+    requestId: string;
+    newTranslations: Map<string, TranslationResult>;
+    translations: string[];
+    sourceLanguage: SourceLanguage;
+    targetLanguage: TargetLanguage;
+    modelName: string;
+    cacheTag: string;
+  }): Promise<string[]> {
+    const translationsToCache = new Map<string, string>();
+    const sourceLines: string[] = [];
+    const resultLines: string[] = [];
+    const copiedTranslations = deepClone(translations);
+
+    for (const [originalText, { text: translatedText, indices }] of newTranslations) {
+      translationsToCache.set(originalText, translatedText);
+
+      indices.forEach((index) => {
+        copiedTranslations[index] = translatedText;
+      });
+
+      sourceLines.push(originalText);
+      resultLines.push(translatedText);
+    }
+
+    // 번역 저장 - 이제 자동으로 이력도 생성됨
+    await this.cacheManagerService.setTranslations(translationsToCache, true, modelName, cacheTag);
+
+    if (sourceLines.length > 0) {
+      this.exampleManagerService.appendCurrentExample(
+        requestId,
+        sourceLanguage,
+        targetLanguage,
+        sourceLines,
+        resultLines
+      );
+    }
+
+    return copiedTranslations;
+  }
+}

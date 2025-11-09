@@ -1,0 +1,39 @@
+{
+  "name": "@apps/common",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Common utilities for Formatted Docs AI Translator",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "build:watch": "tsc -p tsconfig.json --watch",
+    "watch": "yarn build:watch",
+    "clean": "rimraf dist",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,json}\"",
+    "fix:aliases": "tsc-alias -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.12",
+    "@nestjs/core": "^11.0.12",
+    "@nestjs/swagger": "^11.2.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "lodash": "^4.17.21",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "eslint": "^9.14.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "tsc-alias": "^1.8.15",
+    "typescript": "^5.8.2"
+  }
+}
