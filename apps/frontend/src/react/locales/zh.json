@@ -65,7 +65,8 @@
     "apiKeyMasked": "API 密钥 (已屏蔽):",
     "requestsPerMinuteLabel": "每分钟请求数(RPM):",
     "maxOutputTokensLabel": "最大输出令牌数:",
-    "apiKeyInfo": "API 密钥可以从 <1>Google AI Studio</1> 获取。"
+    "apiKeyInfo": "API 密钥可以从 <1>Google AI Studio</1> 获取。",
+    "apiKeyRoundRobinHint": "使用空格分隔多个 API 密钥时，会自动以轮询方式依次使用。"
   },
   "translation": {
     "title": "执行翻译",

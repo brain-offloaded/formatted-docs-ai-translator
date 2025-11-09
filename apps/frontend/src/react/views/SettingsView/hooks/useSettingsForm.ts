@@ -7,7 +7,7 @@ import { TranslatorAiSettingsDto } from '@/react/api/generated/models/Translator
 const ModelProvider = TranslatorAiSettingsDto.modelProvider;
 type ModelProvider = TranslatorAiSettingsDto['modelProvider'];
 
-const sanitizeApiKey = (value: string) => value.replaceAll('\n', '').trim();
+const sanitizeApiKey = (value: string) => value.replace(/[\r\n]+/g, ' ');
 
 export const useSettingsForm = () => {
   const config = useConfigStore();

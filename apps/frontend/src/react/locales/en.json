@@ -65,7 +65,8 @@
     "apiKeyMasked": "API Key (masked):",
     "requestsPerMinuteLabel": "Requests Per Minute (RPM):",
     "maxOutputTokensLabel": "Max Output Tokens:",
-    "apiKeyInfo": "API keys can be obtained from <1>Google AI Studio</1>."
+    "apiKeyInfo": "API keys can be obtained from <1>Google AI Studio</1>.",
+    "apiKeyRoundRobinHint": "Separate multiple API keys with spaces to rotate them automatically in a round-robin order."
   },
   "translation": {
     "title": "Execute Translation",

@@ -65,7 +65,8 @@
     "apiKeyMasked": "APIキー (マスク済み):",
     "requestsPerMinuteLabel": "1分あたりのリクエスト数 (RPM):",
     "maxOutputTokensLabel": "最大出力トークン数:",
-    "apiKeyInfo": "APIキーは<1>Google AI Studio</1>で発行できます。"
+    "apiKeyInfo": "APIキーは<1>Google AI Studio</1>で発行できます。",
+    "apiKeyRoundRobinHint": "複数のAPIキーをスペースで区切って入力すると、ラウンドロビン方式で自動的に順番に使用されます。"
   },
   "translation": {
     "title": "翻訳実行",
