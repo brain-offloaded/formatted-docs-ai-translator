@@ -40,8 +40,8 @@ export type LogDetailDto = {
      */
     stack?: string | null;
     /**
-     * 파싱된 메타데이터 객체
+     * 파싱된 메타데이터 객체 (JSON 문자열)
      */
-    meta?: Record<string, any> | null;
+    meta?: string | null;
 };
 

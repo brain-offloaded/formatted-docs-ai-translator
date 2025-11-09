@@ -28,7 +28,7 @@
     "nest:g:service": "nest generate service",
     "nest:g:provider": "nest generate provider",
     "nest:g:class": "nest generate class",
-    "swagger:gen": "yarn build:swagger && IS_SWAGGER_GEN_MODE=true electron ../../dist/nest/create-swagger.js",
+    "swagger:gen": "yarn build && IS_SWAGGER_GEN_MODE=true node ../../dist/nest/create-swagger.js",
     "package:win": "yarn build && electron-builder build --win",
     "package:linux": "yarn build && electron-builder build --linux",
     "prisma:generate": "prisma generate",

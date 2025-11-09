@@ -1,14 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsOptional, IsString, ValidateNested } from 'class-validator';
 
 import { BaseResponseDto } from '@apps/common/dist/dto/base-response.dto';
 
 import { LogListItemDto } from './get-logs-response.dto';
-
-// excludeAll 정책으로 인해서 빈 object로 expose 처리
-@Expose()
-class LogMetaDataObjectDto {}
 
 export class LogDetailDto extends LogListItemDto {
   @ApiProperty({
@@ -36,17 +32,16 @@ export class LogDetailDto extends LogListItemDto {
   stack: string | null;
 
   @ApiProperty({
-    description: '파싱된 메타데이터 객체',
+    description: '파싱된 메타데이터 객체 (JSON 문자열)',
     required: false,
     nullable: true,
-    type: Object,
-    example: { file: 'example.png', line: 42 },
+    type: String,
+    example: '{"file":"example.png","line":42}',
   })
   @IsOptional()
-  @IsObject()
+  @IsString()
   @Expose()
-  @Type(() => LogMetaDataObjectDto)
-  meta: Record<string, unknown> | null;
+  meta: string | null;
 }
 
 export class GetLogDetailResponseDto extends BaseResponseDto {
