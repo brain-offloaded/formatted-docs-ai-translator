@@ -106,7 +106,7 @@ const SettingsView: React.FC = () => {
               value={config.apiKey}
               onChange={handleApiKeyChange}
               error={!!apiKeyError}
-              helperText={apiKeyError}
+              helperText={apiKeyError || t('settings.apiKeyRoundRobinHint')}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
