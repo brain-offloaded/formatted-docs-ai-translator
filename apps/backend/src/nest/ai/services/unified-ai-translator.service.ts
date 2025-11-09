@@ -223,6 +223,7 @@ export class UnifiedAiTranslatorService {
 
           for (const batchTexts of limitedBatchGroups) {
             const batchRemainingTexts = new Map<string, number[]>();
+            let shouldRestartBatching = false;
 
             try {
               for (const text of batchTexts) {
@@ -232,18 +233,15 @@ export class UnifiedAiTranslatorService {
                 currentRemainingTexts.delete(text);
               }
 
-              const {
-                batchTranslations,
-                response,
-                shouldReduceBatchSize,
-              } = await this.translateUncachedTexts({
-                requestId: param.requestId,
-                remainingTexts: batchRemainingTexts,
-                apiKeyIterator,
-                promptPresetContent,
-                aiSettings,
-                cacheTag: normalizedCacheTag,
-              });
+              const { batchTranslations, response, shouldReduceBatchSize } =
+                await this.translateUncachedTexts({
+                  requestId: param.requestId,
+                  remainingTexts: batchRemainingTexts,
+                  apiKeyIterator,
+                  promptPresetContent,
+                  aiSettings,
+                  cacheTag: normalizedCacheTag,
+                });
 
               // 번역 성공 시 연속 실패 횟수 초기화
               consecutiveFailures = 0;
@@ -289,6 +287,7 @@ export class UnifiedAiTranslatorService {
 
               if (shouldReduceBatchSize) {
                 maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
+                shouldRestartBatching = true;
               }
             } catch (error) {
               consecutiveFailures++;
@@ -322,6 +321,7 @@ export class UnifiedAiTranslatorService {
 
               if (error instanceof TranslationParsingError && error.shouldReduceBatchSize) {
                 maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
+                shouldRestartBatching = true;
               }
 
               for (const [originalText, indices] of batchRemainingTexts.entries()) {
@@ -329,6 +329,10 @@ export class UnifiedAiTranslatorService {
                   currentRemainingTexts.set(originalText, indices);
                 }
               }
+            }
+
+            if (shouldRestartBatching) {
+              break;
             }
           }
         }
@@ -496,7 +500,7 @@ export class UnifiedAiTranslatorService {
   }
 
   private reduceBatchSizeLimit(currentLimit: number | null, previousBatchSize: number): number {
-    const candidate = Math.max(1, Math.floor(previousBatchSize / 2));
+    const candidate = Math.max(1, Math.floor(previousBatchSize / 4));
     if (currentLimit === null) {
       return candidate;
     }

@@ -8,6 +8,7 @@ import {
   TranslatorAiSettings,
 } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
+import { errorToString } from '@/nest/utils/error-stringify';
 
 export class TranslationParsingError extends Error {
   public readonly shouldReduceBatchSize: boolean;
@@ -86,6 +87,10 @@ export class AiProxyService {
     try {
       payload = responseText ? JSON.parse(responseText) : {};
     } catch (error) {
+      this.logger.warn('parseSegmentMatches: JSON parse error', {
+        extra: { responseText },
+        cause: errorToString(error),
+      });
       throw new TranslationParsingError('Failed to parse JSON translation response', {
         cause: error,
         shouldReduceBatchSize: true,
@@ -93,6 +98,9 @@ export class AiProxyService {
     }
 
     if (!payload?.segments || !Array.isArray(payload.segments)) {
+      this.logger.warn('parseSegmentMatches: Invalid format', {
+        extra: { responseText, payload },
+      });
       throw new TranslationParsingError('Invalid translation response format', {
         shouldReduceBatchSize: true,
       });
@@ -102,9 +110,7 @@ export class AiProxyService {
     for (const segment of payload.segments) {
       if (!segment || typeof segment !== 'object') continue;
       const parsedId =
-        typeof segment.id === 'number'
-          ? segment.id
-          : Number.parseInt(String(segment.id ?? ''), 10);
+        typeof segment.id === 'number' ? segment.id : Number.parseInt(String(segment.id ?? ''), 10);
       if (!Number.isFinite(parsedId)) continue;
       const translatedText =
         typeof segment.translated_text === 'string' ? segment.translated_text : '';
