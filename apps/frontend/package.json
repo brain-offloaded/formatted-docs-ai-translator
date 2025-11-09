@@ -12,7 +12,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json}\"",
     "fix:aliases": "tsc-alias -p tsconfig.json",
     "clean": "rimraf ../../dist/apps/frontend",
-    "client:gen": "openapi -i ../../swagger.json -o ./src/react/api/generated --useOptions"
+    "client:gen": "openapi -i ../backend/swagger.json -o ./src/react/api/generated --useOptions"
   },
   "dependencies": {
     "@apps/common": "workspace:*",

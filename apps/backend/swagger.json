@@ -1940,13 +1940,10 @@
             "example": "Error: Something bad\n    at ..."
           },
           "meta": {
-            "type": "object",
-            "description": "파싱된 메타데이터 객체",
+            "type": "string",
+            "description": "파싱된 메타데이터 객체 (JSON 문자열)",
             "nullable": true,
-            "example": {
-              "file": "example.png",
-              "line": 42
-            }
+            "example": "{\"file\":\"example.png\",\"line\":42}"
           }
         },
         "required": [

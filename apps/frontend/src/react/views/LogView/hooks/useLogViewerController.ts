@@ -188,7 +188,7 @@ export const useLogViewerController = (): UseLogViewerControllerResult => {
             timestamp: response.log.timestamp,
             metadata: response.log.metadata ?? null,
             stack: response.log.stack ?? null,
-            meta: response.log.meta ?? null,
+            meta: response.log.meta ? JSON.parse(response.log.meta) : null,
           };
 
           setState((prev) => ({

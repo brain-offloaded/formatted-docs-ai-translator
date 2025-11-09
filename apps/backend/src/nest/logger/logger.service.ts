@@ -233,7 +233,7 @@ export class LoggerService {
           metadataPreview: preview,
           hasMetadata,
           stack,
-          meta,
+          meta: meta ? JSON.stringify(meta) : null,
         },
       };
     } catch (error) {
