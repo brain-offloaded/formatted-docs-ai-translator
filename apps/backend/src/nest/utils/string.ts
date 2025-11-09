@@ -1,5 +1,5 @@
 export const removeTags = (text: string): string => {
-  return text.replace(/<\|[0-9]+\|>/g, '');
+  return text.replace(/<seg id="\d+?">(.*?)<\/seg>/g, '$1');
 };
 
 export const trimAndFilterTextArray = (textArray: string[]): string[] => {
@@ -11,9 +11,9 @@ export const tagTexts = (
   startIndex = 1
 ): { taggedTexts: string; lastIndex: number; tagCount: number } => {
   const taggedTextArray = trimAndFilterTextArray(texts).map(
-    (text, index) => `<|${index + startIndex}|>${text}`
+    (text, index) => `<seg id="${index + startIndex}">${text}</seg>`
   );
-  const taggedTexts = taggedTextArray.join('');
+  const taggedTexts = taggedTextArray.join('\n');
 
   return {
     taggedTexts,

@@ -60,7 +60,7 @@ export class AiProxyService {
   private getResponseText(response: AiChatResponse): string {
     const responseText = toTextFromMessageContent(response.choices[0].message.content) || '';
     if (this.isFinishedByMaxTokens(response)) {
-      const lastTagIndex = responseText.lastIndexOf('<|');
+      const lastTagIndex = responseText.lastIndexOf('<seg id=');
       if (lastTagIndex > 0) {
         return responseText.substring(0, lastTagIndex);
       }
@@ -69,7 +69,7 @@ export class AiProxyService {
   }
 
   private extractMatches(responseText: string): Array<{ id: number; translatedText: string }> {
-    const regex = /<\|(\d+)\|>(.*?)(?=(<\|\d+\|>|$))/gs;
+    const regex = /<seg id="(\d+?)">(.*?)<\/seg>/gs;
     const matches: Array<{ id: number; translatedText: string }> = [];
     let match: RegExpExecArray | null;
     while ((match = regex.exec(responseText)) !== null) {
