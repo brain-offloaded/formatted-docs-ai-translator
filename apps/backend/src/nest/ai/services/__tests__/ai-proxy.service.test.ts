@@ -1,4 +1,4 @@
-import { AiProxyService } from '../ai-proxy.service';
+import { AiProxyService, TranslationParsingError } from '../ai-proxy.service';
 import { AiChatResponse } from '../../dto/common-ai.dto';
 
 describe('AiProxyService.parseTranslationResponse', () => {
@@ -15,7 +15,12 @@ describe('AiProxyService.parseTranslationResponse', () => {
         {
           message: {
             role: 'assistant',
-            content: '<seg id="1">첫 줄\n둘째 줄</seg><seg id="2">다음 문장</seg>',
+            content: JSON.stringify({
+              segments: [
+                { id: 1, translated_text: '첫 줄\n둘째 줄' },
+                { id: 2, translated_text: '다음 문장' },
+              ],
+            }),
           },
         },
       ],
@@ -39,7 +44,12 @@ describe('AiProxyService.parseTranslationResponse', () => {
         {
           message: {
             role: 'assistant',
-            content: '<seg id="5">첫 번째 번역</seg><seg id="6">두 번째 번역</seg>',
+            content: JSON.stringify({
+              segments: [
+                { id: 5, translated_text: '첫 번째 번역' },
+                { id: 6, translated_text: '두 번째 번역' },
+              ],
+            }),
           },
         },
       ],
@@ -54,5 +64,23 @@ describe('AiProxyService.parseTranslationResponse', () => {
 
     expect(result.get('첫 번째 문장')?.text).toBe('첫 번째 번역');
     expect(result.get('두 번째 문장')?.text).toBe('두 번째 번역');
+  });
+  it('JSON 파싱 실패 시 TranslationParsingError를 발생시킨다', async () => {
+    const response: AiChatResponse = {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: '{invalid',
+          },
+        },
+      ],
+    };
+
+    const remainingTexts = new Map<string, number[]>([['첫 번째 문장', [0]]]);
+
+    await expect(service.parseTranslationResponse(response, remainingTexts)).rejects.toBeInstanceOf(
+      TranslationParsingError
+    );
   });
 });

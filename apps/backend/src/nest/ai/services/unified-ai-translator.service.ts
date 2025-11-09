@@ -11,7 +11,8 @@ import { isNullish } from '@/nest/utils/is-nullish';
 import { RateLimiter } from 'limiter';
 import { AiPromptConverterService } from './ai-prompt-converter.service';
 import { imageOcrTranslationJsonSchema } from '@/nest/ai/schema/image-ocr-translation.schema';
-import { AiProxyService } from './ai-proxy.service';
+import { textTranslationJsonSchema } from '@/nest/ai/schema/text-translation.schema';
+import { AiProxyService, TranslationParsingError } from './ai-proxy.service';
 import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
 import { TranslatorAiSettings } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
@@ -208,6 +209,7 @@ export class UnifiedAiTranslatorService {
         const currentRemainingTexts = new Map(remainingTexts);
         let consecutiveFailures = 0;
         let intermediateTexts = [...texts];
+        let maxBatchTextCount: number | null = null;
 
         while (currentRemainingTexts.size > 0) {
           const remainingTextArray = Array.from(currentRemainingTexts.keys());
@@ -217,7 +219,9 @@ export class UnifiedAiTranslatorService {
             useThinking,
           });
 
-          for (const batchTexts of batchGroups) {
+          const limitedBatchGroups = this.applyBatchSizeLimit(batchGroups, maxBatchTextCount);
+
+          for (const batchTexts of limitedBatchGroups) {
             const batchRemainingTexts = new Map<string, number[]>();
 
             try {
@@ -228,7 +232,11 @@ export class UnifiedAiTranslatorService {
                 currentRemainingTexts.delete(text);
               }
 
-              const { batchTranslations, response } = await this.translateUncachedTexts({
+              const {
+                batchTranslations,
+                response,
+                shouldReduceBatchSize,
+              } = await this.translateUncachedTexts({
                 requestId: param.requestId,
                 remainingTexts: batchRemainingTexts,
                 apiKeyIterator,
@@ -278,6 +286,10 @@ export class UnifiedAiTranslatorService {
                   currentRemainingTexts.set(text, indices);
                 }
               }
+
+              if (shouldReduceBatchSize) {
+                maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
+              }
             } catch (error) {
               consecutiveFailures++;
 
@@ -306,6 +318,10 @@ export class UnifiedAiTranslatorService {
                   error,
                   stack: error instanceof Error ? error.stack : undefined,
                 });
+              }
+
+              if (error instanceof TranslationParsingError && error.shouldReduceBatchSize) {
+                maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
               }
 
               for (const [originalText, indices] of batchRemainingTexts.entries()) {
@@ -390,6 +406,7 @@ export class UnifiedAiTranslatorService {
   }): Promise<{
     batchTranslations: Map<string, TranslationResult>;
     response: AiChatResponse;
+    shouldReduceBatchSize: boolean;
   }> {
     const {
       sourceLanguage,
@@ -424,6 +441,7 @@ export class UnifiedAiTranslatorService {
           temperature: 0.5,
           maxTokens: maxOutputTokenCount,
           topP: 0.95,
+          responseFormat: { type: 'json_schema', jsonSchema: textTranslationJsonSchema },
           thinking: thinkingConfig,
         },
       });
@@ -435,6 +453,7 @@ export class UnifiedAiTranslatorService {
       return {
         batchTranslations,
         response,
+        shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response),
       };
     } catch (error) {
       // 번역 실패 처리
@@ -454,6 +473,34 @@ export class UnifiedAiTranslatorService {
 
       throw error;
     }
+  }
+
+  private applyBatchSizeLimit(batchGroups: string[][], maxBatchSize: number | null): string[][] {
+    if (!maxBatchSize || maxBatchSize < 1) {
+      return batchGroups;
+    }
+
+    const limitedGroups: string[][] = [];
+    for (const group of batchGroups) {
+      if (group.length <= maxBatchSize) {
+        limitedGroups.push(group);
+        continue;
+      }
+
+      for (let i = 0; i < group.length; i += maxBatchSize) {
+        limitedGroups.push(group.slice(i, i + maxBatchSize));
+      }
+    }
+
+    return limitedGroups;
+  }
+
+  private reduceBatchSizeLimit(currentLimit: number | null, previousBatchSize: number): number {
+    const candidate = Math.max(1, Math.floor(previousBatchSize / 2));
+    if (currentLimit === null) {
+      return candidate;
+    }
+    return Math.min(currentLimit, candidate);
   }
 
   private buildThinkingConfig(aiSettings: TranslatorAiSettings): AiChatRequest['thinking'] {

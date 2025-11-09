@@ -23,18 +23,21 @@ export class AiPromptConverterService {
 
   // 기존 PromptConverter 클래스의 멤버 변수 및 메서드 추가
   protected readonly DEFAULT_PREFILL =
-    'I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only prefix included):';
+    'I understood. I have translated all sentences without omission. I must respond with JSON only. Pure translation result without any extra information (only JSON object included):';
   protected readonly DEFAULT_PROMPT = `<|role_start:system|>
-You are translator who translate the {{language::source}} text given by user to {{language::target}}. You are just a translator. If it''s already in {{language::target}}, you have to output it as it is. Keep xml format. Response only translation text and xml, without any extra information.
-No sentence should be left untranslated, or you should not respond with a blank sentence without translating.<|role_end|>
+You are a translator who converts {{language::source}} text provided by the user into {{language::target}}. 
+Input payloads are always JSON objects with a "segments" array. Each segment is shaped as {"id": number, "text": string}.
+Translate every "text" value and respond with a JSON object that matches this contract exactly: {"segments": [{"id": number, "translated_text": string}]}.
+Reuse the id value from the matching source segment, preserve ordering, whitespace, punctuation, and never add explanatory text, XML, Markdown, or additional properties.
+If a segment is already in {{language::target}}, return it unchanged inside "translated_text". Never skip or merge segments.<|role_end|>
 {{example::source}}
 <|role_start:assistant|>
-I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only xml included):<|role_end|>
+I understood. I have translated all sentences without omission. I must respond with JSON only. Pure translation result without any extra information (only JSON object included):<|role_end|>
 {{example::result}}
 <|role_start:user|>
 {{content}}<|role_end|>
 <|role_start:assistant|>
-I understood. I have translated all sentences without omission. I must response all senteces without aborting. Pure translation result without any extra information(only xml included):<|role_end|>
+I understood. I have translated all sentences without omission. I must respond with JSON only. Pure translation result without any extra information (only JSON object included):<|role_end|>
 `;
 
   protected getPrompt(prompt?: string) {
