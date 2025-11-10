@@ -1,0 +1,96 @@
+name: Package (Windows ZIP)
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'electron-builder debug logs'
+        type: boolean
+        default: false
+
+jobs:
+  build-zip:
+    name: Build & Package on Windows
+    runs-on: windows-latest
+
+    env:
+      # Yarn 4: 고정 설치
+      YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
+      # Prisma/Sharp 등 바이너리 다운로드 로그 줄이려면 필요시 조절
+      npm_config_loglevel: notice
+      # electron-builder 디버그 토글
+      DEBUG: ${{ inputs.logLevel && 'electron-builder' || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Use Yarn 4.9.2
+        run: corepack prepare yarn@4.9.2 --activate
+
+      - name: Show Yarn/Node
+        run: |
+          node -v
+          yarn -v
+
+      # Yarn 4 캐시 (PnP/오프라인 캐시)
+      - name: Cache Yarn
+        uses: actions/cache@v4
+        with:
+          path: |
+            .yarn/cache
+            .yarn/install-state.gz
+            .pnp.cjs
+          key: yarn-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-${{ runner.os }}-
+
+      # (옵션) Electron/Prisma 캐시로 재빌드 속도 개선
+      - name: Cache tools (electron/prisma)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/.cache/prisma
+          key: tools-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            tools-${{ runner.os }}-
+
+      - name: Configure long paths (Windows)
+        run: git config --system core.longpaths true
+
+      - name: Install deps
+        # Yarn 4 + 모노레포: lockfile 기준 불변 설치
+        run: yarn install --immutable
+
+      # ⚠️ package.json의 package:win:dist가 내부적으로 build + package:prepare + electron-builder 실행함
+      - name: Package (Windows ZIP)
+        run: yarn package:win:dist
+
+      - name: Upload artifacts (ZIP & logs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-docs-ai-translator-win-${{ github.run_number }}
+          path: |
+            release/**/*.zip
+            release/**/*.yml
+            release/**/*.json
+            release/**/builder-debug.yml
+            release/**/builder-effective-config.yaml
+          if-no-files-found: warn
+
+      # --- (선택) 나중에 릴리스 발행하고 싶으면 아래 단계 참고 ---
+      # - name: Publish to GitHub Release (draft)
+      #   if: ${{ false }}  # 사용하려면 true로 바꾸고, tag가 존재해야 함
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     # electron-builder로 재빌드 없이 업로드만 하려면 gh CLI를 쓰거나,
+      #     # electron-builder --publish onTagOrDraft 로 빌드 단계에서 통합하세요.
+      #     echo "See comments in workflow."
