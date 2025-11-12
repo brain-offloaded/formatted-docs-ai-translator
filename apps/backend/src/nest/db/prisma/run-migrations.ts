@@ -63,9 +63,9 @@ function prismaCliUnpacked(resourcesPath: string) {
 // asar 내부 node_modules를 NODE_PATH에 포함시켜야 의존성을 찾을 수 있다.
 function resolveNodePathEnv(resourcesPath: string) {
   const candidates = [
-    path.join(resourcesPath, 'node_modules'),
-    path.join(resourcesPath, 'app.asar', 'node_modules'),
     path.join(resourcesPath, 'app.asar.unpacked', 'node_modules'),
+    path.join(resourcesPath, 'app.asar', 'node_modules'),
+    path.join(resourcesPath, 'node_modules'),
   ].filter((candidate) => existsSync(candidate));
 
   if (candidates.length === 0) {
@@ -77,7 +77,8 @@ function resolveNodePathEnv(resourcesPath: string) {
     : [];
 
   const merged = [...existing, ...candidates].filter(Boolean);
-  return merged.length ? merged.join(path.delimiter) : undefined;
+  const unique = [...new Set(merged)];
+  return unique.length ? unique.join(path.delimiter) : undefined;
 }
 
 // ─────────────────────────────────────────────────────────────
