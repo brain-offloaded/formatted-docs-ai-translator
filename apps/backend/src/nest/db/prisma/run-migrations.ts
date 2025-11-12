@@ -30,7 +30,7 @@ function acquireMigrationLock(lockPath: string): boolean {
 function releaseMigrationLock(lockPath: string) {
   try {
     if (existsSync(lockPath)) unlinkSync(lockPath);
-  } catch {}
+  } catch {} // eslint-disable-line no-empty
 }
 
 // ── 엔진 경로 해석(언팩된 바이너리/라이브러리만 타겟) ─────────────────────────
@@ -76,7 +76,11 @@ function resolvePrismaEngines(resources: string) {
       isWin ? 'schema-engine-windows.exe' : isMac ? 'schema-engine-darwin' : 'schema-engine'
     ),
   ]);
-  const migrationEngine = firstExisting([
+  if (!schemaEngine) {
+    throw new Error('[Migration] schema engine 바이너리를 찾지 못했습니다.');
+  }
+
+  let migrationEngine = firstExisting([
     path.join(
       enginesDir,
       isWin
@@ -86,8 +90,11 @@ function resolvePrismaEngines(resources: string) {
           : 'migration-engine'
     ),
   ]);
-  if (!schemaEngine || !migrationEngine) {
-    throw new Error('[Migration] schema/migration engine 바이너리를 찾지 못했습니다.');
+  if (!migrationEngine) {
+    console.warn(
+      '[Migration] migration engine 바이너리를 찾지 못했습니다. Prisma 6에서는 schema-engine에 통합되었으므로 schema-engine을 재사용합니다.'
+    );
+    migrationEngine = schemaEngine;
   }
 
   return { queryLib, schemaEngine, migrationEngine };
