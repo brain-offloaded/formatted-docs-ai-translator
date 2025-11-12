@@ -1,9 +1,15 @@
 name: Package (Windows ZIP)
 
 on:
-  pull_request:
-    branches: [ main ]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
+    inputs:
+      ref:
+        description: '릴리즈 후보를 패키징할 Git ref (tag/branch/commit)'
+        required: false
+        default: main
 
 jobs:
   build-zip:
@@ -16,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
 
       # 1) 먼저 원하는 Node 버전 설치 (engines.node = 22.14.0)
       - name: Setup Node.js 22.14.0
@@ -73,7 +81,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: formatted-docs-ai-translator-win-${{ github.run_number }}
+          name: formatted-docs-ai-translator-win-${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || 'manual') || github.ref_name }}
           path: |
             release/**/*.zip
             release/**/builder-*.yml
