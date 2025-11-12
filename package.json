@@ -98,23 +98,13 @@
       "output": "release"
     },
     "asarUnpack": [
+      "node_modules/better-sqlite3/**",
       "node_modules/sharp/**",
       "node_modules/@img/**",
-      "**/node_modules/prisma/build/index.js",
-      "**/node_modules/@prisma/engines/**",
       "**/node_modules/@prisma/client/runtime/**",
-      "**/node_modules/@prisma/client/libquery_engine-*",
-        "**/node_modules/prisma/build/**"
+      "**/node_modules/@prisma/engines/**"
     ],
     "extraResources": [
-      {
-        "from": "node_modules/.prisma",
-        "to": "node_modules/.prisma"
-      },
-      {
-        "from": "node_modules/@prisma",
-        "to": "node_modules/@prisma"
-      },
       {
         "from": "apps/backend/prisma/schema.prisma",
         "to": "prisma/schema.prisma"
