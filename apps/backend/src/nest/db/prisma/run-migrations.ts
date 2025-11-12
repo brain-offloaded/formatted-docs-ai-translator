@@ -59,27 +59,6 @@ function prismaCliUnpacked(resourcesPath: string) {
   return p;
 }
 
-// Electron 패키지에선 Prisma CLI가 unpacked된 위치에서 실행되므로,
-// asar 내부 node_modules를 NODE_PATH에 포함시켜야 의존성을 찾을 수 있다.
-function resolveNodePathEnv(resourcesPath: string) {
-  const candidates = [
-    path.join(resourcesPath, 'node_modules'),
-    path.join(resourcesPath, 'app.asar', 'node_modules'),
-    path.join(resourcesPath, 'app.asar.unpacked', 'node_modules'),
-  ].filter((candidate) => existsSync(candidate));
-
-  if (candidates.length === 0) {
-    return process.env.NODE_PATH;
-  }
-
-  const existing = process.env.NODE_PATH
-    ? process.env.NODE_PATH.split(path.delimiter).filter(Boolean)
-    : [];
-
-  const merged = [...existing, ...candidates].filter(Boolean);
-  return merged.length ? merged.join(path.delimiter) : undefined;
-}
-
 // ─────────────────────────────────────────────────────────────
 // 메인 함수
 // ─────────────────────────────────────────────────────────────
@@ -100,7 +79,6 @@ export async function runPrismaMigrations(databaseUrl: string): Promise<void> {
     const resources = process.resourcesPath; // .../YourApp/resources
     const schemaPath = path.join(resources, 'prisma', 'schema.prisma');
     const migrationsDir = path.join(resources, 'prisma', 'migrations');
-    const nodePathEnv = resolveNodePathEnv(resources);
 
     // 필수 파일 확인
     if (!existsSync(schemaPath) || !existsSync(migrationsDir)) {
@@ -121,7 +99,6 @@ export async function runPrismaMigrations(databaseUrl: string): Promise<void> {
           ...process.env,
           ELECTRON_RUN_AS_NODE: '1', // Electron 자식 프로세스를 순수 Node처럼
           DATABASE_URL: databaseUrl,
-          ...(nodePathEnv ? { NODE_PATH: nodePathEnv } : {}),
         },
       });
 
