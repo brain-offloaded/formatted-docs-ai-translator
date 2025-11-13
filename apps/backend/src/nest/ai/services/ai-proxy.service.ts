@@ -119,7 +119,12 @@ export class AiProxyService {
   }
 
   private parseSegmentsWithBestEffort(responseText: string): ParsedSegmentResult {
-    if (!responseText?.trim()) return { segments: [], hasPartialData: false };
+    if (!responseText?.trim()) {
+      this.logger.warn('parseSegmentMatches: empty response payload detected', {
+        extra: { responseLength: responseText?.length ?? 0 },
+      });
+      return { segments: [], hasPartialData: true };
+    }
 
     try {
       const payload = JSON.parse(responseText) as { segments?: TranslationSegment[] };

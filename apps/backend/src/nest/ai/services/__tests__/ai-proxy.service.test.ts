@@ -9,6 +9,10 @@ describe('AiProxyService.parseTranslationResponse', () => {
     {} as unknown as never
   );
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('태그 사이에 실제 개행이 포함된 번역 결과도 파싱한다', async () => {
     const response: AiChatResponse = {
       choices: [
@@ -94,6 +98,38 @@ describe('AiProxyService.parseTranslationResponse', () => {
     expect(translations.get('첫 번째 문장')?.text).toBe('A');
     expect(translations.has('두 번째 문장')).toBe(false);
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('빈 응답은 partial로 처리한다', async () => {
+    const response: AiChatResponse = {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: '   ',
+          },
+        },
+      ],
+    };
+
+    const remainingTexts = new Map<string, number[]>([
+      ['첫 번째 문장', [0]],
+      ['두 번째 문장', [1]],
+    ]);
+
+    const { translations, hasPartialData } = await service.parseTranslationResponse(
+      response,
+      remainingTexts
+    );
+
+    expect(hasPartialData).toBe(true);
+    expect(translations.size).toBe(0);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'parseSegmentMatches: empty response payload detected',
+      {
+        extra: { responseLength: 3 },
+      }
+    );
   });
   it('JSON 파싱 실패 시 TranslationParsingError를 발생시킨다', async () => {
     const response: AiChatResponse = {
