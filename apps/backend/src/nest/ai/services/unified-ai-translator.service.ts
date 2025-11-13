@@ -48,6 +48,7 @@ export type TranslateParam = TextTranslateParam | ImageTranslateParam;
 export class UnifiedAiTranslatorService {
   protected rateLimiterMapping: Map<string, RateLimiter> = new Map();
   private readonly MAX_ATTEMPT_COUNT = 3;
+  private readonly STABLE_BATCH_RECOVERY_THRESHOLD = 2;
   constructor(
     @Inject(ICacheManagerService)
     protected readonly cacheManagerService: ICacheManagerService,
@@ -210,6 +211,7 @@ export class UnifiedAiTranslatorService {
         let consecutiveFailures = 0;
         let intermediateTexts = [...texts];
         let maxBatchTextCount: number | null = null;
+        let stableBatchSuccessCount = 0;
 
         while (currentRemainingTexts.size > 0) {
           const remainingTextArray = Array.from(currentRemainingTexts.keys());
@@ -288,6 +290,16 @@ export class UnifiedAiTranslatorService {
               if (shouldReduceBatchSize) {
                 maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
                 shouldRestartBatching = true;
+                stableBatchSuccessCount = 0;
+              } else if (maxBatchTextCount !== null) {
+                stableBatchSuccessCount++;
+                if (stableBatchSuccessCount >= this.STABLE_BATCH_RECOVERY_THRESHOLD) {
+                  this.logger.debug('배치 제한 해제 시도', {
+                    previousLimit: maxBatchTextCount,
+                  });
+                  maxBatchTextCount = null;
+                  stableBatchSuccessCount = 0;
+                }
               }
             } catch (error) {
               consecutiveFailures++;
@@ -322,6 +334,7 @@ export class UnifiedAiTranslatorService {
               if (error instanceof TranslationParsingError && error.shouldReduceBatchSize) {
                 maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
                 shouldRestartBatching = true;
+                stableBatchSuccessCount = 0;
               }
 
               for (const [originalText, indices] of batchRemainingTexts.entries()) {
@@ -450,14 +463,12 @@ export class UnifiedAiTranslatorService {
         },
       });
 
-      const batchTranslations = await this.aiProxy.parseTranslationResponse(
-        response,
-        remainingTexts
-      );
+      const { translations: batchTranslations, hasPartialData } =
+        await this.aiProxy.parseTranslationResponse(response, remainingTexts);
       return {
         batchTranslations,
         response,
-        shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response),
+        shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response) || hasPartialData,
       };
     } catch (error) {
       // 번역 실패 처리
