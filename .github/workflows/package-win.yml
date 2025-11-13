@@ -1,0 +1,89 @@
+name: Package (Windows ZIP)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: '릴리즈 후보를 패키징할 Git ref (tag/branch/commit)'
+        required: false
+        default: main
+
+jobs:
+  build-zip:
+    runs-on: windows-latest
+
+    env:
+      YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
+      npm_config_loglevel: notice
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+
+      # 1) 먼저 원하는 Node 버전 설치 (engines.node = 22.14.0)
+      - name: Setup Node.js 22.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+
+      # 2) Corepack 활성화 + Yarn 4.9.2 사용 고정
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Use Yarn 4.9.2 via Corepack
+        run: corepack prepare yarn@4.9.2 --activate
+
+      - name: Show Node/Yarn versions
+        run: |
+          node -v
+          yarn -v
+
+      # (선택) Yarn Berry 캐시
+      - name: Cache Yarn
+        uses: actions/cache@v4
+        with:
+          path: |
+            .yarn/cache
+            .yarn/install-state.gz
+            .pnp.cjs
+          key: yarn-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-${{ runner.os }}-
+
+      # (선택) electron/prisma 캐시
+      - name: Cache tools (electron/prisma)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/.cache/prisma
+          key: tools-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            tools-${{ runner.os }}-
+
+      - name: Allow long paths (Windows)
+        run: git config --system core.longpaths true
+
+      # 3) Yarn 4로 설치 (immutable)
+      - name: Install deps
+        run: yarn install --immutable
+
+      # 4) 패키징 (ZIP)
+      - name: Package (Windows ZIP)
+        run: yarn package:win:dist
+
+      # 5) 산출물 업로드
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-docs-ai-translator-win-${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || 'manual') || github.ref_name }}
+          path: |
+            release/**/*.zip
+            release/**/builder-*.yml
+            release/**/builder-*.yaml
+          if-no-files-found: warn
