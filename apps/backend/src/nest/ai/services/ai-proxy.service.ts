@@ -30,6 +30,11 @@ export class TranslationParsingError extends Error {
 
 type TranslationSegment = { id: number; translated_text: string };
 
+interface ParsedSegmentResult {
+  segments: TranslationSegment[];
+  hasPartialData: boolean;
+}
+
 @Injectable()
 export class AiProxyService {
   constructor(
@@ -82,24 +87,15 @@ export class AiProxyService {
     return toTextFromMessageContent(response.choices[0].message.content) || '';
   }
 
-  private parseSegmentMatches(responseText: string): Array<{ id: number; translatedText: string }> {
-    let payload: { segments?: TranslationSegment[] };
-    try {
-      payload = responseText ? JSON.parse(responseText) : {};
-    } catch (error) {
-      this.logger.warn('parseSegmentMatches: JSON parse error', {
-        extra: { responseText },
-        cause: errorToString(error),
-      });
-      throw new TranslationParsingError('Failed to parse JSON translation response', {
-        cause: error,
-        shouldReduceBatchSize: true,
-      });
-    }
+  private parseSegmentMatches(responseText: string): {
+    matches: Array<{ id: number; translatedText: string }>;
+    hasPartialData: boolean;
+  } {
+    const { segments, hasPartialData } = this.parseSegmentsWithBestEffort(responseText);
 
-    if (!payload?.segments || !Array.isArray(payload.segments)) {
+    if (!segments || !Array.isArray(segments)) {
       this.logger.warn('parseSegmentMatches: Invalid format', {
-        extra: { responseText, payload },
+        extra: { responseText, segments },
       });
       throw new TranslationParsingError('Invalid translation response format', {
         shouldReduceBatchSize: true,
@@ -107,7 +103,7 @@ export class AiProxyService {
     }
 
     const matches: Array<{ id: number; translatedText: string }> = [];
-    for (const segment of payload.segments) {
+    for (const segment of segments) {
       if (!segment || typeof segment !== 'object') continue;
       const parsedId =
         typeof segment.id === 'number' ? segment.id : Number.parseInt(String(segment.id ?? ''), 10);
@@ -119,7 +115,129 @@ export class AiProxyService {
         translatedText,
       });
     }
-    return matches;
+    return { matches, hasPartialData };
+  }
+
+  private parseSegmentsWithBestEffort(responseText: string): ParsedSegmentResult {
+    if (!responseText?.trim()) {
+      this.logger.warn('parseSegmentMatches: empty response payload detected', {
+        extra: { responseLength: responseText?.length ?? 0 },
+      });
+      return { segments: [], hasPartialData: true };
+    }
+
+    try {
+      const payload = JSON.parse(responseText) as { segments?: TranslationSegment[] };
+      return { segments: payload?.segments ?? [], hasPartialData: false };
+    } catch (error) {
+      this.logger.warn('parseSegmentMatches: JSON parse error', {
+        extra: { responseText },
+        cause: errorToString(error),
+      });
+
+      const salvageResult = this.salvageSegmentsFromPartialJson(responseText);
+      if (salvageResult.segments.length < 3) {
+        throw new TranslationParsingError('Failed to parse JSON translation response', {
+          cause: error,
+          shouldReduceBatchSize: true,
+        });
+      }
+
+      const safeLength = salvageResult.hasOpenArray
+        ? Math.max(0, salvageResult.segments.length - 2)
+        : salvageResult.segments.length;
+      const safeSegments = salvageResult.segments.slice(0, safeLength);
+      if (safeSegments.length === 0) {
+        throw new TranslationParsingError('Failed to parse JSON translation response', {
+          cause: error,
+          shouldReduceBatchSize: true,
+        });
+      }
+
+      this.logger.warn('parseSegmentMatches: recovered partial JSON response', {
+        extra: {
+          recoveredCount: safeSegments.length,
+          originalCount: salvageResult.segments.length,
+          truncated: salvageResult.hasOpenArray,
+        },
+      });
+
+      return { segments: safeSegments, hasPartialData: true };
+    }
+  }
+
+  private salvageSegmentsFromPartialJson(responseText: string): {
+    segments: TranslationSegment[];
+    hasOpenArray: boolean;
+  } {
+    const segments: TranslationSegment[] = [];
+    const segmentsKeyIndex = responseText.indexOf('"segments"');
+    if (segmentsKeyIndex === -1) {
+      return { segments, hasOpenArray: false };
+    }
+
+    const arrayStart = responseText.indexOf('[', segmentsKeyIndex);
+    if (arrayStart === -1) {
+      return { segments, hasOpenArray: false };
+    }
+
+    let inString = false;
+    let isEscaped = false;
+    let braceDepth = 0;
+    let currentStart = -1;
+    let arrayClosed = false;
+
+    for (let i = arrayStart + 1; i < responseText.length; i++) {
+      const char = responseText[i];
+      if (inString) {
+        if (isEscaped) {
+          isEscaped = false;
+        } else if (char === '\\') {
+          isEscaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (char === '{') {
+        if (braceDepth === 0) {
+          currentStart = i;
+        }
+        braceDepth++;
+        continue;
+      }
+
+      if (char === '}') {
+        braceDepth--;
+        if (braceDepth === 0 && currentStart !== -1) {
+          const snippet = responseText.slice(currentStart, i + 1);
+          try {
+            const segment = JSON.parse(snippet) as TranslationSegment;
+            segments.push(segment);
+          } catch (innerError) {
+            this.logger.debug('salvageSegmentsFromPartialJson: skip invalid segment', {
+              snippet,
+              cause: errorToString(innerError),
+            });
+          }
+          currentStart = -1;
+        }
+        continue;
+      }
+
+      if (char === ']' && braceDepth === 0) {
+        arrayClosed = true;
+        break;
+      }
+    }
+
+    return { segments, hasOpenArray: !arrayClosed };
   }
 
   private calculateOffset(matches: Array<{ id: number }>): number {
@@ -158,8 +276,10 @@ export class AiProxyService {
   }
 
   private calculateExcludeFrom(firstFailure: number): number {
-    const excludeFrom = firstFailure - 1;
-    return excludeFrom < 1 ? 1 : excludeFrom;
+    if (!Number.isFinite(firstFailure)) {
+      return Infinity;
+    }
+    return Math.max(1, firstFailure);
   }
 
   private buildTranslations(
@@ -193,11 +313,11 @@ export class AiProxyService {
   public async parseTranslationResponse(
     response: AiChatResponse,
     remainingTexts: Map<string, number[]>
-  ): Promise<Map<string, TranslationResult>> {
+  ): Promise<{ translations: Map<string, TranslationResult>; hasPartialData: boolean }> {
     const responseText = this.getResponseText(response);
     const remainingTextArray = Array.from(remainingTexts.keys());
 
-    const matches = this.parseSegmentMatches(responseText);
+    const { matches, hasPartialData } = this.parseSegmentMatches(responseText);
     const offset = this.calculateOffset(matches);
     const { successfulIds, duplicateIds } = this.determineSuccessAndDuplicates(matches);
     const firstFailure = this.findFirstFailureNormalized(
@@ -226,6 +346,6 @@ export class AiProxyService {
       offset,
     });
 
-    return translations;
+    return { translations, hasPartialData };
   }
 }

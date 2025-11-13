@@ -48,6 +48,7 @@ export type TranslateParam = TextTranslateParam | ImageTranslateParam;
 export class UnifiedAiTranslatorService {
   protected rateLimiterMapping: Map<string, RateLimiter> = new Map();
   private readonly MAX_ATTEMPT_COUNT = 3;
+  private readonly STABLE_BATCH_RECOVERY_THRESHOLD = 2;
   constructor(
     @Inject(ICacheManagerService)
     protected readonly cacheManagerService: ICacheManagerService,
@@ -210,6 +211,7 @@ export class UnifiedAiTranslatorService {
         let consecutiveFailures = 0;
         let intermediateTexts = [...texts];
         let maxBatchTextCount: number | null = null;
+        let stableBatchSuccessCount = 0;
 
         while (currentRemainingTexts.size > 0) {
           const remainingTextArray = Array.from(currentRemainingTexts.keys());
@@ -243,15 +245,26 @@ export class UnifiedAiTranslatorService {
                   cacheTag: normalizedCacheTag,
                 });
 
-              // 번역 성공 시 연속 실패 횟수 초기화
-              consecutiveFailures = 0;
+              const madeProgress = batchTranslations.size > 0;
+              if (madeProgress) {
+                consecutiveFailures = 0;
+              } else {
+                consecutiveFailures++;
+                stableBatchSuccessCount = 0;
+                this.logger.warn('번역 응답이 비어 있어 재시도합니다.', {
+                  batchSize: batchTexts.length,
+                  consecutiveFailures,
+                  finishReason: response.choices?.[0]?.finishReason,
+                });
+                this.ensureFailureBudget(consecutiveFailures, 'EMPTY_RESPONSE');
+              }
 
               for (const [originalText, result] of batchTranslations.entries()) {
                 newTranslations.set(originalText, result);
               }
 
               // 배치 번역 성공 후 중간 결과 즉시 업데이트 및 캐싱
-              if (batchTranslations.size > 0) {
+              if (madeProgress) {
                 intermediateTexts = await this.updateTranslationsAndCache({
                   requestId: param.requestId,
                   newTranslations: new Map([...batchTranslations]),
@@ -288,20 +301,20 @@ export class UnifiedAiTranslatorService {
               if (shouldReduceBatchSize) {
                 maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
                 shouldRestartBatching = true;
+                stableBatchSuccessCount = 0;
+              } else if (maxBatchTextCount !== null && madeProgress) {
+                stableBatchSuccessCount++;
+                if (stableBatchSuccessCount >= this.STABLE_BATCH_RECOVERY_THRESHOLD) {
+                  this.logger.debug('배치 제한 해제 시도', {
+                    previousLimit: maxBatchTextCount,
+                  });
+                  maxBatchTextCount = null;
+                  stableBatchSuccessCount = 0;
+                }
               }
             } catch (error) {
               consecutiveFailures++;
-
-              if (consecutiveFailures >= this.MAX_ATTEMPT_COUNT) {
-                this.logger.error(
-                  `번역이 연속으로 ${this.MAX_ATTEMPT_COUNT}회 실패하여 중단합니다.`,
-                  {
-                    error,
-                    stack: error instanceof Error ? error.stack : undefined,
-                  }
-                );
-                throw new Error(`번역이 연속으로 ${this.MAX_ATTEMPT_COUNT}회 실패하여 중단합니다.`);
-              }
+              this.ensureFailureBudget(consecutiveFailures, error);
 
               if (error instanceof AiProxyError) {
                 this.logger.error('번역 중 api 오류 발생:', {
@@ -322,6 +335,7 @@ export class UnifiedAiTranslatorService {
               if (error instanceof TranslationParsingError && error.shouldReduceBatchSize) {
                 maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
                 shouldRestartBatching = true;
+                stableBatchSuccessCount = 0;
               }
 
               for (const [originalText, indices] of batchRemainingTexts.entries()) {
@@ -353,6 +367,18 @@ export class UnifiedAiTranslatorService {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new Error(`Translation failed: ${errorMessage}`);
     }
+  }
+
+  private ensureFailureBudget(consecutiveFailures: number, error?: unknown): void {
+    if (consecutiveFailures < this.MAX_ATTEMPT_COUNT) {
+      return;
+    }
+    const message = `번역이 연속으로 ${this.MAX_ATTEMPT_COUNT}회 실패하여 중단합니다.`;
+    this.logger.error(message, {
+      error,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    throw new Error(message);
   }
 
   // Convert OpenAI-like messages from prompt converter to provider-agnostic messages
@@ -450,14 +476,12 @@ export class UnifiedAiTranslatorService {
         },
       });
 
-      const batchTranslations = await this.aiProxy.parseTranslationResponse(
-        response,
-        remainingTexts
-      );
+      const { translations: batchTranslations, hasPartialData } =
+        await this.aiProxy.parseTranslationResponse(response, remainingTexts);
       return {
         batchTranslations,
         response,
-        shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response),
+        shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response) || hasPartialData,
       };
     } catch (error) {
       // 번역 실패 처리
