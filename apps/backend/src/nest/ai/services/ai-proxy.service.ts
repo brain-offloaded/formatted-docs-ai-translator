@@ -276,8 +276,10 @@ export class AiProxyService {
   }
 
   private calculateExcludeFrom(firstFailure: number): number {
-    const excludeFrom = firstFailure - 1;
-    return excludeFrom < 1 ? 1 : excludeFrom;
+    if (!Number.isFinite(firstFailure)) {
+      return Infinity;
+    }
+    return Math.max(1, firstFailure);
   }
 
   private buildTranslations(
