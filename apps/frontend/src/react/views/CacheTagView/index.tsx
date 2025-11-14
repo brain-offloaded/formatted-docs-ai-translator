@@ -236,6 +236,12 @@ const CacheTagView: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" component="h3">
           {t('cacheTag.registeredCacheTags')}
+          <InfoTooltip
+            title={t('tooltips.cacheTag')}
+            infoAriaLabel={t('tooltips.aria.info', { subject: t('cacheTag.tagName') })}
+            wikiUrl={getWikiUrl('cacheGuide', i18n.language)}
+            wikiAriaLabel={t('tooltips.links.cacheGuide')}
+          />
         </Typography>
         <Tooltip title={t('cacheTag.reload')}>
           <span>
@@ -245,17 +251,7 @@ const CacheTagView: React.FC = () => {
           </span>
         </Tooltip>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}>
-        <Typography variant="body2" color="text.secondary">
-          {t('cacheTag.description')}
-        </Typography>
-        <InfoTooltip
-          title={t('tooltips.cacheTag')}
-          infoAriaLabel={t('tooltips.aria.info', { subject: t('cacheTag.tagName') })}
-          wikiUrl={getWikiUrl('cacheGuide', i18n.language)}
-          wikiAriaLabel={t('tooltips.links.cacheGuide')}
-        />
-      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}></Box>
 
       <Card variant="outlined">
         <CardContent>
