@@ -36,6 +36,8 @@
     "uiLanguage": "UI 언어",
     "selectLanguage": "언어 선택",
     "languageChanged": "UI 언어가 변경되었습니다",
+    "beginnerMode": "초보자 모드",
+    "beginnerModeDescription": "고급 입력 옆에 툴팁과 위키 링크를 보여 처음 사용자도 쉽게 이해할 수 있도록 도와줍니다. 충분히 익숙하다면 꺼도 괜찮아요.",
     "translationSettings": "번역 설정",
     "showMore": "설정 더보기",
     "hide": "접기",

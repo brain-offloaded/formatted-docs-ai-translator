@@ -36,6 +36,8 @@
     "uiLanguage": "UI言語",
     "selectLanguage": "言語選択",
     "languageChanged": "UI言語が変更されました",
+    "beginnerMode": "初心者モード",
+    "beginnerModeDescription": "高度なフィールドの横にツールチップとWikiリンクを表示して、初めてでも迷わないようにします。十分に分かったらオフにしてください。",
     "translationSettings": "翻訳設定",
     "showMore": "詳細設定",
     "hide": "折りたたむ",

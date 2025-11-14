@@ -23,6 +23,7 @@ export interface AiTranslatorConfig {
   apiKey: string;
   customModelConfig: TranslatorModelConfigDto;
   cacheTag: string;
+  beginnerModeEnabled: boolean;
   lastPresetName?: string; // 예제 프리셋 이름
   lastPromptPresetName?: string; // 텍스트 번역 프롬프트 프리셋 이름 (호환성 유지)
   lastTextPromptPresetName?: string; // 텍스트 번역 프롬프트 프리셋 이름

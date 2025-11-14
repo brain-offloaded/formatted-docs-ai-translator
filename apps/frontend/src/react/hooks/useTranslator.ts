@@ -40,6 +40,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
   const setThinkingBudget = useConfigStore((state) => state.setThinkingBudget);
   const providerSettings = useConfigStore((state) => state.providerSettings);
   const cacheTag = useConfigStore((state) => state.cacheTag);
+  const beginnerModeEnabled = useConfigStore((state) => state.beginnerModeEnabled);
 
   const config: AiTranslatorConfig = useMemo(
     () => ({
@@ -49,6 +50,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       customModelConfig,
       apiKey,
       cacheTag,
+      beginnerModeEnabled,
       lastPresetName,
       useThinking,
       thinkingBudget,
@@ -67,6 +69,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       setThinkingBudget,
       providerSettings,
       cacheTag,
+      beginnerModeEnabled,
     ]
   );
 

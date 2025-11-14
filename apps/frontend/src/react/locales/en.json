@@ -36,6 +36,8 @@
     "uiLanguage": "UI Language",
     "selectLanguage": "Select Language",
     "languageChanged": "UI language has been changed",
+    "beginnerMode": "Beginner mode",
+    "beginnerModeDescription": "Shows inline tips and wiki links next to advanced fields. Turn it off once you feel comfortable using the app.",
     "translationSettings": "Translation Settings",
     "showMore": "More Settings",
     "hide": "Collapse",

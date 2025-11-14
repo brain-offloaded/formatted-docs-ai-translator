@@ -36,6 +36,8 @@
     "uiLanguage": "UI 语言",
     "selectLanguage": "选择语言",
     "languageChanged": "UI 语言已更改",
+    "beginnerMode": "新手模式",
+    "beginnerModeDescription": "在复杂字段旁显示提示泡泡和 Wiki 链接，帮助第一次使用的用户。熟悉后可以关闭。",
     "translationSettings": "翻译设置",
     "showMore": "更多设置",
     "hide": "折叠",
