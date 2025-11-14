@@ -37,6 +37,8 @@ import { useTranslation } from 'react-i18next';
 import { TranslationExampleMatrix } from '@apps/common/dist/types/translation-example.types';
 import { useSnackbar } from '@/react/hooks/useSnackbar';
 import { useConfirmModal } from '@/react/components/common/ConfirmModal';
+import { InfoTooltip } from '@/react/components/common/InfoTooltip';
+import { getWikiUrl } from '@/react/utils/wiki';
 
 interface ExamplePair {
   before: string;
@@ -83,7 +85,7 @@ const convertStateToBackendMatrix = (matrix: ExampleMatrixState): TranslationExa
 };
 
 const ExamplePresetEditor: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [allPresets, setAllPresets] = useState<ExamplePresetDto[]>([]);
   const [presets, setPresets] = useState<ExamplePresetDto[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<ExamplePresetDetailDto | null>(null);
@@ -492,8 +494,18 @@ const ExamplePresetEditor: React.FC = () => {
 
         <Divider sx={{ my: 2 }} />
 
-        <Typography variant="h6" gutterBottom>
-          {t('preset.translationExamples')}
+        <Typography variant="h6" gutterBottom component="div">
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+            {t('preset.translationExamples')}
+            <InfoTooltip
+              title={t('tooltips.examplePresetEditor')}
+              infoAriaLabel={t('tooltips.aria.info', {
+                subject: t('preset.translationExamples'),
+              })}
+              wikiUrl={getWikiUrl('presetGuide', i18n.language)}
+              wikiAriaLabel={t('tooltips.links.presetGuide')}
+            />
+          </Box>
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-end', mb: 2 }}>

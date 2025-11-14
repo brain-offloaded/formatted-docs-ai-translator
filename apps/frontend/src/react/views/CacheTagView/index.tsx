@@ -34,11 +34,13 @@ import { useTranslation } from 'react-i18next';
 import { useConfirmModal } from '@/react/components/common/ConfirmModal';
 import { useModal, createModalId } from '@/react/contexts/ModalContext';
 import { CacheTagsService } from '@/react/api/generated';
+import { InfoTooltip } from '@/react/components/common/InfoTooltip';
+import { getWikiUrl } from '@/react/utils/wiki';
 
 const formatDateTime = (value?: string | null) => (value ? new Date(value).toLocaleString() : '-');
 
 const CacheTagView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [cacheTags, setCacheTags] = useState<CacheTagSummaryDto[]>([]);
   const [allCacheTags, setAllCacheTags] = useState<CacheTagSummaryDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -234,6 +236,12 @@ const CacheTagView: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography variant="h6" component="h3">
           {t('cacheTag.registeredCacheTags')}
+          <InfoTooltip
+            title={t('tooltips.cacheTag')}
+            infoAriaLabel={t('tooltips.aria.info', { subject: t('cacheTag.tagName') })}
+            wikiUrl={getWikiUrl('cacheGuide', i18n.language)}
+            wikiAriaLabel={t('tooltips.links.cacheGuide')}
+          />
         </Typography>
         <Tooltip title={t('cacheTag.reload')}>
           <span>
@@ -243,6 +251,7 @@ const CacheTagView: React.FC = () => {
           </span>
         </Tooltip>
       </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'text.secondary' }}></Box>
 
       <Card variant="outlined">
         <CardContent>

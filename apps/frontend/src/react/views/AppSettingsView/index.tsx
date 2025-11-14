@@ -12,6 +12,8 @@ import {
   Grid,
   Divider,
   SelectChangeEvent,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,10 +21,13 @@ import { useTranslation } from 'react-i18next';
 import { uiLanguages, getLanguageLabelByCode } from '@apps/common/dist/language';
 import { SettingsService as SettingsApiService } from '@/react/api/generated/services/SettingsService';
 import { UpdateSettingRequestDto } from '@/react/api/generated/models/UpdateSettingRequestDto';
+import { useConfigStore } from '@/react/config/config-store';
 
 const AppSettingsView: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [uiLanguage, setUiLanguage] = useState<string>(i18n.language);
+  const beginnerModeEnabled = useConfigStore((state) => state.beginnerModeEnabled);
+  const updateConfig = useConfigStore((state) => state.updateConfig);
 
   const getDisplayLabel = useCallback((languageCode: string): string => {
     try {
@@ -87,6 +92,12 @@ const AppSettingsView: React.FC = () => {
       console.error('Failed to update language setting:', error);
     }
   };
+  const handleBeginnerModeToggle = (
+    _event: React.ChangeEvent<HTMLInputElement>,
+    checked: boolean
+  ) => {
+    updateConfig({ beginnerModeEnabled: checked });
+  };
 
   return (
     <Card variant="outlined">
@@ -124,6 +135,21 @@ const AppSettingsView: React.FC = () => {
           <Grid item xs={12} md={6}>
             <Typography variant="body2" color="text.secondary" sx={{ pt: 2 }}>
               {t('settings.languageChanged')}
+            </Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  color="primary"
+                  checked={beginnerModeEnabled}
+                  onChange={handleBeginnerModeToggle}
+                />
+              }
+              label={t('settings.beginnerMode')}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {t('settings.beginnerModeDescription')}
             </Typography>
           </Grid>
         </Grid>

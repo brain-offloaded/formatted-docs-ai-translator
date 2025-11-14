@@ -80,6 +80,7 @@ const getDefaultConfig = (): AiTranslatorConfig => {
     customModelConfig: providerSettings[initialProvider].customModelConfig,
     apiKey: providerSettings[initialProvider].apiKey,
     cacheTag: DEFAULT_CACHE_TAG,
+    beginnerModeEnabled: true,
     lastPresetName: 'default',
     lastPromptPresetName: '', // 호환성 유지
     lastTextPromptPresetName: '',

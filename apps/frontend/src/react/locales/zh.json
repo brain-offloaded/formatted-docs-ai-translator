@@ -36,6 +36,8 @@
     "uiLanguage": "UI 语言",
     "selectLanguage": "选择语言",
     "languageChanged": "UI 语言已更改",
+    "beginnerMode": "新手模式",
+    "beginnerModeDescription": "在复杂字段旁显示提示泡泡和 Wiki 链接，帮助第一次使用的用户。熟悉后可以关闭。",
     "translationSettings": "翻译设置",
     "showMore": "更多设置",
     "hide": "折叠",
@@ -67,6 +69,30 @@
     "maxOutputTokensLabel": "最大输出令牌数:",
     "apiKeyInfo": "API 密钥可以从 <1>Google AI Studio</1> 获取。",
     "apiKeyRoundRobinHint": "使用空格分隔多个 API 密钥时，会自动以轮询方式依次使用。"
+  },
+  "tooltips": {
+    "aria": {
+      "info": "显示 {{subject}} 的说明"
+    },
+    "apiKey": "粘贴在 Google AI Studio 或 Vertex AI 中生成的 API 密钥。用空格输入多个密钥时会自动轮换，降低触发限流的概率。",
+    "modelName": "输入控制台中显示的模型 ID，例如 gemini-1.5-pro-latest。",
+    "requestsPerMinute": "请与账户的每分钟请求上限 (RPM) 保持一致，这样应用会在 API 返回 429 前主动减速。",
+    "maxOutputTokens": "单次回答能生成的最大令牌数。数值越大，可输出的内容越长，但也会消耗更多配额。",
+    "thinkingMode": "启用 Thinking 模式后，Gemini 会执行额外的推理步骤，艰难场景的准确率更高，但速度更慢且费用增加。",
+    "setThinkingBudget": "想限制推理阶段能使用的令牌数量、方便控制每次请求成本时开启该选项。",
+    "thinkingBudget": "为推理步骤预留的令牌数。保留为 0 由提供商自动决定，填写数值则强制该上限。",
+    "cacheTag": "缓存标签按项目归类翻译结果。使用同一标签时可直接复用历史译文，而无需再次调用 API。",
+    "examplePresetSelector": "示例预设会注入几组真实原文/译文，让模型预先学习语气与术语。",
+    "promptPresetSelector": "提示预设是可重复使用的系统提示，定义语气、输出格式和 JSON 约束等规则。",
+    "examplePresetEditor": "每个支持的语言方向至少添加两条例句，正式翻译前会作为 few-shot 示例提交。",
+    "promptPresetType": "文档翻译请选择 TEXT，图片翻译流程请选择 IMAGE。",
+    "promptPresetContent": "编写要发送给 AI 的提示原文，可使用 {{content}}、{{language::target}} 等占位符。",
+    "cacheManager": "缓存会将所有翻译段落保存在本地。在这里查看、编辑或删除，就能避免为相同内容再次付费。",
+    "links": {
+      "gettingStarted": "在浏览器中打开 API 密钥设置 Wiki",
+      "presetGuide": "在浏览器中打开预设编写 Wiki",
+      "cacheGuide": "在浏览器中打开缓存管理 Wiki"
+    }
   },
   "translation": {
     "title": "执行翻译",
@@ -341,6 +367,7 @@
   },
   "cacheTag": {
     "registeredCacheTags": "已注册的缓存标签",
+    "description": "缓存标签就像按项目或客户区分的文件夹。重复使用同一个标签时，应用会直接复用本地译文，避免再调用 API 花费。",
     "reload": "重新加载",
     "tagCount": "标签数量",
     "defaultTagStatus": "默认标签状态",

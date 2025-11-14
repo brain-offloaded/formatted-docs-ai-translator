@@ -13,6 +13,8 @@ import { SelectChangeEvent } from '@mui/material/Select';
 import { useTranslation } from 'react-i18next';
 import { ExamplePresetDto, ExamplePresetsService } from '@/react/api/generated';
 import { useTranslation as useTranslationContext } from '../../contexts/TranslationContext';
+import { InfoTooltip } from '@/react/components/common/InfoTooltip';
+import { getWikiUrl } from '@/react/utils/wiki';
 
 interface ExamplePresetSelectorMinimalProps {
   currentPresetName: string;
@@ -31,7 +33,7 @@ const ExamplePresetSelectorMinimal: React.FC<ExamplePresetSelectorMinimalProps> 
 }) => {
   const [examplePresets, setExamplePresets] = useState<ExamplePresetDto[]>([]);
   const { showSnackbar } = useTranslationContext();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const fetchExamplePresets = useCallback(async () => {
     try {
@@ -57,8 +59,16 @@ const ExamplePresetSelectorMinimal: React.FC<ExamplePresetSelectorMinimalProps> 
 
   return (
     <Box sx={{ mb: 3 }}>
-      <Typography variant="subtitle1" gutterBottom>
-        {t('examplePreset.title')}
+      <Typography variant="subtitle1" gutterBottom component="div">
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+          {t('examplePreset.title')}
+          <InfoTooltip
+            title={t('tooltips.examplePresetSelector')}
+            infoAriaLabel={t('tooltips.aria.info', { subject: t('examplePreset.title') })}
+            wikiUrl={getWikiUrl('presetGuide', i18n.language)}
+            wikiAriaLabel={t('tooltips.links.presetGuide')}
+          />
+        </Box>
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <FormControl fullWidth size="small">

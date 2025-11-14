@@ -12,6 +12,8 @@ import {
 import { DEFAULT_CACHE_TAG } from '@apps/common/dist/constants/cache';
 import type { CustomOptionComponentProps } from '@/react/types/translation-types';
 import { useTranslation } from 'react-i18next';
+import { InfoTooltip } from '@/react/components/common/InfoTooltip';
+import { getWikiUrl } from '@/react/utils/wiki';
 
 interface TranslationSettingsPanelProps {
   translationType: TranslationType;
@@ -42,7 +44,18 @@ export const TranslationSettingsPanel: React.FC<TranslationSettingsPanelProps> =
   OptionComponent,
   optionComponentProps,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const cacheTagLabel = (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+      {t('cache.tagLabel')}
+      <InfoTooltip
+        title={t('tooltips.cacheTag')}
+        infoAriaLabel={t('tooltips.aria.info', { subject: t('cache.tagLabel') })}
+        wikiUrl={getWikiUrl('cacheGuide', i18n.language)}
+        wikiAriaLabel={t('tooltips.links.cacheGuide')}
+      />
+    </Box>
+  );
   const renderSourceOptions = () =>
     sourceLanguages.map((language) => (
       <MenuItem key={language} value={language}>
@@ -85,7 +98,7 @@ export const TranslationSettingsPanel: React.FC<TranslationSettingsPanelProps> =
       </FormControl>
 
       <TextField
-        label={t('cache.tagLabel')}
+        label={cacheTagLabel}
         fullWidth
         value={cacheTag}
         onChange={onCacheTagChange}
@@ -93,6 +106,7 @@ export const TranslationSettingsPanel: React.FC<TranslationSettingsPanelProps> =
         placeholder={DEFAULT_CACHE_TAG}
         sx={{ mb: 2 }}
         helperText={t('cache.tagHelperText')}
+        InputLabelProps={{ shrink: true }}
       />
 
       <TranslationTypeSelector selectedType={translationType} onChange={onTranslationTypeChange} />

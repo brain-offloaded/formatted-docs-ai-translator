@@ -36,6 +36,8 @@
     "uiLanguage": "UI 언어",
     "selectLanguage": "언어 선택",
     "languageChanged": "UI 언어가 변경되었습니다",
+    "beginnerMode": "초보자 모드",
+    "beginnerModeDescription": "고급 입력 옆에 툴팁과 위키 링크를 보여 처음 사용자도 쉽게 이해할 수 있도록 도와줍니다. 충분히 익숙하다면 꺼도 괜찮아요.",
     "translationSettings": "번역 설정",
     "showMore": "설정 더보기",
     "hide": "접기",
@@ -67,6 +69,30 @@
     "maxOutputTokensLabel": "최대 출력 토큰 수:",
     "apiKeyInfo": "API 키는 <1>Google AI Studio</1>에서 발급받을 수 있습니다.",
     "apiKeyRoundRobinHint": "여러 개의 API 키를 공백으로 구분해 입력하면 라운드 로빈 방식으로 자동 순환됩니다."
+  },
+  "tooltips": {
+    "aria": {
+      "info": "{{subject}} 설명 보기"
+    },
+    "apiKey": "Google AI Studio 혹은 Vertex AI에서 발급된 API 키를 붙여넣으세요. 공백으로 여러 키를 나열하면 자동으로 순환 사용하여 제한에 덜 걸립니다.",
+    "modelName": "제공자 콘솔에 표시된 모델 ID를 정확히 입력하세요. 예: gemini-1.5-pro-latest",
+    "requestsPerMinute": "계정에 허용된 분당 호출 수(RPM)에 맞춰 입력하면 API가 429 오류를 내기 전에 앱이 속도를 조절합니다.",
+    "maxOutputTokens": "한 번의 응답에서 생성할 수 있는 토큰 상한입니다. 값을 높이면 더 긴 결과를 얻지만 그만큼 비용도 늘어납니다.",
+    "thinkingMode": "Thinking 모드를 켜면 Gemini가 추가 추론 단계를 거쳐 까다로운 번역 품질을 높입니다. 대신 더 많은 토큰과 시간이 필요합니다.",
+    "setThinkingBudget": "생각 단계에 사용할 토큰 수를 제한하여 요청당 비용을 예측 가능하게 만들고 싶을 때 활성화하세요.",
+    "thinkingBudget": "추론 단계에 허용할 토큰 수입니다. 0으로 두면 제공자가 자동으로 결정하고, 값을 입력하면 해당 한도를 강제로 적용합니다.",
+    "cacheTag": "캐시 태그는 프로젝트별로 번역 결과를 묶어줍니다. 동일한 태그를 쓰면 기존 결과를 즉시 재사용하여 API 호출을 줄일 수 있습니다.",
+    "examplePresetSelector": "예제 프리셋은 실제 소스/타겟 문장을 몇 개 넣어 모델이 원하는 톤과 용어를 미리 학습하게 합니다.",
+    "promptPresetSelector": "프롬프트 프리셋은 톤, 출력 형식, JSON 규칙 등을 하나의 시스템 프롬프트로 저장해 둔 것입니다.",
+    "examplePresetEditor": "지원하는 언어쌍마다 최소 2개의 예제를 등록하면 번역 전에 few-shot 예시로 재사용됩니다.",
+    "promptPresetType": "문서 번역용이면 TEXT, 이미지 번역 워크플로우용이면 IMAGE를 선택하세요.",
+    "promptPresetContent": "AI에 그대로 전달될 프롬프트를 작성합니다. {{content}}, {{language::target}} 같은 치환 변수를 함께 사용할 수 있습니다.",
+    "cacheManager": "캐시는 번역된 세그먼트를 로컬에 저장합니다. 여기에서 검토·수정·삭제하면 같은 문장을 다시 번역할 때 비용을 아낄 수 있습니다.",
+    "links": {
+      "gettingStarted": "API 키 설정 위키 열기",
+      "presetGuide": "프리셋 작성 위키 열기",
+      "cacheGuide": "캐시 관리 위키 열기"
+    }
   },
   "translation": {
     "title": "번역 실행",
@@ -341,6 +367,7 @@
   },
   "cacheTag": {
     "registeredCacheTags": "등록된 캐시 태그",
+    "description": "캐시 태그는 프로젝트나 고객별로 번역 결과를 모아두는 폴더입니다. 같은 태그로 번역하면 저장된 결과를 즉시 재사용하여 API 비용을 줄일 수 있어요.",
     "reload": "다시 불러오기",
     "tagCount": "태그 개수",
     "defaultTagStatus": "기본 태그 상태",

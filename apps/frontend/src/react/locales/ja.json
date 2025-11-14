@@ -36,6 +36,8 @@
     "uiLanguage": "UI言語",
     "selectLanguage": "言語選択",
     "languageChanged": "UI言語が変更されました",
+    "beginnerMode": "初心者モード",
+    "beginnerModeDescription": "高度なフィールドの横にツールチップとWikiリンクを表示して、初めてでも迷わないようにします。十分に分かったらオフにしてください。",
     "translationSettings": "翻訳設定",
     "showMore": "詳細設定",
     "hide": "折りたたむ",
@@ -67,6 +69,30 @@
     "maxOutputTokensLabel": "最大出力トークン数:",
     "apiKeyInfo": "APIキーは<1>Google AI Studio</1>で発行できます。",
     "apiKeyRoundRobinHint": "複数のAPIキーをスペースで区切って入力すると、ラウンドロビン方式で自動的に順番に使用されます。"
+  },
+  "tooltips": {
+    "aria": {
+      "info": "{{subject}}の説明を表示"
+    },
+    "apiKey": "Google AI Studio または Vertex AI で発行された API キーを貼り付けてください。スペースで区切れば複数のキーを自動でローテーションでき、制限に掛かりにくくなります。",
+    "modelName": "コンソールに表示されるモデル ID を正確に入力してください (例: gemini-1.5-pro-latest)。",
+    "requestsPerMinute": "アカウントの 1 分あたりのリクエスト上限 (RPM) に合わせると、429 エラーが返る前にアプリが送信速度を調整します。",
+    "maxOutputTokens": "1 回の応答で生成できるトークン数の上限です。値を上げると長い出力になりますが、利用量とコストも増えます。",
+    "thinkingMode": "Thinking モードを有効にすると Gemini が追加の推論ステップを実行し、難しい翻訳での精度が向上します。代わりに時間とトークンを多く消費します。",
+    "setThinkingBudget": "推論に使えるトークン数を制限して 1 リクエストあたりのコストを管理したい場合にオンにしてください。",
+    "thinkingBudget": "Thinking ステップに割り当てるトークン数です。0 のままならプロバイダが自動で決定し、値を入力するとその上限が適用されます。",
+    "cacheTag": "キャッシュ タグでプロジェクトごとに翻訳結果をまとめます。同じタグを使えば過去の結果を API なしで即座に再利用できます。",
+    "examplePresetSelector": "例文プリセットで実際の原文/訳文を読み込ませ、モデルにトーンや用語を事前に学習させます。",
+    "promptPresetSelector": "プロンプト プリセットはトーン、出力形式、JSON 契約などのルールをまとめた再利用可能なシステム プロンプトです。",
+    "examplePresetEditor": "対応する言語ペアごとに少なくとも 2 件の例を追加すると、翻訳前の few-shot デモとして利用されます。",
+    "promptPresetType": "文書翻訳なら TEXT、画像翻訳フローなら IMAGE を選択してください。",
+    "promptPresetContent": "AI に送信されるプロンプト本文です。{{content}} や {{language::target}} などのプレースホルダを組み込めます。",
+    "cacheManager": "キャッシュには翻訳済みのセグメントがローカル保存されています。ここで確認・編集・削除すれば、同じ文章を再翻訳するコストを抑えられます。",
+    "links": {
+      "gettingStarted": "ブラウザーで API キー設定ウィキを開く",
+      "presetGuide": "ブラウザーでプリセット作成ウィキを開く",
+      "cacheGuide": "ブラウザーでキャッシュ管理ウィキを開く"
+    }
   },
   "translation": {
     "title": "翻訳実行",
@@ -341,6 +367,7 @@
   },
   "cacheTag": {
     "registeredCacheTags": "登録済みのキャッシュタグ",
+    "description": "キャッシュタグはプロジェクトや顧客ごとに訳文をまとめるフォルダーです。同じタグを使えば保存済みの訳文をすぐ再利用でき、APIコストを抑えられます。",
     "reload": "再読み込み",
     "tagCount": "タグ数",
     "defaultTagStatus": "デフォルトタグの状態",

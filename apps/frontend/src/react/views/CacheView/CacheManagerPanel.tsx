@@ -2,15 +2,25 @@ import React from 'react';
 import { PaginationSection } from '../../components/CacheManagerPanel/PaginationSection';
 import { SearchSection } from '../../components/CacheManagerPanel/SearchSection';
 import { DataTable } from '../../components/common/DataTable';
-import { CircularProgress, IconButton, Paper, Stack, Tooltip, Typography } from '@mui/material';
+import {
+  CircularProgress,
+  IconButton,
+  Paper,
+  Stack,
+  Tooltip,
+  Typography,
+  Box,
+} from '@mui/material';
 import { useCacheManager } from './hooks/useCacheManager';
 import { useTranslation } from 'react-i18next';
 import EditOutlined from '@mui/icons-material/EditOutlined';
 import { CopyButton } from '../../components/common/CopyButton';
 import { truncateText } from '../../utils/textUtils';
+import { InfoTooltip } from '../../components/common/InfoTooltip';
+import { getWikiUrl } from '@/react/utils/wiki';
 
 const CacheManagerPanel: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     state,
     checkedItems,
@@ -41,8 +51,18 @@ const CacheManagerPanel: React.FC = () => {
         alignItems={{ xs: 'flex-start', sm: 'center' }}
         spacing={2}
       >
-        <Typography variant="h4" fontWeight={600} component="h2">
-          {t('cache.translationCacheManagement')}
+        <Typography variant="h4" fontWeight={600} component="div">
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+            {t('cache.translationCacheManagement')}
+            <InfoTooltip
+              title={t('tooltips.cacheManager')}
+              infoAriaLabel={t('tooltips.aria.info', {
+                subject: t('cache.translationCacheManagement'),
+              })}
+              wikiUrl={getWikiUrl('cacheGuide', i18n.language)}
+              wikiAriaLabel={t('tooltips.links.cacheGuide')}
+            />
+          </Box>
         </Typography>
         <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
           {renderExportImportButtons()}

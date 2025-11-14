@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import { PromptPresetDto } from '@/react/api/generated/models/PromptPresetDto';
 import { useTranslation as useTranslationContext } from '../../contexts/TranslationContext';
 import { PromptPresetsService } from '@/react/api/generated/services/PromptPresetsService';
+import { InfoTooltip } from '@/react/components/common/InfoTooltip';
+import { getWikiUrl } from '@/react/utils/wiki';
 
 interface PromptPresetSelectorMinimalProps {
   currentPresetName: string;
@@ -34,7 +36,7 @@ const PromptPresetSelectorMinimal: React.FC<PromptPresetSelectorMinimalProps> = 
 }) => {
   const [promptPresets, setPromptPresets] = useState<PromptPresetDto[]>([]);
   const { showSnackbar } = useTranslationContext();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // 프롬프트 프리셋 목록 가져오기
   const fetchPromptPresets = useCallback(async () => {
@@ -110,8 +112,16 @@ const PromptPresetSelectorMinimal: React.FC<PromptPresetSelectorMinimalProps> = 
 
   return (
     <Box sx={{ mb: 3 }}>
-      <Typography variant="subtitle1" gutterBottom>
-        {t('promptPreset.title')}
+      <Typography variant="subtitle1" gutterBottom component="div">
+        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+          {t('promptPreset.title')}
+          <InfoTooltip
+            title={t('tooltips.promptPresetSelector')}
+            infoAriaLabel={t('tooltips.aria.info', { subject: t('promptPreset.title') })}
+            wikiUrl={getWikiUrl('presetGuide', i18n.language)}
+            wikiAriaLabel={t('tooltips.links.presetGuide')}
+          />
+        </Box>
       </Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <FormControl fullWidth size="small">
