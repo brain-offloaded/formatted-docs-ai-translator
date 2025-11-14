@@ -278,6 +278,7 @@ const PromptPresetPanel: React.FC = () => {
           margin="normal"
           multiline
           rows={10}
+          InputLabelProps={{ shrink: true }}
         />
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
           <Button onClick={handleClearSelection} variant="outlined">

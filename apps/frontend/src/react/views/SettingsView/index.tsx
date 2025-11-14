@@ -144,6 +144,7 @@ const SettingsView: React.FC = () => {
               onChange={handleApiKeyChange}
               error={!!apiKeyError}
               helperText={apiKeyError || t('settings.apiKeyRoundRobinHint')}
+              InputLabelProps={{ shrink: true }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -179,6 +180,7 @@ const SettingsView: React.FC = () => {
               }
               helperText={t('settings.modelId')}
               required
+              InputLabelProps={{ shrink: true }}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -200,6 +202,7 @@ const SettingsView: React.FC = () => {
               InputProps={{
                 inputProps: { min: 0 },
               }}
+              InputLabelProps={{ shrink: true }}
               helperText={
                 !config.customModelConfig.requestsPerMinute
                   ? t('settings.fieldRequired')
@@ -225,6 +228,7 @@ const SettingsView: React.FC = () => {
               InputProps={{
                 inputProps: { min: 0 },
               }}
+              InputLabelProps={{ shrink: true }}
               helperText={
                 !config.customModelConfig.maxOutputTokenCount
                   ? t('settings.fieldRequired')
@@ -301,6 +305,7 @@ const SettingsView: React.FC = () => {
                     value={config.thinkingBudget}
                     onChange={(e) => updateConfig({ thinkingBudget: Number(e.target.value) })}
                     sx={{ mt: 1 }}
+                    InputLabelProps={{ shrink: true }}
                   />
                 </Box>
               </Collapse>

@@ -106,6 +106,7 @@ export const TranslationSettingsPanel: React.FC<TranslationSettingsPanelProps> =
         placeholder={DEFAULT_CACHE_TAG}
         sx={{ mb: 2 }}
         helperText={t('cache.tagHelperText')}
+        InputLabelProps={{ shrink: true }}
       />
 
       <TranslationTypeSelector selectedType={translationType} onChange={onTranslationTypeChange} />
