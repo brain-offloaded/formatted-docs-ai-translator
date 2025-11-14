@@ -67,7 +67,10 @@ export class PrismaLogTransport extends TransportStream {
         context,
         metadata: serializedMetadata,
       })
-      .catch((error) => this.emit('error', error));
+      .catch((error) => {
+        // 에러 이벤트를 그대로 방출하면 프로세스가 죽을 수 있으므로 최대한 내부에서 처리합니다.
+        console.error('[PrismaLogTransport] 로그 저장 실패', error);
+      });
 
     callback();
   }
