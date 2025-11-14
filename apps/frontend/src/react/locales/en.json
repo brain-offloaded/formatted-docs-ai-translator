@@ -367,6 +367,7 @@
   },
   "cacheTag": {
     "registeredCacheTags": "Registered Cache Tags",
+    "description": "Cache tags act like folders per project or client. Reusing the same tag lets the app instantly pull saved translations instead of paying for a new API call.",
     "reload": "Reload",
     "tagCount": "Number of Tags",
     "defaultTagStatus": "Default Tag Status",

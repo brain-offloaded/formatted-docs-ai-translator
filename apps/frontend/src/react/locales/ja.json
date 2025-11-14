@@ -367,6 +367,7 @@
   },
   "cacheTag": {
     "registeredCacheTags": "登録済みのキャッシュタグ",
+    "description": "キャッシュタグはプロジェクトや顧客ごとに訳文をまとめるフォルダーです。同じタグを使えば保存済みの訳文をすぐ再利用でき、APIコストを抑えられます。",
     "reload": "再読み込み",
     "tagCount": "タグ数",
     "defaultTagStatus": "デフォルトタグの状態",

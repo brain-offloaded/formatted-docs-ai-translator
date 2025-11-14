@@ -367,6 +367,7 @@
   },
   "cacheTag": {
     "registeredCacheTags": "已注册的缓存标签",
+    "description": "缓存标签就像按项目或客户区分的文件夹。重复使用同一个标签时，应用会直接复用本地译文，避免再调用 API 花费。",
     "reload": "重新加载",
     "tagCount": "标签数量",
     "defaultTagStatus": "默认标签状态",
