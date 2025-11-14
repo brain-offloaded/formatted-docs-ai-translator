@@ -22,6 +22,7 @@ jobs:
       YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
       npm_config_loglevel: notice
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      ARTIFACT_REF: ${{ replace(github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || 'manual') || github.ref_name, '/', '-') }}
 
     steps:
       - name: Checkout
@@ -85,7 +86,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: formatted-docs-ai-translator-win-${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || 'manual') || github.ref_name }}
+          name: formatted-docs-ai-translator-win-${{ env.ARTIFACT_REF }}
           path: |
             release/**/*.zip
             release/**/builder-*.yml
