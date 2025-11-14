@@ -1,9 +1,9 @@
 name: Package (Windows ZIP)
 
 on:
-  push: # test for every branch push
-    branches:
-      - '**'
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       ref:
