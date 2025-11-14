@@ -22,7 +22,6 @@ jobs:
       YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
       npm_config_loglevel: notice
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      ARTIFACT_REF: ${{ replace(github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || 'manual') || github.ref_name, '/', '-') }}
 
     steps:
       - name: Checkout
@@ -74,6 +73,16 @@ jobs:
       - name: Allow long paths (Windows)
         run: git config --system core.longpaths true
 
+      - name: Normalize artifact ref
+        id: artifact-ref
+        shell: bash
+        env:
+          REF: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || 'manual') || github.ref_name }}
+        run: |
+          REF=${REF:-manual}
+          REF=${REF//\//-}
+          echo "artifact-ref=$REF" >> $GITHUB_OUTPUT
+
       # 3) Yarn 4로 설치 (immutable)
       - name: Install deps
         run: yarn install --immutable
@@ -86,7 +95,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: formatted-docs-ai-translator-win-${{ env.ARTIFACT_REF }}
+          name: formatted-docs-ai-translator-win-${{ steps.artifact-ref.outputs.artifact-ref }}
           path: |
             release/**/*.zip
             release/**/builder-*.yml
