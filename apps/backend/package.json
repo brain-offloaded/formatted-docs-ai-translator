@@ -53,6 +53,7 @@
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
     "electron-dl": "^4.0.0",
+    "electron-updater": "6.6.2",
     "jszip": "^3.10.1",
     "limiter": "^2.1.0",
     "lru-cache": "^11.0.2",
