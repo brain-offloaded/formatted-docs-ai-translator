@@ -1,6 +1,6 @@
 {
   "name": "formatted-docs-ai-translator",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Formatted Docs such as Json Translation Tool using Artificial Intelligence",
   "main": "dist/main.js",
   "author": "brain-offloaded",
@@ -34,6 +34,7 @@
     "lint": "turbo lint",
     "lint:fix": "turbo lint:fix",
     "format": "turbo format",
+    "version:set": "node scripts/set-version.mjs",
     "fix:aliases": "turbo fix:aliases",
     "validate:i18n": "ts-node scripts/validate-i18n-keys.ts",
     "validate:i18n:fix": "ts-node scripts/validate-i18n-keys.ts --fix",
