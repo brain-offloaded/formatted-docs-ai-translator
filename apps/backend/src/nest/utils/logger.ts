@@ -1,5 +1,27 @@
 import winston from 'winston';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
+const fileTransports = [
+  new winston.transports.File({
+    filename: 'logs/error.log',
+    level: 'error',
+    maxsize: 1048576,
+    maxFiles: 10,
+  }),
+  new winston.transports.File({
+    filename: 'logs/combined.log',
+    level: 'info',
+    maxsize: 1048576,
+    maxFiles: 10,
+  }),
+];
+
+const consoleTransport = new winston.transports.Console({
+  level: 'debug',
+  format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+});
+
 export const loggerOptions = {
   level: 'debug',
   format: winston.format.combine(
@@ -11,24 +33,7 @@ export const loggerOptions = {
     winston.format.json()
   ),
   defaultMeta: { service: 'formatted-docs-ai-translator' },
-  transports: [
-    new winston.transports.Console({
-      level: 'debug',
-      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-    }),
-    new winston.transports.File({
-      filename: 'logs/error.log',
-      level: 'error',
-      maxsize: 1048576,
-      maxFiles: 10,
-    }),
-    new winston.transports.File({
-      filename: 'logs/combined.log',
-      level: 'info',
-      maxsize: 1048576,
-      maxFiles: 10,
-    }),
-  ],
+  transports: isProduction ? fileTransports : [consoleTransport, ...fileTransports],
 };
 
 // winston 로거 생성 함수

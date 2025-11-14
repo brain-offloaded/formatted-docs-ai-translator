@@ -172,6 +172,7 @@ __metadata:
     typescript: "npm:^5.8.2"
     uuid: "npm:^11.1.0"
     winston: "npm:^3.17.0"
+    winston-transport: "npm:^4.9.0"
   languageName: unknown
   linkType: soft
 

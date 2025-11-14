@@ -15,6 +15,7 @@ import {
   DeleteLogsFilterParams,
 } from './logger.types';
 import { logger } from '@/nest/utils/logger';
+import { PrismaLogTransport } from './transports/prisma-log.transport';
 
 const METADATA_PREVIEW_MAX_LENGTH = 200;
 
@@ -22,15 +23,11 @@ const METADATA_PREVIEW_MAX_LENGTH = 200;
 export class LoggerService {
   private winstonLogger: winston.Logger;
   private idLoader: DataLoader<number, Log | null>;
-  private createLoader: DataLoader<
-    { level: string; message: string; context?: string | null; metadata?: string | null },
-    void
-  >;
 
   constructor(private readonly prisma: PrismaService) {
     this.winstonLogger = this.initializeWinstonLogger();
     this.idLoader = this.initializeDataLoader();
-    this.createLoader = this.initializeCreateLoader();
+    this.attachDbTransport();
   }
 
   private initializeWinstonLogger(): winston.Logger {
@@ -67,67 +64,13 @@ export class LoggerService {
     );
   }
 
-  private initializeCreateLoader(): DataLoader<
-    {
-      level: string;
-      message: string;
-      context?: string | null;
-      metadata?: string | null;
-    },
-    void
-  > {
-    return new DataLoader(
-      async (
-        items: readonly {
-          level: string;
-          message: string;
-          context?: string | null;
-          metadata?: string | null;
-        }[]
-      ) => {
-        try {
-          if (items.length === 0) {
-            return [];
-          }
-
-          await this.prisma.log.createMany({
-            data: items.map((item) => ({
-              level: item.level,
-              message: item.message,
-              context: item.context ?? null,
-              metadata: item.metadata ?? null,
-            })),
-          });
-
-          return items.map(() => undefined);
-        } catch (error) {
-          this.winstonLogger.error('로그 배치 생성 중 오류:', { error });
-          throw error;
-        }
-      },
-      {
-        maxBatchSize: 100,
-        cache: false,
-      }
+  private attachDbTransport(): void {
+    this.winstonLogger.add(
+      new PrismaLogTransport({
+        level: 'debug',
+        prisma: this.prisma,
+      })
     );
-  }
-
-  private async saveToDb(
-    level: string,
-    message: string,
-    context?: string,
-    metadata?: Record<string, unknown>
-  ): Promise<void> {
-    try {
-      await this.createLoader.load({
-        level,
-        message,
-        context: context || null,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-      });
-    } catch (error) {
-      this.winstonLogger.error('로그 DB 저장 실패:', { error });
-    }
   }
 
   /**
@@ -367,23 +310,30 @@ export class LoggerService {
     if (metadata?.error && typeof metadata.error === 'object') {
       metadata.error = errorToString(metadata.error);
     }
-    this.winstonLogger.error(message, metadata, ...args);
-    this.saveToDb('error', message, metadata?.context, metadata);
+    this.winstonLogger.error(message, this.buildLogPayload(metadata), ...args);
   }
 
   warn(message: string, metadata?: LogMetadata, ...args: unknown[]): void {
-    this.winstonLogger.warn(message, metadata, ...args);
-    this.saveToDb('warn', message, metadata?.context, metadata);
+    this.winstonLogger.warn(message, this.buildLogPayload(metadata), ...args);
   }
 
   info(message: string, metadata?: LogMetadata, ...args: unknown[]): void {
-    this.winstonLogger.info(message, metadata, ...args);
-    this.saveToDb('info', message, metadata?.context, metadata);
+    this.winstonLogger.info(message, this.buildLogPayload(metadata), ...args);
   }
 
   debug(message: string, metadata?: LogMetadata, ...args: unknown[]): void {
-    this.winstonLogger.debug(message, metadata, ...args);
-    this.saveToDb('debug', message, metadata?.context, metadata);
+    this.winstonLogger.debug(message, this.buildLogPayload(metadata), ...args);
+  }
+
+  private buildLogPayload(metadata?: LogMetadata): Record<string, unknown> | undefined {
+    if (!metadata) {
+      return undefined;
+    }
+
+    return {
+      ...metadata,
+      logMetadata: metadata,
+    };
   }
 
   // 함수형 로깅 헬퍼 메소드
