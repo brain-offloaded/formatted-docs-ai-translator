@@ -68,6 +68,30 @@
     "apiKeyInfo": "API keys can be obtained from <1>Google AI Studio</1>.",
     "apiKeyRoundRobinHint": "Separate multiple API keys with spaces to rotate them automatically in a round-robin order."
   },
+  "tooltips": {
+    "aria": {
+      "info": "Show information about {{subject}}"
+    },
+    "apiKey": "Paste the API key issued by Google AI Studio or Vertex AI. Multiple keys separated by spaces will be rotated automatically to minimize throttling.",
+    "modelName": "Enter the exact model ID (for example, gemini-1.5-pro-latest). It must match the ID shown in your provider console.",
+    "requestsPerMinute": "Match this value with your account's requests-per-minute (RPM) limit so the app slows down before the API returns 429 errors.",
+    "maxOutputTokens": "Upper limit for how many tokens the model can generate per response. Higher values allow longer outputs but consume more quota.",
+    "thinkingMode": "Use Gemini's thinking (chain-of-thought) mode for harder tasks. It improves accuracy but costs extra tokens and response time.",
+    "setThinkingBudget": "Enable this switch to cap how many thinking tokens Gemini may spend so you can manage cost per request.",
+    "thinkingBudget": "Token budget for the reasoning step. Leave it at 0 to let the provider decide automatically, or set a value to enforce a cap.",
+    "cacheTag": "Cache tags group translations by project. Using the same tag lets the app return previous results instantly without calling the API again.",
+    "examplePresetSelector": "Example presets inject a few real source/target samples so the model learns tone, terminology, and formatting before translation.",
+    "promptPresetSelector": "Prompt presets are reusable instructions that describe tone, formatting rules, and JSON contracts for the AI.",
+    "examplePresetEditor": "Add at least two examples for every language pair you support. The translator reuses them as few-shot demonstrations.",
+    "promptPresetType": "Choose TEXT for document translation prompts or IMAGE for prompts optimized for screenshot/image flows.",
+    "promptPresetContent": "Write the exact prompt delivered to the AI. Use helpers such as {{content}}, {{language::source}}, or {{language::target}} to inject runtime values.",
+    "cacheManager": "The cache stores every translated segment locally. Review or delete entries here instead of paying for the same translation again.",
+    "links": {
+      "gettingStarted": "Open the Getting Started wiki (API key setup)",
+      "presetGuide": "Open the preset creation wiki",
+      "cacheGuide": "Open the cache management wiki"
+    }
+  },
   "translation": {
     "title": "Execute Translation",
     "sourceLanguage": "Source Language",

@@ -26,9 +26,11 @@ import { useTranslation } from 'react-i18next';
 import { useSnackbar } from '@/react/hooks/useSnackbar';
 import { useConfirmModal } from '@/react/components/common/ConfirmModal';
 import { PromptPresetsService } from '@/react/api/generated/services/PromptPresetsService';
+import { InfoTooltip } from '@/react/components/common/InfoTooltip';
+import { getWikiUrl } from '@/react/utils/wiki';
 
 const PromptPresetPanel: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [presets, setPresets] = useState<PromptPresetDto[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<PromptPresetDetailDto | null>(null);
   const [name, setName] = useState('');
@@ -229,7 +231,18 @@ const PromptPresetPanel: React.FC = () => {
           margin="normal"
         />
         <FormControl component="fieldset" margin="normal">
-          <FormLabel component="legend">{t('preset.type')}</FormLabel>
+          <FormLabel
+            component="legend"
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5, columnGap: 0.5 }}
+          >
+            {t('preset.type')}
+            <InfoTooltip
+              title={t('tooltips.promptPresetType')}
+              infoAriaLabel={t('tooltips.aria.info', { subject: t('preset.type') })}
+              wikiUrl={getWikiUrl('presetGuide', i18n.language)}
+              wikiAriaLabel={t('tooltips.links.presetGuide')}
+            />
+          </FormLabel>
           <RadioGroup
             row
             value={type}
@@ -248,7 +261,17 @@ const PromptPresetPanel: React.FC = () => {
           </RadioGroup>
         </FormControl>
         <TextField
-          label={t('preset.presetContent')}
+          label={
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+              {t('preset.presetContent')}
+              <InfoTooltip
+                title={t('tooltips.promptPresetContent')}
+                infoAriaLabel={t('tooltips.aria.info', { subject: t('preset.presetContent') })}
+                wikiUrl={getWikiUrl('presetGuide', i18n.language)}
+                wikiAriaLabel={t('tooltips.links.presetGuide')}
+              />
+            </Box>
+          }
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           fullWidth

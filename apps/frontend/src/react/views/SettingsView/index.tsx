@@ -32,13 +32,15 @@ import React from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 
 import { CopyButton } from '../../components/common/CopyButton';
+import { InfoTooltip } from '../../components/common/InfoTooltip';
 import { useSettingsForm } from './hooks/useSettingsForm';
 import { TranslatorAiSettingsDto } from '@/react/api/generated/models/TranslatorAiSettingsDto';
+import { getWikiUrl, type WikiPageKey } from '../../utils/wiki';
 
 const ModelProvider = TranslatorAiSettingsDto.modelProvider;
 
 const SettingsView: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     config,
     isApiKeyVisible,
@@ -51,6 +53,38 @@ const SettingsView: React.FC = () => {
     updateCustomModelConfig,
     updateConfig,
   } = useSettingsForm();
+
+  type TooltipTranslationKey =
+    | 'tooltips.apiKey'
+    | 'tooltips.modelName'
+    | 'tooltips.requestsPerMinute'
+    | 'tooltips.maxOutputTokens'
+    | 'tooltips.thinkingMode'
+    | 'tooltips.setThinkingBudget'
+    | 'tooltips.thinkingBudget';
+
+  type WikiLabelKey = 'tooltips.links.gettingStarted';
+
+  type WikiLinkOption = {
+    page: WikiPageKey;
+    wikiLabelKey: WikiLabelKey;
+  };
+
+  const labelWithTooltip = (
+    labelText: string,
+    tooltipKey: TooltipTranslationKey,
+    wikiOption?: WikiLinkOption
+  ) => (
+    <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+      {labelText}
+      <InfoTooltip
+        title={t(tooltipKey)}
+        infoAriaLabel={t('tooltips.aria.info', { subject: labelText })}
+        wikiUrl={wikiOption ? getWikiUrl(wikiOption.page, i18n.language) : undefined}
+        wikiAriaLabel={wikiOption ? t(wikiOption.wikiLabelKey) : undefined}
+      />
+    </Box>
+  );
 
   return (
     <Card variant="outlined">
@@ -100,7 +134,10 @@ const SettingsView: React.FC = () => {
             <TextField
               fullWidth
               id="api-key"
-              label={t('settings.apiKey')}
+              label={labelWithTooltip(t('settings.apiKey'), 'tooltips.apiKey', {
+                page: 'gettingStarted',
+                wikiLabelKey: 'tooltips.links.gettingStarted',
+              })}
               variant="outlined"
               type={isApiKeyVisible ? 'text' : 'password'}
               value={config.apiKey}
@@ -132,7 +169,7 @@ const SettingsView: React.FC = () => {
             <TextField
               fullWidth
               id="custom-model-name"
-              label={t('settings.modelName')}
+              label={labelWithTooltip(t('settings.modelName'), 'tooltips.modelName')}
               variant="outlined"
               value={config.customModelConfig.modelName}
               onChange={(e) =>
@@ -148,7 +185,10 @@ const SettingsView: React.FC = () => {
             <TextField
               fullWidth
               id="requests-per-minute"
-              label={t('settings.requestsPerMinute')}
+              label={labelWithTooltip(
+                t('settings.requestsPerMinute'),
+                'tooltips.requestsPerMinute'
+              )}
               variant="outlined"
               type="number"
               value={config.customModelConfig.requestsPerMinute || ''}
@@ -173,7 +213,7 @@ const SettingsView: React.FC = () => {
             <TextField
               fullWidth
               id="max-output-tokens"
-              label={t('settings.maxOutputTokens')}
+              label={labelWithTooltip(t('settings.maxOutputTokens'), 'tooltips.maxOutputTokens')}
               variant="outlined"
               type="number"
               value={config.customModelConfig.maxOutputTokenCount || ''}
@@ -209,7 +249,7 @@ const SettingsView: React.FC = () => {
                         name="thinking-toggle"
                       />
                     }
-                    label={t('settings.thinkingMode')}
+                    label={labelWithTooltip(t('settings.thinkingMode'), 'tooltips.thinkingMode')}
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -222,15 +262,26 @@ const SettingsView: React.FC = () => {
                         disabled={!config.useThinking}
                       />
                     }
-                    label={t('settings.setThinkingBudget')}
+                    label={labelWithTooltip(
+                      t('settings.setThinkingBudget'),
+                      'tooltips.setThinkingBudget'
+                    )}
                   />
                 </Grid>
               </Grid>
               <Collapse in={config.useThinking && config.setThinkingBudget}>
                 <Box sx={{ mt: 2 }}>
-                  <Typography id="thinking-budget-slider" gutterBottom>
-                    {t('settings.thinkingBudgetTokens', { budget: config.thinkingBudget })}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography id="thinking-budget-slider" gutterBottom component="span">
+                      {t('settings.thinkingBudgetTokens', { budget: config.thinkingBudget })}
+                    </Typography>
+                    <InfoTooltip
+                      title={t('tooltips.thinkingBudget')}
+                      infoAriaLabel={t('tooltips.aria.info', {
+                        subject: t('settings.thinkingBudget'),
+                      })}
+                    />
+                  </Box>
                   <Slider
                     aria-labelledby="thinking-budget-slider"
                     value={config.thinkingBudget || 0}
@@ -242,7 +293,10 @@ const SettingsView: React.FC = () => {
                   />
                   <TextField
                     fullWidth
-                    label={t('settings.thinkingBudget')}
+                    label={labelWithTooltip(
+                      t('settings.thinkingBudget'),
+                      'tooltips.thinkingBudget'
+                    )}
                     type="number"
                     value={config.thinkingBudget}
                     onChange={(e) => updateConfig({ thinkingBudget: Number(e.target.value) })}
