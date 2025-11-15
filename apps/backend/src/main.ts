@@ -160,9 +160,14 @@ app.whenReady().then(async () => {
 
       // 앱 시작 후 3초 뒤에 업데이트 확인
       setTimeout(() => {
-        autoUpdater.checkForUpdates().catch((err) => {
-          nestLogger.error('업데이트 확인 실행 중 오류 발생:', err);
-        });
+        autoUpdater
+          .checkForUpdates()
+          .then((data) => {
+            nestLogger.info('업데이트 확인이 완료되었습니다.', { data });
+          })
+          .catch((err) => {
+            nestLogger.error('업데이트 확인 실행 중 오류 발생:', err);
+          });
       }, 3000);
     }
   } catch (error) {
