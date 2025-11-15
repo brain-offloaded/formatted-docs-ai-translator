@@ -1,12 +1,12 @@
-jest.mock('../../../../ai/services/unified-ai-translator.service', () => ({
-  UnifiedAiTranslatorService: class {},
+jest.mock('../../../../ai/services/text-batch-translation.service', () => ({
+  TextBatchTranslationService: class {},
 }));
 
 import { TranslatorService } from '../translator.service';
-import { UnifiedAiTranslatorService } from '../../../../ai/services/unified-ai-translator.service';
+import { TextBatchTranslationService } from '../../../../ai/services/text-batch-translation.service';
 
 describe('TranslatorService preprocess/postprocess', () => {
-  const service = new TranslatorService({} as unknown as UnifiedAiTranslatorService);
+  const service = new TranslatorService({} as unknown as TextBatchTranslationService);
   const preprocessText = (
     service as unknown as { preprocessText: (text: string) => string }
   ).preprocessText.bind(service);
