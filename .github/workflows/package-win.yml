@@ -87,6 +87,9 @@ jobs:
       - name: Install deps
         run: yarn install --immutable
 
+      - name: Validate i18n resources
+        run: yarn validate:i18n
+
       # 4) 패키징 (ZIP)
       - name: Package (Windows ZIP)
         run: yarn package:win:dist
