@@ -47,5 +47,3 @@ export class AiProxyService {
     return this.responseParser.parseTranslationResponse(response, remainingTexts);
   }
 }
-
-export { TranslationParsingError } from './translation-response-parser.service';

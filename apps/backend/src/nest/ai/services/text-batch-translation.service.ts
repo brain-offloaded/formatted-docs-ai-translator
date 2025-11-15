@@ -10,13 +10,14 @@ import { deepClone } from '@/nest/utils/deep-clone';
 import { isNullish } from '@/nest/utils/is-nullish';
 import { AiPromptConverterService } from './ai-prompt-converter.service';
 import { textTranslationJsonSchema } from '@/nest/ai/schema/text-translation.schema';
-import { AiProxyService, TranslationParsingError } from './ai-proxy.service';
+import { AiProxyService } from './ai-proxy.service';
 import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
 import { TranslatorAiSettings } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { AiChatResponse, AiMessage, AiProxyError } from '../dto/common-ai.dto';
 import { TextTranslateParam } from './translator.types';
 import { AiRateLimiterService } from './ai-rate-limiter.service';
+import { TranslationParsingError } from './translation-response-parser.service';
 
 @Injectable()
 export class TextBatchTranslationService {
