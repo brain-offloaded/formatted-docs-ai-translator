@@ -1,18 +1,11 @@
 name: Package (Windows ZIP)
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
-    inputs:
-      ref:
-        description: '릴리즈 후보를 패키징할 Git ref (tag/branch/commit)'
-        required: false
-        default: main
 
 jobs:
   build-zip:
+    if: startsWith(github.ref_name, 'release/v')
     runs-on: windows-latest
 
     permissions:
@@ -27,7 +20,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+          ref: ${{ github.ref }}
+
+      - name: Ensure release branch and tag
+        id: release-tag
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_NAME" =~ ^release/(v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            echo "::error::release/vx.y.z 브랜치에서만 실행할 수 있습니다. 현재 ref: $REF_NAME"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "$VERSION" >/dev/null; then
+            echo "::error::$VERSION 태그가 이미 존재합니다."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+          echo "release-version=$VERSION" >> $GITHUB_OUTPUT
 
       # 1) 먼저 원하는 Node 버전 설치 (engines.node = 22.14.0)
       - name: Setup Node.js 22.14.0
@@ -77,7 +92,7 @@ jobs:
         id: artifact-ref
         shell: bash
         env:
-          REF: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.ref || 'manual') || github.ref_name }}
+          REF: ${{ steps.release-tag.outputs.release-version || github.ref_name }}
         run: |
           REF=${REF:-manual}
           REF=${REF//\//-}
@@ -86,6 +101,9 @@ jobs:
       # 3) Yarn 4로 설치 (immutable)
       - name: Install deps
         run: yarn install --immutable
+
+      - name: Validate i18n resources
+        run: yarn validate:i18n
 
       # 4) 패키징 (ZIP)
       - name: Package (Windows ZIP)

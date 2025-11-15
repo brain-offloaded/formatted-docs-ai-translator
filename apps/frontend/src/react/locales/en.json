@@ -445,7 +445,7 @@
     "copyLink": "Copy Link",
     "openInBrowser": "Open in Browser",
     "dbPathTitle": "Database File Location",
-    "dbPathMessage": "To help resolve the issue, please attach the database file located at the path below.",
+    "dbPathMessage": "To help resolve the issue, you can attach the database file at the path below. However, this file may contain all of your records, so only attach it if you fully understand this. Be sure to delete any tables/data that contain sensitive translation content or personal information before sharing.",
     "copyPath": "Copy Path",
     "dbPathError": "An error occurred while getting the database path:",
     "dbPathErrorUser": "Could not get database path. Please ensure the application is running correctly.",

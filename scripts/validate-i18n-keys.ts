@@ -12,8 +12,8 @@
  *   yarn validate:i18n --fix  (누락된 키를 자동으로 추가)
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const LOCALES_DIR = path.join(__dirname, '../apps/frontend/src/react/locales');
 const BASE_LOCALE = 'ko'; // 기준 언어 (이 언어를 기준으로 다른 언어를 검증)

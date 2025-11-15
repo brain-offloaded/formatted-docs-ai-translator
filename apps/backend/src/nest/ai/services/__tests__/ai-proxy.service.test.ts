@@ -1,13 +1,9 @@
-import { AiProxyService, TranslationParsingError } from '../ai-proxy.service';
+import { TranslationResponseParser, TranslationParsingError } from '../translation-response-parser.service';
 import { AiChatResponse } from '../../dto/common-ai.dto';
 
-describe('AiProxyService.parseTranslationResponse', () => {
+describe('TranslationResponseParser.parseTranslationResponse', () => {
   const logger = { debug: jest.fn(), warn: jest.fn() };
-  const service = new AiProxyService(
-    logger as unknown as never,
-    {} as unknown as never,
-    {} as unknown as never
-  );
+  const service = new TranslationResponseParser(logger as unknown as never);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -145,7 +141,7 @@ describe('AiProxyService.parseTranslationResponse', () => {
 
     const remainingTexts = new Map<string, number[]>([['첫 번째 문장', [0]]]);
 
-    await expect(service.parseTranslationResponse(response, remainingTexts)).rejects.toBeInstanceOf(
+    expect(() => service.parseTranslationResponse(response, remainingTexts)).toThrow(
       TranslationParsingError
     );
   });

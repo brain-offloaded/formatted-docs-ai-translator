@@ -7,19 +7,25 @@ import { AiPromptConverterService } from './services/ai-prompt-converter.service
 import { AiProxyService } from './services/ai-proxy.service';
 import { GoogleAiProviderService } from './services/providers/google-ai.provider';
 import { OpenAiCompatibleProviderService } from './services/providers/openai-compatible.provider';
+import { TextBatchTranslationService } from './services/text-batch-translation.service';
+import { AiRateLimiterService } from './services/ai-rate-limiter.service';
+import { TranslationResponseParser } from './services/translation-response-parser.service';
 
 @Module({
   imports: [CacheManagerModule, ExampleModule],
   providers: [
     UnifiedAiTranslatorService,
+    TextBatchTranslationService,
     AiTokenService,
     AiPromptConverterService,
+    AiRateLimiterService,
+    TranslationResponseParser,
     // Provider-specific services
     GoogleAiProviderService, // Now handles both Google AI and Vertex AI
     OpenAiCompatibleProviderService,
     // Dispatcher
     AiProxyService,
   ],
-  exports: [UnifiedAiTranslatorService],
+  exports: [UnifiedAiTranslatorService, TextBatchTranslationService],
 })
 export class AiModule {}
