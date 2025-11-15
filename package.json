@@ -94,6 +94,7 @@
     "npmRebuild": false,
     "nodeGypRebuild": false,
     "buildDependenciesFromSource": false,
+    "afterPack": "./scripts/after-pack-app-update.cjs",
     "directories": {
       "app": "apps/backend/app",
       "output": "release"
