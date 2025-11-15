@@ -235,7 +235,7 @@ export class UnifiedAiTranslatorService {
                 currentRemainingTexts.delete(text);
               }
 
-              const { batchTranslations, response, shouldReduceBatchSize } =
+              const { batchTranslations, response, shouldReduceBatchSize, hasPartialData } =
                 await this.translateUncachedTexts({
                   requestId: param.requestId,
                   remainingTexts: batchRemainingTexts,
@@ -246,17 +246,35 @@ export class UnifiedAiTranslatorService {
                 });
 
               const madeProgress = batchTranslations.size > 0;
-              if (madeProgress) {
-                consecutiveFailures = 0;
-              } else {
+              let failureRecorded = false;
+              if (hasPartialData) {
+                failureRecorded = true;
                 consecutiveFailures++;
                 stableBatchSuccessCount = 0;
-                this.logger.warn('번역 응답이 비어 있어 재시도합니다.', {
+                this.logger.warn('부분 번역 응답이 감지되어 재시도합니다.', {
                   batchSize: batchTexts.length,
                   consecutiveFailures,
                   finishReason: response.choices?.[0]?.finishReason,
+                  responseContent: response?.choices?.[0]?.message.content,
                 });
-                this.ensureFailureBudget(consecutiveFailures, 'EMPTY_RESPONSE');
+                this.ensureFailureBudget(consecutiveFailures, 'PARTIAL_RESPONSE');
+              }
+
+              if (!failureRecorded) {
+                if (madeProgress) {
+                  consecutiveFailures = 0;
+                } else {
+                  failureRecorded = true;
+                  consecutiveFailures++;
+                  stableBatchSuccessCount = 0;
+                  this.logger.warn('번역 응답이 비어 있어 재시도합니다.', {
+                    batchSize: batchTexts.length,
+                    consecutiveFailures,
+                    finishReason: response.choices?.[0]?.finishReason,
+                    responseContent: response?.choices?.[0]?.message.content,
+                  });
+                  this.ensureFailureBudget(consecutiveFailures, 'EMPTY_RESPONSE');
+                }
               }
 
               for (const [originalText, result] of batchTranslations.entries()) {
@@ -302,7 +320,7 @@ export class UnifiedAiTranslatorService {
                 maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
                 shouldRestartBatching = true;
                 stableBatchSuccessCount = 0;
-              } else if (maxBatchTextCount !== null && madeProgress) {
+              } else if (maxBatchTextCount !== null && madeProgress && !failureRecorded) {
                 stableBatchSuccessCount++;
                 if (stableBatchSuccessCount >= this.STABLE_BATCH_RECOVERY_THRESHOLD) {
                   this.logger.debug('배치 제한 해제 시도', {
@@ -437,6 +455,7 @@ export class UnifiedAiTranslatorService {
     batchTranslations: Map<string, TranslationResult>;
     response: AiChatResponse;
     shouldReduceBatchSize: boolean;
+    hasPartialData: boolean;
   }> {
     const {
       sourceLanguage,
@@ -482,6 +501,7 @@ export class UnifiedAiTranslatorService {
         batchTranslations,
         response,
         shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response) || hasPartialData,
+        hasPartialData,
       };
     } catch (error) {
       // 번역 실패 처리
