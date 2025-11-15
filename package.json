@@ -1,6 +1,6 @@
 {
   "name": "formatted-docs-ai-translator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Formatted Docs such as Json Translation Tool using Artificial Intelligence",
   "main": "dist/main.js",
   "author": "brain-offloaded",
@@ -66,6 +66,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
     "@types/node": "^20.17.27",
+    "@types/semver": "^7.7.1",
     "@typescript-eslint/eslint-plugin": "^8.18.2",
     "@typescript-eslint/parser": "^8.18.2",
     "concurrently": "^8.2.2",
@@ -185,6 +186,7 @@
     "reflect-metadata": "^0.2.2",
     "rfdc": "^1.4.1",
     "rxjs": "^7.8.2",
+    "semver": "^7.6.3",
     "sharp": "^0.34.3",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"

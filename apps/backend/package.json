@@ -1,6 +1,6 @@
 {
   "name": "@apps/backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Electron main process + NestJS backend for Formatted Docs AI Translator",
   "scripts": {
@@ -53,7 +53,6 @@
     "dataloader": "^2.2.3",
     "dotenv": "^16.4.5",
     "electron-dl": "^4.0.0",
-    "electron-updater": "6.6.2",
     "jszip": "^3.10.1",
     "limiter": "^2.1.0",
     "lru-cache": "^11.0.2",
@@ -62,6 +61,7 @@
     "reflect-metadata": "^0.2.2",
     "rfdc": "^1.4.1",
     "rxjs": "^7.8.2",
+    "semver": "^7.6.3",
     "sharp": "^0.34.3",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
