@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
 import { convertFullWidthToHalfWidth } from '@apps/common/dist/language';
-import { UnifiedAiTranslatorService } from '../../../ai/services/unified-ai-translator.service';
+import { TextBatchTranslationService } from '../../../ai/services/text-batch-translation.service';
 import { TranslateTextArrayRequestDto } from '../dto/request/translate-text-array-request.dto';
 import { TranslatedTextPathDto } from '@/nest/translator/common/dto/translation-text-path.dto';
 
 @Injectable()
 export class TranslatorService {
-  constructor(private readonly unifiedAiTranslatorService: UnifiedAiTranslatorService) {}
+  constructor(private readonly textBatchTranslationService: TextBatchTranslationService) {}
 
   private preprocessText(text: string): string {
     return convertFullWidthToHalfWidth(text);
@@ -24,7 +24,7 @@ export class TranslatorService {
     array: string[];
     maxOutputTokenCount: number;
   }): Promise<string[][]> {
-    const estimatedTokens = await this.unifiedAiTranslatorService.getEstimatedTokenCount(array);
+    const estimatedTokens = await this.textBatchTranslationService.getEstimatedTokenCount(array);
 
     // 전체 토큰이 최대 출력 토큰보다 작으면 하나의 배치로 반환
     if (estimatedTokens <= maxOutputTokenCount) {
@@ -57,7 +57,7 @@ export class TranslatorService {
 
     const preprocessedTexts = sourceTexts.map((text) => this.preprocessText(text));
 
-    const translationResult = await this.unifiedAiTranslatorService.translate({
+    const translationResult = await this.textBatchTranslationService.translateText({
       requestId,
       sourceTexts: preprocessedTexts,
       promptPresetContent: promptPresetContent ?? '',
