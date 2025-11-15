@@ -73,10 +73,6 @@ function requestLatestRelease(nestLogger: LoggerService): Promise<LatestReleaseI
       'User-Agent': 'formatted-docs-ai-translator',
       Accept: 'application/vnd.github+json',
     };
-    const authToken = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`;
-    }
 
     const request = https.request(
       GITHUB_RELEASE_LATEST_API,
