@@ -47,8 +47,8 @@
     "package:prepare": "node scripts/prepare-package-optimized.mjs",
     "package:win": "yarn build && yarn package:prepare && electron-builder build --win --dir",
     "package:linux": "yarn build && yarn package:prepare && electron-builder build --linux --dir",
-    "package:win:dist": "yarn build && yarn package:prepare && electron-builder build --win --publish always",
-    "package:linux:dist": "yarn build && yarn package:prepare && electron-builder build --linux --publish always",
+    "package:win:dist": "yarn build && yarn package:prepare && electron-builder build --win",
+    "package:linux:dist": "yarn build && yarn package:prepare && electron-builder build --linux",
     "postinstall": "yarn workspace @apps/backend exec prisma generate && yarn rebuild:electron",
     "rebuild:electron": "yarn workspace @apps/backend rebuild:electron",
     "rebuild:local": "yarn workspace @apps/backend rebuild:local",
@@ -94,7 +94,6 @@
     "npmRebuild": false,
     "nodeGypRebuild": false,
     "buildDependenciesFromSource": false,
-    "afterPack": "./scripts/after-pack-app-update.cjs",
     "directories": {
       "app": "apps/backend/app",
       "output": "release"
@@ -186,6 +185,7 @@
     "reflect-metadata": "^0.2.2",
     "rfdc": "^1.4.1",
     "rxjs": "^7.8.2",
+    "semver": "^7.6.3",
     "sharp": "^0.34.3",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"

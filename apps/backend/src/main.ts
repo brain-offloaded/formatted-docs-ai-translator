@@ -2,10 +2,11 @@ import 'reflect-metadata';
 import './env';
 
 import * as path from 'path';
+import * as https from 'https';
 
 import { app, BrowserWindow, dialog, shell } from 'electron';
-import { autoUpdater } from 'electron-updater';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
+import semver from 'semver';
 
 import { bootstrapNestJs } from './nest/bootstrap';
 import { errorToString } from '@/nest/utils/error-stringify';
@@ -54,7 +55,124 @@ process.on('uncaughtException', (error) => {
   }
 });
 
+const GITHUB_REPO_OWNER = process.env.UPDATE_REPO_OWNER ?? 'brain-offloaded';
+const GITHUB_REPO_NAME = process.env.UPDATE_REPO_NAME ?? 'formatted-docs-ai-translator';
+const GITHUB_RELEASE_PAGE_URL = `https://github.com/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/latest`;
+const GITHUB_RELEASE_LATEST_API = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/latest`;
+
 let mainWindow: BrowserWindow | null = null;
+
+type LatestReleaseInfo = {
+  version: string;
+  htmlUrl: string;
+};
+
+function requestLatestRelease(nestLogger: LoggerService): Promise<LatestReleaseInfo | null> {
+  return new Promise((resolve) => {
+    const headers: Record<string, string> = {
+      'User-Agent': 'formatted-docs-ai-translator',
+      Accept: 'application/vnd.github+json',
+    };
+    const authToken = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+    if (authToken) {
+      headers.Authorization = `Bearer ${authToken}`;
+    }
+
+    const request = https.request(
+      GITHUB_RELEASE_LATEST_API,
+      {
+        method: 'GET',
+        headers,
+      },
+      (response) => {
+        const statusCode = response.statusCode ?? 0;
+        const chunks: Buffer[] = [];
+
+        response.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
+
+        response.on('end', () => {
+          if (statusCode !== 200) {
+            nestLogger.warn('GitHub 최신 릴리스 조회에 실패했습니다.', {
+              statusCode,
+              statusMessage: response.statusMessage,
+            });
+            resolve(null);
+            return;
+          }
+
+          try {
+            const payload = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+            const tagName = typeof payload.tag_name === 'string' ? payload.tag_name : '';
+            const latestVersion = semver.clean(tagName);
+
+            if (!latestVersion) {
+              nestLogger.warn('릴리스 태그에서 버전 정보를 찾을 수 없습니다.', { tagName });
+              resolve(null);
+              return;
+            }
+
+            const htmlUrl =
+              typeof payload.html_url === 'string' ? payload.html_url : GITHUB_RELEASE_PAGE_URL;
+
+            resolve({
+              version: latestVersion,
+              htmlUrl,
+            });
+          } catch (error) {
+            nestLogger.error('GitHub 릴리스 응답 파싱 중 오류가 발생했습니다.', { error });
+            resolve(null);
+          }
+        });
+      }
+    );
+
+    request.on('error', (error) => {
+      nestLogger.error('GitHub 최신 릴리스 요청 중 오류가 발생했습니다.', { error });
+      resolve(null);
+    });
+
+    request.end();
+  });
+}
+
+async function checkLatestRelease(nestLogger: LoggerService) {
+  const latestRelease = await requestLatestRelease(nestLogger);
+
+  if (!latestRelease) {
+    return;
+  }
+
+  const currentVersion = app.getVersion();
+
+  if (semver.gt(latestRelease.version, currentVersion)) {
+    nestLogger.info('새로운 릴리스를 감지했습니다.', {
+      currentVersion,
+      latest: latestRelease.version,
+    });
+
+    dialog
+      .showMessageBox({
+        type: 'info',
+        title: '업데이트 알림',
+        message: `새로운 버전(v${latestRelease.version})이 출시되었습니다.`,
+        detail: `현재 버전은 v${currentVersion}입니다. 다운로드 페이지로 이동하시겠습니까?`,
+        buttons: ['예', '아니오'],
+        defaultId: 0,
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          shell.openExternal(latestRelease.htmlUrl);
+        }
+      });
+  } else {
+    nestLogger.info('현재 최신 버전을 사용 중입니다.', {
+      currentVersion,
+      latest: latestRelease.version,
+    });
+  }
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -124,50 +242,10 @@ app.whenReady().then(async () => {
       }
     });
 
-    // 개발 환경이 아닌 경우 업데이트 확인
+    // 개발 환경이 아닌 경우 수동 업데이트 확인
     if (process.env.NODE_ENV !== 'development') {
-      // ZIP으로 배포하므로 자동 다운로드는 비활성화
-      autoUpdater.autoDownload = false;
-
-      autoUpdater.on('update-available', (info) => {
-        nestLogger.info('새로운 업데이트를 발견했습니다:', { info });
-        dialog
-          .showMessageBox({
-            type: 'info',
-            title: '업데이트 알림',
-            message: `새로운 버전(v${info.version})이 출시되었습니다.`,
-            detail: `현재 버전은 v${app.getVersion()}입니다. 다운로드 페이지로 이동하시겠습니까?`,
-            buttons: ['예', '아니오'],
-            defaultId: 0,
-          })
-          .then(({ response }) => {
-            if (response === 0) {
-              // 사용자가 '예'를 클릭하면 GitHub 릴리스 페이지로 이동
-              shell.openExternal(
-                'https://github.com/brain-offloaded/formatted-docs-ai-translator/releases/latest'
-              );
-            }
-          });
-      });
-
-      autoUpdater.on('update-not-available', (info) => {
-        nestLogger.info('현재 최신 버전을 사용 중입니다:', { info });
-      });
-
-      autoUpdater.on('error', (err) => {
-        nestLogger.error('업데이트 확인 중 오류가 발생했습니다:', { error: err });
-      });
-
-      // 앱 시작 후 3초 뒤에 업데이트 확인
       setTimeout(() => {
-        autoUpdater
-          .checkForUpdates()
-          .then((data) => {
-            nestLogger.info('업데이트 확인이 완료되었습니다.', { data });
-          })
-          .catch((err) => {
-            nestLogger.error('업데이트 확인 실행 중 오류 발생:', err);
-          });
+        void checkLatestRelease(nestLogger);
       }, 3000);
     }
   } catch (error) {
