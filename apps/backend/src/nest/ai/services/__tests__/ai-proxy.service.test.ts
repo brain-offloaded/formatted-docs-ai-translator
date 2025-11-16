@@ -1,4 +1,7 @@
-import { TranslationResponseParser, TranslationParsingError } from '../translation-response-parser.service';
+import {
+  TranslationResponseParser,
+  TranslationParsingError,
+} from '../translation-response-parser.service';
 import { AiChatResponse } from '../../dto/common-ai.dto';
 
 describe('TranslationResponseParser.parseTranslationResponse', () => {
