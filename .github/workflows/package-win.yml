@@ -3,82 +3,6 @@ name: Package (Windows ZIP)
 on:
   workflow_dispatch:
 
-x-package-steps: &package-steps
-  - name: Checkout
-    uses: actions/checkout@v4
-    with:
-      ref: ${{ github.ref }}
-
-  - name: Setup Node.js 22.14.0
-    uses: actions/setup-node@v4
-    with:
-      node-version: '22.14.0'
-
-  - name: Enable Corepack
-    run: corepack enable
-
-  - name: Use Yarn 4.9.2 via Corepack
-    run: corepack prepare yarn@4.9.2 --activate
-
-  - name: Show Node/Yarn versions
-    run: |
-      node -v
-      yarn -v
-
-  - name: Cache Yarn
-    uses: actions/cache@v4
-    with:
-      path: |
-        .yarn/cache
-        .yarn/install-state.gz
-        .pnp.cjs
-      key: yarn-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-      restore-keys: |
-        yarn-${{ runner.os }}-
-
-  - name: Cache tools (electron/prisma)
-    uses: actions/cache@v4
-    with:
-      path: |
-        ~/.cache/electron
-        ~/.cache/electron-builder
-        ~/.cache/prisma
-      key: tools-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-      restore-keys: |
-        tools-${{ runner.os }}-
-
-  - name: Allow long paths (Windows)
-    run: git config --system core.longpaths true
-
-  - name: Normalize artifact ref
-    id: artifact-ref
-    shell: bash
-    env:
-      REF: ${{ needs.prepare-release-tag.outputs.release-version || github.ref_name }}
-    run: |
-      REF=${REF:-manual}
-      REF=${REF//\//-}
-      echo "artifact-ref=$REF" >> $GITHUB_OUTPUT
-
-  - name: Install deps
-    run: yarn install --immutable
-
-  - name: Validate i18n resources
-    run: yarn validate:i18n
-
-  - name: Package (Windows ZIP)
-    run: yarn package:win:dist
-
-  - name: Upload artifacts
-    uses: actions/upload-artifact@v4
-    with:
-      name: formatted-docs-ai-translator-win-${{ steps.artifact-ref.outputs.artifact-ref }}
-      path: |
-        release/**/*.zip
-        release/**/builder-*.yml
-        release/**/builder-*.yaml
-      if-no-files-found: warn
-
 jobs:
   prepare-release-tag:
     name: Prepare release tag
@@ -160,7 +84,81 @@ jobs:
       YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
       npm_config_loglevel: notice
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    steps: *package-steps
+    steps: &package-steps
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Node.js 22.14.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Yarn 4.9.2 via Corepack
+        run: corepack prepare yarn@4.9.2 --activate
+
+      - name: Show Node/Yarn versions
+        run: |
+          node -v
+          yarn -v
+
+      - name: Cache Yarn
+        uses: actions/cache@v4
+        with:
+          path: |
+            .yarn/cache
+            .yarn/install-state.gz
+            .pnp.cjs
+          key: yarn-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-${{ runner.os }}-
+
+      - name: Cache tools (electron/prisma)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+            ~/.cache/prisma
+          key: tools-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            tools-${{ runner.os }}-
+
+      - name: Allow long paths (Windows)
+        run: git config --system core.longpaths true
+
+      - name: Normalize artifact ref
+        id: artifact-ref
+        shell: bash
+        env:
+          REF: ${{ needs.prepare-release-tag.outputs.release-version || github.ref_name }}
+        run: |
+          REF=${REF:-manual}
+          REF=${REF//\//-}
+          echo "artifact-ref=$REF" >> $GITHUB_OUTPUT
+
+      - name: Install deps
+        run: yarn install --immutable
+
+      - name: Validate i18n resources
+        run: yarn validate:i18n
+
+      - name: Package (Windows ZIP)
+        run: yarn package:win:dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-docs-ai-translator-win-${{ steps.artifact-ref.outputs.artifact-ref }}
+          path: |
+            release/**/*.zip
+            release/**/builder-*.yml
+            release/**/builder-*.yaml
+          if-no-files-found: warn
 
   build-zip-after-approval:
     name: Package (Windows ZIP)
