@@ -3,119 +3,176 @@ name: Package (Windows ZIP)
 on:
   workflow_dispatch:
 
+x-package-steps: &package-steps
+  - name: Checkout
+    uses: actions/checkout@v4
+    with:
+      ref: ${{ github.ref }}
+
+  - name: Setup Node.js 22.14.0
+    uses: actions/setup-node@v4
+    with:
+      node-version: '22.14.0'
+
+  - name: Enable Corepack
+    run: corepack enable
+
+  - name: Use Yarn 4.9.2 via Corepack
+    run: corepack prepare yarn@4.9.2 --activate
+
+  - name: Show Node/Yarn versions
+    run: |
+      node -v
+      yarn -v
+
+  - name: Cache Yarn
+    uses: actions/cache@v4
+    with:
+      path: |
+        .yarn/cache
+        .yarn/install-state.gz
+        .pnp.cjs
+      key: yarn-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      restore-keys: |
+        yarn-${{ runner.os }}-
+
+  - name: Cache tools (electron/prisma)
+    uses: actions/cache@v4
+    with:
+      path: |
+        ~/.cache/electron
+        ~/.cache/electron-builder
+        ~/.cache/prisma
+      key: tools-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      restore-keys: |
+        tools-${{ runner.os }}-
+
+  - name: Allow long paths (Windows)
+    run: git config --system core.longpaths true
+
+  - name: Normalize artifact ref
+    id: artifact-ref
+    shell: bash
+    env:
+      REF: ${{ needs.prepare-release-tag.outputs.release-version || github.ref_name }}
+    run: |
+      REF=${REF:-manual}
+      REF=${REF//\//-}
+      echo "artifact-ref=$REF" >> $GITHUB_OUTPUT
+
+  - name: Install deps
+    run: yarn install --immutable
+
+  - name: Validate i18n resources
+    run: yarn validate:i18n
+
+  - name: Package (Windows ZIP)
+    run: yarn package:win:dist
+
+  - name: Upload artifacts
+    uses: actions/upload-artifact@v4
+    with:
+      name: formatted-docs-ai-translator-win-${{ steps.artifact-ref.outputs.artifact-ref }}
+      path: |
+        release/**/*.zip
+        release/**/builder-*.yml
+        release/**/builder-*.yaml
+      if-no-files-found: warn
+
 jobs:
-  build-zip:
+  prepare-release-tag:
+    name: Prepare release tag
     if: startsWith(github.ref_name, 'release/v')
     runs-on: windows-latest
-
     permissions:
       contents: write
-
     env:
-      YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
-      npm_config_loglevel: notice
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
+    outputs:
+      release-version: ${{ steps.release.outputs.release-version }}
+      tag-exists: ${{ steps.release.outputs.tag-exists }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
-      - name: Ensure release branch and tag
-        id: release-tag
+      - name: Prepare release tag
+        id: release
         shell: bash
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
           if [[ "$REF_NAME" =~ ^release/(v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             VERSION="${BASH_REMATCH[1]}"
           else
             echo "::error::release/vx.y.z 브랜치에서만 실행할 수 있습니다. 현재 ref: $REF_NAME"
             exit 1
           fi
+          TAG_EXISTS=false
           if git ls-remote --exit-code --tags origin "$VERSION" >/dev/null; then
-            echo "::error::$VERSION 태그가 이미 존재합니다."
-            exit 1
+            TAG_EXISTS=true
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
           echo "release-version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag-exists=$TAG_EXISTS" >> $GITHUB_OUTPUT
 
-      # 1) 먼저 원하는 Node 버전 설치 (engines.node = 22.14.0)
-      - name: Setup Node.js 22.14.0
-        uses: actions/setup-node@v4
+  delete-release-tag:
+    name: Recreate release tag (approval required)
+    needs: prepare-release-tag
+    if: startsWith(github.ref_name, 'release/v') && needs.prepare-release-tag.outputs.tag-exists == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    environment: release-tag-approval
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          node-version: '22.14.0'
+          ref: ${{ github.ref }}
 
-      # 2) Corepack 활성화 + Yarn 4.9.2 사용 고정
-      - name: Enable Corepack
-        run: corepack enable
-      - name: Use Yarn 4.9.2 via Corepack
-        run: corepack prepare yarn@4.9.2 --activate
-
-      - name: Show Node/Yarn versions
-        run: |
-          node -v
-          yarn -v
-
-      # (선택) Yarn Berry 캐시
-      - name: Cache Yarn
-        uses: actions/cache@v4
-        with:
-          path: |
-            .yarn/cache
-            .yarn/install-state.gz
-            .pnp.cjs
-          key: yarn-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            yarn-${{ runner.os }}-
-
-      # (선택) electron/prisma 캐시
-      - name: Cache tools (electron/prisma)
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/electron
-            ~/.cache/electron-builder
-            ~/.cache/prisma
-          key: tools-${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            tools-${{ runner.os }}-
-
-      - name: Allow long paths (Windows)
-        run: git config --system core.longpaths true
-
-      - name: Normalize artifact ref
-        id: artifact-ref
+      - name: Recreate release tag
         shell: bash
         env:
-          REF: ${{ steps.release-tag.outputs.release-version || github.ref_name }}
+          VERSION: ${{ needs.prepare-release-tag.outputs.release-version }}
         run: |
-          REF=${REF:-manual}
-          REF=${REF//\//-}
-          echo "artifact-ref=$REF" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag --delete "$VERSION" >/dev/null 2>&1 || true
+          git push origin --delete "$VERSION" >/dev/null 2>&1 || true
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
 
-      # 3) Yarn 4로 설치 (immutable)
-      - name: Install deps
-        run: yarn install --immutable
+  build-zip:
+    name: Package (Windows ZIP)
+    needs: prepare-release-tag
+    if: startsWith(github.ref_name, 'release/v') && needs.prepare-release-tag.outputs.tag-exists == 'false'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
+      npm_config_loglevel: notice
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps: *package-steps
 
-      - name: Validate i18n resources
-        run: yarn validate:i18n
-
-      # 4) 패키징 (ZIP)
-      - name: Package (Windows ZIP)
-        run: yarn package:win:dist
-
-      # 5) 산출물 업로드
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: formatted-docs-ai-translator-win-${{ steps.artifact-ref.outputs.artifact-ref }}
-          path: |
-            release/**/*.zip
-            release/**/builder-*.yml
-            release/**/builder-*.yaml
-          if-no-files-found: warn
+  build-zip-after-approval:
+    name: Package (Windows ZIP)
+    needs:
+      - prepare-release-tag
+      - delete-release-tag
+    if: startsWith(github.ref_name, 'release/v') && needs.prepare-release-tag.outputs.tag-exists == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
+      npm_config_loglevel: notice
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps: *package-steps
