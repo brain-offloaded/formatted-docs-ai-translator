@@ -26,7 +26,10 @@ async function registerSwagger(app: NestFastifyApplication, host: string, port: 
 }
 
 export async function bootstrapNestJs(): Promise<NestFastifyApplication> {
-  const adapter = new FastifyAdapter();
+  const adapter = new FastifyAdapter({
+    // enfource a higher body limit for image uploads
+    bodyLimit: 50 * 1024 * 1024, // 50 MiB
+  });
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter);
 
   app.enableShutdownHooks();
