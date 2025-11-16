@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
 import { HTTP_HOST, HTTP_PORT } from '@/nest/constants/http';
+import { findAvailablePort } from '@/nest/utils/http-port';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggerService } from './logger/logger.service';
 
@@ -57,8 +58,21 @@ export async function bootstrapNestJs(): Promise<NestFastifyApplication> {
     })
   );
 
-  await registerSwagger(app, HTTP_HOST, HTTP_PORT);
-  await app.listen({ host: HTTP_HOST, port: HTTP_PORT });
+  const selectedPort = await findAvailablePort(HTTP_PORT, HTTP_HOST);
+  if (selectedPort !== HTTP_PORT) {
+    loggerService.warn('기본 포트가 이미 사용 중입니다. 대체 포트를 사용합니다.', {
+      requestedPort: HTTP_PORT,
+      selectedPort,
+    });
+  }
+
+  const normalizedPort = String(selectedPort);
+  process.env.HTTP_PORT = normalizedPort;
+  process.env.NEST_HTTP_PORT = normalizedPort;
+  process.env.REACT_APP_HTTP_PORT = normalizedPort;
+
+  await registerSwagger(app, HTTP_HOST, selectedPort);
+  await app.listen({ host: HTTP_HOST, port: selectedPort });
 
   return app;
 }
