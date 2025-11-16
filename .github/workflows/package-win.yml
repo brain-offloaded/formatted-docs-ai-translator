@@ -35,6 +35,7 @@ jobs:
             exit 1
           fi
           TAG_EXISTS=false
+          CREATE_RELEASE=false
           if git ls-remote --exit-code --tags origin "$VERSION" >/dev/null; then
             TAG_EXISTS=true
           else
@@ -42,6 +43,13 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git tag -a "$VERSION" -m "Release $VERSION"
             git push origin "$VERSION"
+            CREATE_RELEASE=true
+          fi
+          if [ "$CREATE_RELEASE" = "true" ]; then
+            if gh release view "$VERSION" >/dev/null 2>&1; then
+              gh release delete "$VERSION" --yes
+            fi
+            gh release create "$VERSION" --draft --title "$VERSION" --notes "자동 생성된 드래프트 릴리스"
           fi
           echo "release-version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag-exists=$TAG_EXISTS" >> $GITHUB_OUTPUT
@@ -54,6 +62,8 @@ jobs:
     permissions:
       contents: write
     environment: release-tag-approval
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -66,12 +76,16 @@ jobs:
           VERSION: ${{ needs.prepare-release-tag.outputs.release-version }}
         run: |
           set -euo pipefail
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release delete "$VERSION" --yes
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag --delete "$VERSION" >/dev/null 2>&1 || true
           git push origin --delete "$VERSION" >/dev/null 2>&1 || true
           git tag -a "$VERSION" -m "Release $VERSION"
           git push origin "$VERSION"
+          gh release create "$VERSION" --draft --title "$VERSION" --notes "자동 생성된 드래프트 릴리스"
 
   build-zip:
     name: Package (Windows ZIP)
@@ -159,6 +173,27 @@ jobs:
             release/**/builder-*.yml
             release/**/builder-*.yaml
           if-no-files-found: warn
+
+      - name: Upload assets to draft release
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare-release-tag.outputs.release-version }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VERSION" ]; then
+            echo "::error::릴리스 버전을 확인할 수 없습니다."
+            exit 1
+          fi
+          mapfile -d '' -t FILES < <(find release -type f \( -name '*.zip' -o -name 'builder-*.yml' -o -name 'builder-*.yaml' \) -print0 | sort -z)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::릴리스에 업로드할 파일을 찾을 수 없습니다."
+            exit 1
+          fi
+          if ! gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::$VERSION 태그의 드래프트 릴리스를 찾을 수 없습니다."
+            exit 1
+          fi
+          gh release upload "$VERSION" "${FILES[@]}" --clobber
 
   build-zip-after-approval:
     name: Package (Windows ZIP)
