@@ -180,6 +180,7 @@ export class TextBatchTranslationService {
                 });
                 maxBatchTextCount = null;
                 stableBatchSuccessCount = 0;
+                shouldRestartBatching = true;
               }
             }
           } catch (error) {
