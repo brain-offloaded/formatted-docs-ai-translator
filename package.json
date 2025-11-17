@@ -1,6 +1,6 @@
 {
   "name": "formatted-docs-ai-translator",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Formatted Docs such as Json Translation Tool using Artificial Intelligence",
   "main": "dist/main.js",
   "author": "brain-offloaded",
@@ -47,7 +47,7 @@
     "package:prepare": "node scripts/prepare-package-optimized.mjs",
     "package:win": "yarn build && yarn package:prepare && electron-builder build --win --dir",
     "package:linux": "yarn build && yarn package:prepare && electron-builder build --linux --dir",
-    "package:win:dist": "yarn build && yarn package:prepare && electron-builder build --win",
+    "package:win:dist": "yarn build && yarn package:prepare && electron-builder build --win --publish never",
     "package:linux:dist": "yarn build && yarn package:prepare && electron-builder build --linux",
     "postinstall": "yarn workspace @apps/backend exec prisma generate && yarn rebuild:electron",
     "rebuild:electron": "yarn workspace @apps/backend rebuild:electron",
