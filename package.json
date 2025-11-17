@@ -5,7 +5,7 @@
   "main": "dist/main.js",
   "author": "brain-offloaded",
   "engines": {
-    "node": "22.14.0"
+    "node": "24.11.1"
   },
   "workspaces": {
     "packages": [
@@ -190,5 +190,9 @@
     "sharp": "^0.34.3",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
+  },
+  "volta": {
+    "node": "24.11.1",
+    "yarn": "4.9.2"
   }
 }
