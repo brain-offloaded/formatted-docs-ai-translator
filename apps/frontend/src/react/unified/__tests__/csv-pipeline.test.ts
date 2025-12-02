@@ -33,9 +33,7 @@ describe('CSV 파이프라인', () => {
 
     const applied = await applier.apply(input, translateAll(parsed));
     const result = (applied.getResult() as string) || '';
-    const rows = parseCsvContent(result, ',').filter(
-      (row) => row.length > 0 && row.some((cell) => cell !== '')
-    );
+    const rows = parseCsvContent(result, ',');
 
     expect(rows[0]).toEqual(['header1', 'header2']);
     expect(rows[1]).toEqual(['first line\nsecond line-tr', 'value2-tr']);

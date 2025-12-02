@@ -8,6 +8,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/apps/frontend/src/$1',
+    '^@apps/common/dist/(.*)$': '<rootDir>/apps/common/src/$1',
   },
   testTimeout: 10000,
 };
