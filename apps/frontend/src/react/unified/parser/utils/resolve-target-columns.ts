@@ -1,3 +1,5 @@
+import { parseCsvLine } from './csv-utils';
+
 const splitColumns = (raw?: string) =>
   raw
     ?.split(',')
@@ -21,14 +23,15 @@ const findColumnIndexByHeader = (headers: string[], token: string): number | nul
 export const resolveTargetColumns = (
   raw: string | undefined,
   lines: string[],
-  delimiter: string
+  delimiter: string,
+  useQuoteEscaping: boolean
 ): Set<number> | null => {
   const tokens = splitColumns(raw);
   if (!tokens || tokens.length === 0) {
     return raw?.trim() ? new Set() : null;
   }
 
-  const headerCells = lines[0]?.split(delimiter) ?? [];
+  const headerCells = lines[0] ? parseCsvLine(lines[0], delimiter, useQuoteEscaping) : [];
   const result = new Set<number>();
 
   tokens.forEach((token) => {

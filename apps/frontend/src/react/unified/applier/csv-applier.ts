@@ -6,6 +6,7 @@ import { IApplier } from './i-applier';
 import { extractSingleText } from '../parser/utils/extract-single-text';
 import { normalizeLineEndings } from '../parser/utils/normalize-line-endings';
 import { deriveFileName } from '../parser/utils/derive-file-name';
+import { parseCsvLine, stringifyCsvLine } from '../parser/utils/csv-utils';
 import { resolveTargetColumns } from '../parser/utils/resolve-target-columns';
 
 export class CsvApplier
@@ -29,18 +30,24 @@ export class CsvApplier
       ]);
 
     const {
-      options: { delimiter, replaceDelimiter, targetColumns },
+      options: {
+        delimiter: rawDelimiter,
+        replaceDelimiter,
+        targetColumns,
+        useQuoteEscaping = true,
+      },
     } = originalInput;
+    const delimiter = rawDelimiter ?? ',';
 
     const lines = content.split('\n');
     const translatedMap = new Map(translatedTexts.map((unit) => [unit.key, unit]));
-    const targetColumnSet = resolveTargetColumns(targetColumns, lines, delimiter);
+    const targetColumnSet = resolveTargetColumns(targetColumns, lines, delimiter, useQuoteEscaping);
     const shouldApplyAll = targetColumnSet === null;
 
     const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     for (let i = 0; i < lines.length; i++) {
-      const cells = lines[i].split(delimiter);
+      const cells = parseCsvLine(lines[i], delimiter, useQuoteEscaping);
       for (let j = 0; j < cells.length; j++) {
         if (!shouldApplyAll && targetColumnSet && !targetColumnSet.has(j)) {
           continue;
@@ -56,7 +63,7 @@ export class CsvApplier
           cells[j] = translated;
         }
       }
-      lines[i] = cells.join(delimiter);
+      lines[i] = stringifyCsvLine(cells, delimiter, useQuoteEscaping);
     }
 
     return new TranslationOutput([

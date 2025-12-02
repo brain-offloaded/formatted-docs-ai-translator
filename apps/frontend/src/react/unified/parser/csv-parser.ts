@@ -4,6 +4,7 @@ import { TranslationUnit } from '../domain/translation-unit';
 import { IParser } from './i-parser';
 import { extractSingleText } from './utils/extract-single-text';
 import { normalizeLineEndings } from './utils/normalize-line-endings';
+import { parseCsvLine } from './utils/csv-utils';
 import { resolveTargetColumns } from './utils/resolve-target-columns';
 
 export class CsvParser
@@ -15,11 +16,17 @@ export class CsvParser
     if (content === '') return [];
 
     const { options } = input;
-    const { delimiter, skipFirstLine, targetColumns } = options;
+    const {
+      delimiter: rawDelimiter,
+      skipFirstLine,
+      targetColumns,
+      useQuoteEscaping = true,
+    } = options;
+    const delimiter = rawDelimiter ?? ',';
 
     const lines = content.split('\n');
     const startIndex = skipFirstLine ? 1 : 0;
-    const targetColumnSet = resolveTargetColumns(targetColumns, lines, delimiter);
+    const targetColumnSet = resolveTargetColumns(targetColumns, lines, delimiter, useQuoteEscaping);
     const shouldTranslateAll = targetColumnSet === null;
 
     const units: TranslationUnit[] = [];
@@ -27,7 +34,7 @@ export class CsvParser
       const line = lines[i];
       if (!line) continue;
 
-      const cells = line.split(delimiter);
+      const cells = parseCsvLine(line, delimiter, useQuoteEscaping);
       for (let j = 0; j < cells.length; j++) {
         if (!shouldTranslateAll && targetColumnSet && !targetColumnSet.has(j)) {
           continue;

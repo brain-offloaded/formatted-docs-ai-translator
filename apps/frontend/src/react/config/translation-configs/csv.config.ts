@@ -40,6 +40,12 @@ export const csvConfig: TranslationConfigDefinition<CsvParserOptionsDto> = {
           type: OptionType.BOOLEAN,
           description: '첫 번째 줄 건너뛰기 (헤더가 있는 경우)',
         },
+        {
+          key: 'useQuoteEscaping',
+          label: '따옴표 이스케이프 사용',
+          type: OptionType.BOOLEAN,
+          description: '구분자/줄바꿈이 포함된 셀을 따옴표로 감싸고 ""로 이스케이프 (기본값: 켜짐)',
+        },
       ],
     },
     dto: CsvParserOptionsDto,
