@@ -6,7 +6,7 @@ import { IApplier } from './i-applier';
 import { extractSingleText } from '../parser/utils/extract-single-text';
 import { normalizeLineEndings } from '../parser/utils/normalize-line-endings';
 import { deriveFileName } from '../parser/utils/derive-file-name';
-import { parseCsvContent, stringifyCsvLine } from '../parser/utils/csv-utils';
+import { parseCsvContent, stringifyCsvContent } from '../parser/utils/csv-utils';
 import { resolveTargetColumns } from '../parser/utils/resolve-target-columns';
 
 export class CsvApplier
@@ -71,7 +71,7 @@ export class CsvApplier
       {
         name: fileName,
         success: true,
-        result: rows.map((line) => stringifyCsvLine(line, delimiter, useQuoteEscaping)).join('\n'),
+        result: stringifyCsvContent(rows, delimiter, useQuoteEscaping),
       },
     ]);
   }
