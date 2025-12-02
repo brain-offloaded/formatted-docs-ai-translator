@@ -20,15 +20,13 @@ const findColumnIndexByHeader = (headers: string[], token: string): number | nul
 
 export const resolveTargetColumns = (
   raw: string | undefined,
-  lines: string[],
-  delimiter: string
+  headerCells: string[]
 ): Set<number> | null => {
   const tokens = splitColumns(raw);
   if (!tokens || tokens.length === 0) {
     return raw?.trim() ? new Set() : null;
   }
 
-  const headerCells = lines[0]?.split(delimiter) ?? [];
   const result = new Set<number>();
 
   tokens.forEach((token) => {

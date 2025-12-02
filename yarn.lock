@@ -212,7 +212,9 @@ __metadata:
     "@mui/icons-material": "npm:^6.4.8"
     "@mui/material": "npm:^6.4.8"
     "@mui/system": "npm:^6.4.8"
+    "@types/jest": "npm:^29.5.14"
     "@types/lodash": "npm:^4.17.20"
+    "@types/papaparse": "npm:^5.3.15"
     "@types/react": "npm:^19.0.12"
     "@types/react-dom": "npm:^19.0.4"
     "@types/uuid": "npm:^10.0.0"
@@ -230,15 +232,18 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^5.2.0"
     fitty: "npm:^2.4.2"
     i18next: "npm:^25.6.0"
+    jest: "npm:^29.7.0"
     jszip: "npm:^3.10.1"
     lodash: "npm:^4.17.21"
     openapi-typescript-codegen: "npm:^0.29.0"
+    papaparse: "npm:^5.4.1"
     prettier: "npm:^3.2.5"
     react: "npm:^19.0.0"
     react-dom: "npm:^19.0.0"
     react-i18next: "npm:^16.1.0"
     rimraf: "npm:^5.0.5"
     style-loader: "npm:^4.0.0"
+    ts-jest: "npm:^29.1.2"
     ts-loader: "npm:^9.5.2"
     tsc-alias: "npm:^1.8.15"
     typescript: "npm:^5.8.2"
@@ -2945,6 +2950,15 @@ __metadata:
   dependencies:
     undici-types: "npm:~6.19.2"
   checksum: 10c0/2461df36f67704f68db64d33abc5ad00b4b35ac94e996adff88c7322f9572e3e60ddaeed7e9f34ae203120d2ba36cc931fd3a8ddddf0c63943e8600c365c6396
+  languageName: node
+  linkType: hard
+
+"@types/papaparse@npm:^5.3.15":
+  version: 5.5.1
+  resolution: "@types/papaparse@npm:5.5.1"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/b9f82061b9e1089f6a51ab5cd8de947f2dc6ca2ff77603ea7493a51f4d25e3988497b310046dd9546d66819dbe011b35c2897eb28989d982c432b85c14ef5921
   languageName: node
   linkType: hard
 
@@ -10037,6 +10051,13 @@ __metadata:
   version: 1.0.11
   resolution: "pako@npm:1.0.11"
   checksum: 10c0/86dd99d8b34c3930345b8bbeb5e1cd8a05f608eeb40967b293f72fe469d0e9c88b783a8777e4cc7dc7c91ce54c5e93d88ff4b4f060e6ff18408fd21030d9ffbe
+  languageName: node
+  linkType: hard
+
+"papaparse@npm:^5.4.1":
+  version: 5.5.3
+  resolution: "papaparse@npm:5.5.3"
+  checksum: 10c0/623aae6a35703308fd5a39d616fb3837231ebc70697346355ea508154d3f24df75b6554b736afc1924192205518a5db14e75f5e1cf35d154326050a37cdd9447
   languageName: node
   linkType: hard
 
