@@ -5,5 +5,4 @@ export class CsvParserOptionsDto extends BaseParseOptionsDto {
   replaceDelimiter?: string;
   skipFirstLine?: boolean;
   targetColumns?: string;
-  useQuoteEscaping: boolean = true;
 }

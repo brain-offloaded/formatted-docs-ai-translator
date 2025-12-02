@@ -30,16 +30,11 @@ export class CsvApplier
       ]);
 
     const {
-      options: {
-        delimiter: rawDelimiter,
-        replaceDelimiter,
-        targetColumns,
-        useQuoteEscaping = true,
-      },
+      options: { delimiter: rawDelimiter, replaceDelimiter, targetColumns },
     } = originalInput;
     const delimiter = rawDelimiter ?? ',';
 
-    const rows = parseCsvContent(content, delimiter, useQuoteEscaping);
+    const rows = parseCsvContent(content, delimiter);
     const translatedMap = new Map(translatedTexts.map((unit) => [unit.key, unit]));
     const headerCells = rows[0] ?? [];
     const targetColumnSet = resolveTargetColumns(targetColumns, headerCells);
@@ -71,7 +66,7 @@ export class CsvApplier
       {
         name: fileName,
         success: true,
-        result: stringifyCsvContent(rows, delimiter, useQuoteEscaping),
+        result: stringifyCsvContent(rows, delimiter),
       },
     ]);
   }

@@ -13,7 +13,6 @@ const buildInput = (content: string, options: Partial<CsvParserOptionsDto> = {})
   const baseOptions: CsvParserOptionsDto = {
     delimiter: ',',
     isFile: false,
-    useQuoteEscaping: true,
   };
 
   return new TranslationInput(content, { ...baseOptions, ...options }, dummyConfig);
@@ -27,14 +26,14 @@ describe('CSV 파이프라인', () => {
     const csv = ['header1,header2', '"first line\nsecond line",value2', 'plain,"needs,quote"'].join(
       '\n'
     );
-    const input = buildInput(csv, { skipFirstLine: true, useQuoteEscaping: true });
+    const input = buildInput(csv, { skipFirstLine: true });
 
     const parsed = await parser.parse(input);
     expect(parsed).toHaveLength(4);
 
     const applied = await applier.apply(input, translateAll(parsed));
     const result = (applied.getResult() as string) || '';
-    const rows = parseCsvContent(result, ',', true).filter(
+    const rows = parseCsvContent(result, ',').filter(
       (row) => row.length > 0 && row.some((cell) => cell !== '')
     );
 
@@ -49,7 +48,6 @@ describe('CSV 파이프라인', () => {
       delimiter: '|',
       skipFirstLine: true,
       targetColumns: '3',
-      useQuoteEscaping: true,
     });
 
     const parsed = await parser.parse(input);
@@ -57,17 +55,16 @@ describe('CSV 파이프라인', () => {
 
     const translated = parsed.map((unit) => ({ ...unit, target: `${unit.source}!` }));
     const applied = await applier.apply(input, translated);
-    const rows = parseCsvContent(applied.getResult() as string, '|', true);
+    const rows = parseCsvContent(applied.getResult() as string, '|');
 
     expect(rows[0]).toEqual(['id', 'title', 'desc']); // 헤더 보존
     expect(rows[1]).toEqual(['1', 'KEEP', 'translate me!']); // 지정 열만 치환
     expect(rows[2]).toEqual(['2', 'KEEP2', 'translate me too!']);
   });
 
-  it('useQuoteEscaping이 꺼진 상태에서도 replaceDelimiter로 구분자 충돌을 방지한다', async () => {
+  it('replaceDelimiter로 구분자 충돌을 방지한다', async () => {
     const csv = ['a,b', 'c,d'].join('\n');
     const input = buildInput(csv, {
-      useQuoteEscaping: false,
       replaceDelimiter: ';',
       skipFirstLine: false,
     });
@@ -76,7 +73,7 @@ describe('CSV 파이프라인', () => {
     const translated = parsed.map((unit) => ({ ...unit, target: `${unit.source},x` }));
     const applied = await applier.apply(input, translated);
 
-    const rows = parseCsvContent(applied.getResult() as string, ',', false);
+    const rows = parseCsvContent(applied.getResult() as string, ',');
     expect(rows).toEqual([
       ['a;x', 'b;x'],
       ['c;x', 'd;x'],

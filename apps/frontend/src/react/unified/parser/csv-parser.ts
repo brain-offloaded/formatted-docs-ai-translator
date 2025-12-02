@@ -16,15 +16,10 @@ export class CsvParser
     if (content === '') return [];
 
     const { options } = input;
-    const {
-      delimiter: rawDelimiter,
-      skipFirstLine,
-      targetColumns,
-      useQuoteEscaping = true,
-    } = options;
+    const { delimiter: rawDelimiter, skipFirstLine, targetColumns } = options;
     const delimiter = rawDelimiter ?? ',';
 
-    const rows = parseCsvContent(content, delimiter, useQuoteEscaping);
+    const rows = parseCsvContent(content, delimiter);
     if (rows.length === 0) return [];
 
     const startIndex = skipFirstLine ? 1 : 0;
