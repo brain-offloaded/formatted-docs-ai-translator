@@ -50,6 +50,62 @@ export const parseCsvLine = (
 };
 
 /**
+ * CSV 전체 콘텐츠 파서 (줄바꿈 포함 셀 지원)
+ */
+export const parseCsvContent = (
+  content: string,
+  delimiter: string,
+  useQuoteEscaping: boolean
+): string[][] => {
+  if (!useQuoteEscaping) {
+    return content.split('\n').map((line) => parseCsvLine(line, delimiter, false));
+  }
+
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+
+    if (char === '"') {
+      const isEscapedQuote = inQuotes && content[i + 1] === '"';
+      if (isEscapedQuote) {
+        currentCell += '"';
+        i++; // skip next quote
+        continue;
+      }
+
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (!inQuotes && content.startsWith(delimiter, i)) {
+      currentRow.push(currentCell);
+      currentCell = '';
+      i += delimiter.length - 1;
+      continue;
+    }
+
+    if (!inQuotes && char === '\n') {
+      currentRow.push(currentCell);
+      rows.push(currentRow);
+      currentRow = [];
+      currentCell = '';
+      continue;
+    }
+
+    currentCell += char;
+  }
+
+  currentRow.push(currentCell);
+  rows.push(currentRow);
+
+  return rows;
+};
+
+/**
  * CSV 셀을 문자열로 직렬화 (필요 시 따옴표 감싸기 및 이스케이프)
  */
 export const stringifyCsvLine = (
