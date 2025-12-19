@@ -6,6 +6,7 @@ import { DbModule } from './db/db.module';
 import { LoggerModule } from './logger/logger.module';
 import { ExampleModule } from './translation/example/example.module';
 import { PromptPresetModule } from './translation/prompt/prompt.module';
+import { ModelPresetModule } from './translation/model-preset/model-preset.module';
 import { TranslatorModule } from './translation/translator/translator.module';
 import { CommonModule } from './common/common.module';
 import { SettingsModule } from './settings/settings.module';
@@ -19,6 +20,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     LoggerModule,
     ExampleModule,
     PromptPresetModule,
+    ModelPresetModule,
     TranslatorModule,
     CommonModule,
     SettingsModule,
