@@ -59,13 +59,23 @@ export const useSettingsForm = () => {
     [updateConfig]
   );
 
+  const handleBaseUrlChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      updateConfig({ baseUrl: event.target.value.trim() });
+    },
+    [updateConfig]
+  );
+
   const isCustomConfigFilled = useMemo(() => {
     const { apiKey } = config;
+    const requiresBaseUrl = config.modelProvider === ModelProvider.OPENAI_COMPATIBLE;
     return Boolean(
       apiKey &&
         customModelConfig.modelName &&
         customModelConfig.requestsPerMinute &&
-        customModelConfig.maxOutputTokenCount
+        customModelConfig.maxOutputTokenCount &&
+        customModelConfig.maxConcurrentRequests &&
+        (!requiresBaseUrl || config.baseUrl)
     );
   }, [config, customModelConfig]);
 
@@ -82,6 +92,7 @@ export const useSettingsForm = () => {
     toggleExpanded,
     handleProviderChange,
     handleApiKeyChange,
+    handleBaseUrlChange,
     updateCustomModelConfig,
     updateConfig,
   };

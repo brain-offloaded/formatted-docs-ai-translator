@@ -14,10 +14,12 @@ export const buildTranslatorAiSettings = (config: AiTranslatorConfig): Translato
     sourceLanguage: toDtoSourceLanguage(config.sourceLanguage),
     targetLanguage: toDtoTargetLanguage(config.targetLanguage),
     apiKey: config.apiKey,
+    baseUrl: config.baseUrl,
     customModelConfig: {
       modelName: config.customModelConfig.modelName,
       requestsPerMinute: config.customModelConfig.requestsPerMinute,
       maxOutputTokenCount: config.customModelConfig.maxOutputTokenCount,
+      maxConcurrentRequests: config.customModelConfig.maxConcurrentRequests,
     },
     useThinking: config.useThinking,
     setThinkingBudget: config.setThinkingBudget,

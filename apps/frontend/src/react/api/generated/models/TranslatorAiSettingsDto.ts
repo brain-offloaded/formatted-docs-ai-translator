@@ -21,6 +21,10 @@ export type TranslatorAiSettingsDto = {
      */
     apiKey: string;
     /**
+     * OpenAI-compatible 제공자의 Base URL
+     */
+    baseUrl?: string;
+    /**
      * AI 모델 동작에 필요한 설정
      */
     customModelConfig: TranslatorModelConfigDto;
@@ -44,6 +48,7 @@ export namespace TranslatorAiSettingsDto {
     export enum modelProvider {
         GOOGLE = 'Google',
         VERTEX_AI = 'vertex-ai',
+        OPENAI_COMPATIBLE = 'openai-compatible',
     }
     /**
      * 원본 언어

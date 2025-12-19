@@ -8,6 +8,7 @@ export type TargetLanguage = UiTargetLanguage;
 
 // Provider 별 개별로 저장될 설정 묶음
 export interface ProviderSpecificConfig {
+  baseUrl: string;
   apiKey: string;
   customModelConfig: TranslatorModelConfigDto;
   useThinking: boolean;
@@ -21,9 +22,11 @@ export interface AiTranslatorConfig {
   targetLanguage: TargetLanguage;
   // NOTE: backend 호환성을 위해 기존 필드 유지 (현재 선택된 provider의 설정을 반영)
   apiKey: string;
+  baseUrl: string;
   customModelConfig: TranslatorModelConfigDto;
   cacheTag: string;
   beginnerModeEnabled: boolean;
+  selectedModelPresetId?: number;
   lastPresetName?: string; // 예제 프리셋 이름
   lastPromptPresetName?: string; // 텍스트 번역 프롬프트 프리셋 이름 (호환성 유지)
   lastTextPromptPresetName?: string; // 텍스트 번역 프롬프트 프리셋 이름

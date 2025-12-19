@@ -54,6 +54,7 @@ type ModelProvider = TranslatorAiSettingsDto['modelProvider'];
 
 const getDefaultProviderSettings = (): Record<ModelProvider, ProviderSpecificConfig> => ({
   [ModelProvider.GOOGLE]: {
+    baseUrl: '',
     apiKey: '',
     customModelConfig: getDefaultModelConfig(),
     useThinking: false,
@@ -61,6 +62,15 @@ const getDefaultProviderSettings = (): Record<ModelProvider, ProviderSpecificCon
     setThinkingBudget: false,
   },
   [ModelProvider.VERTEX_AI]: {
+    baseUrl: '',
+    apiKey: '',
+    customModelConfig: getDefaultModelConfig(),
+    useThinking: false,
+    thinkingBudget: 2000,
+    setThinkingBudget: false,
+  },
+  [ModelProvider.OPENAI_COMPATIBLE]: {
+    baseUrl: '',
     apiKey: '',
     customModelConfig: getDefaultModelConfig(),
     useThinking: false,
@@ -79,8 +89,10 @@ const getDefaultConfig = (): AiTranslatorConfig => {
     targetLanguage: defaultTargetLanguage,
     customModelConfig: providerSettings[initialProvider].customModelConfig,
     apiKey: providerSettings[initialProvider].apiKey,
+    baseUrl: providerSettings[initialProvider].baseUrl,
     cacheTag: DEFAULT_CACHE_TAG,
     beginnerModeEnabled: true,
+    selectedModelPresetId: undefined,
     lastPresetName: 'default',
     lastPromptPresetName: '', // 호환성 유지
     lastTextPromptPresetName: '',
@@ -107,6 +119,7 @@ export const useConfigStore = create<ConfigState>()(
           if (update.modelProvider && update.modelProvider !== state.modelProvider) {
             const p = update.modelProvider;
             const pConf = state.providerSettings[p] || {
+              baseUrl: '',
               apiKey: '',
               customModelConfig: getDefaultModelConfig(),
               useThinking: false,
@@ -116,6 +129,7 @@ export const useConfigStore = create<ConfigState>()(
             newState = {
               ...newState,
               apiKey: pConf.apiKey,
+              baseUrl: pConf.baseUrl,
               customModelConfig: pConf.customModelConfig,
               useThinking: pConf.useThinking,
               thinkingBudget: pConf.thinkingBudget,
@@ -133,6 +147,8 @@ export const useConfigStore = create<ConfigState>()(
           const providerPatched: ProviderSpecificConfig = {
             ...currentProviderSettings,
             apiKey: update.apiKey !== undefined ? update.apiKey : currentProviderSettings.apiKey,
+            baseUrl:
+              update.baseUrl !== undefined ? update.baseUrl : currentProviderSettings.baseUrl,
             customModelConfig:
               update.customModelConfig !== undefined
                 ? update.customModelConfig
