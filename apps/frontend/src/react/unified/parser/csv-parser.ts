@@ -4,6 +4,7 @@ import { TranslationUnit } from '../domain/translation-unit';
 import { IParser } from './i-parser';
 import { extractSingleText } from './utils/extract-single-text';
 import { normalizeLineEndings } from './utils/normalize-line-endings';
+import { parseCsvContent } from './utils/csv-utils';
 import { resolveTargetColumns } from './utils/resolve-target-columns';
 
 export class CsvParser
@@ -15,24 +16,27 @@ export class CsvParser
     if (content === '') return [];
 
     const { options } = input;
-    const { delimiter, skipFirstLine, targetColumns } = options;
+    const { delimiter: rawDelimiter, skipFirstLine, targetColumns } = options;
+    const delimiter = rawDelimiter ?? ',';
 
-    const lines = content.split('\n');
+    const rows = parseCsvContent(content, delimiter);
+    if (rows.length === 0) return [];
+
     const startIndex = skipFirstLine ? 1 : 0;
-    const targetColumnSet = resolveTargetColumns(targetColumns, lines, delimiter);
+    const headerCells = rows[0] ?? [];
+    const targetColumnSet = resolveTargetColumns(targetColumns, headerCells);
     const shouldTranslateAll = targetColumnSet === null;
 
     const units: TranslationUnit[] = [];
-    for (let i = startIndex; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line) continue;
+    for (let i = startIndex; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every((cell) => cell === '')) continue;
 
-      const cells = line.split(delimiter);
-      for (let j = 0; j < cells.length; j++) {
+      for (let j = 0; j < row.length; j++) {
         if (!shouldTranslateAll && targetColumnSet && !targetColumnSet.has(j)) {
           continue;
         }
-        const cell = cells[j].trim();
+        const cell = row[j].trim();
         if (!cell) continue;
 
         units.push({

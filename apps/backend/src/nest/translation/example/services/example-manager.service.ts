@@ -31,7 +31,7 @@ export class ExampleManagerService {
   // requestId별 CURRENT_EXAMPLES 관리
   private REQUEST_EXAMPLES: Map<string, RawTranslationExampleMessages> = new Map();
 
-  private readonly MAX_EXAMPLE_CHAR_COUNT = 300;
+  private readonly MAX_EXAMPLE_CHAR_COUNT = 2000;
   private readonly MAX_REQUEST_CACHE_SIZE = 100; // 최대 캐시할 요청 수
   private currentPresetName = ''; // 초기에는 빈 문자열, 나중에 첫 번째 프리셋을 사용
 

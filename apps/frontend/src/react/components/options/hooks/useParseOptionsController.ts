@@ -76,15 +76,16 @@ export const useParseOptionsController = <T extends BaseParseOptionsDto>({
     if (!initialOptions) {
       let optionsToSet = loadOptionsFromLocalStorage<T>(translationType);
 
+      const config = translationConfigs.find((c) => c.type === translationType);
+      const defaultOptions = (config?.parser.dto ? new config.parser.dto() : {}) as T;
+
       if (!optionsToSet) {
-        const config = translationConfigs.find((c) => c.type === translationType);
-        const defaultOptions = config?.parser.dto ? new config.parser.dto() : {};
         optionsToSet = {
           ...defaultOptions,
           sourceLanguage,
         } as T;
       } else {
-        optionsToSet = { ...optionsToSet, sourceLanguage };
+        optionsToSet = { ...defaultOptions, ...optionsToSet, sourceLanguage };
       }
 
       if (optionsToSet.isFile === undefined) {
