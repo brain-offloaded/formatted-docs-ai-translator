@@ -105,7 +105,10 @@ export class OpenAiCompatibleProviderService {
       modelProvider: provider,
       customModelConfig: { modelName },
     } = aiSettings;
-    const baseURL = getProviderUrl(provider);
+    const baseURL = getProviderUrl(provider, aiSettings.baseUrl);
+    if (!baseURL) {
+      throw new AiProxyError('OpenAI-compatible baseUrl is required.');
+    }
     const client = this.getOpenAIClient(baseURL, apiKey);
     try {
       const response = await client.chat.completions.create({
