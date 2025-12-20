@@ -33,6 +33,10 @@ export type TranslatorAiSettingsDto = {
      */
     useThinking: boolean;
     /**
+     * 모델의 생각(Reasoning) 강도
+     */
+    thinkingLevel?: string;
+    /**
      * 커스텀 생각 예산을 구성할지 여부
      */
     setThinkingBudget: boolean;
@@ -70,4 +74,3 @@ export namespace TranslatorAiSettingsDto {
         ZH = 'zh',
     }
 }
-

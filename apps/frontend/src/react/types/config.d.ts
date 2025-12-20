@@ -13,6 +13,7 @@ export interface ProviderSlotConfig {
   apiKey: string;
   customModelConfig: TranslatorModelConfigDto;
   useThinking: boolean;
+  thinkingLevel: string;
   thinkingBudget: number;
   setThinkingBudget: boolean;
 }
@@ -23,6 +24,7 @@ export interface ProviderSpecificConfig {
   apiKey: string;
   customModelConfig: TranslatorModelConfigDto;
   useThinking: boolean;
+  thinkingLevel: string;
   thinkingBudget: number;
   setThinkingBudget: boolean;
   slots?: ProviderSlotConfig[];
@@ -45,6 +47,7 @@ export interface AiTranslatorConfig {
   lastTextPromptPresetName?: string; // 텍스트 번역 프롬프트 프리셋 이름
   lastImagePromptPresetName?: string; // 이미지 번역 프롬프트 프리셋 이름
   useThinking: boolean; // AI의 "생각" 과정 활성화 여부 (현재 provider용)
+  thinkingLevel: string; // "생각" 강도 설정 (현재 provider용)
   thinkingBudget: number; // "생각" 과정에 사용될 예산 (토큰 수) (현재 provider용)
   setThinkingBudget: boolean; // "생각" 예산 설정 여부 (현재 provider용)
   // Provider 별 분리 저장 영역

@@ -75,6 +75,7 @@ const createSlot = ({
   apiKey,
   customModelConfig,
   useThinking,
+  thinkingLevel,
   thinkingBudget,
   setThinkingBudget,
 }: {
@@ -84,6 +85,7 @@ const createSlot = ({
   apiKey: string;
   customModelConfig: ProviderSlotConfig['customModelConfig'];
   useThinking: boolean;
+  thinkingLevel: string;
   thinkingBudget: number;
   setThinkingBudget: boolean;
 }): ProviderSlotConfig => {
@@ -94,6 +96,7 @@ const createSlot = ({
     apiKey,
     customModelConfig,
     useThinking,
+    thinkingLevel,
     thinkingBudget,
     setThinkingBudget,
   };
@@ -109,8 +112,9 @@ const normalizeOpenAiCompatibleSettings = (
       name: 'Slot 1',
       baseUrl: config.baseUrl ?? '',
       apiKey: config.apiKey ?? '',
-      customModelConfig: getDefaultModelConfig(config.customModelConfig as any),
+      customModelConfig: getDefaultModelConfig(config.customModelConfig),
       useThinking: config.useThinking ?? false,
+      thinkingLevel: config.thinkingLevel ?? '',
       thinkingBudget: config.thinkingBudget ?? 2000,
       setThinkingBudget: config.setThinkingBudget ?? false,
     });
@@ -120,6 +124,7 @@ const normalizeOpenAiCompatibleSettings = (
       apiKey: slot.apiKey,
       customModelConfig: slot.customModelConfig,
       useThinking: slot.useThinking,
+      thinkingLevel: slot.thinkingLevel,
       thinkingBudget: slot.thinkingBudget,
       setThinkingBudget: slot.setThinkingBudget,
       slots: [slot],
@@ -139,8 +144,9 @@ const normalizeOpenAiCompatibleSettings = (
     name: slot.name?.trim() ? slot.name : `Slot ${index + 1}`,
     baseUrl: slot.baseUrl ?? '',
     apiKey: slot.apiKey ?? '',
-    customModelConfig: getDefaultModelConfig(slot.customModelConfig as any),
+    customModelConfig: getDefaultModelConfig(slot.customModelConfig),
     useThinking: !!slot.useThinking,
+    thinkingLevel: typeof slot.thinkingLevel === 'string' ? slot.thinkingLevel : '',
     thinkingBudget: typeof slot.thinkingBudget === 'number' ? slot.thinkingBudget : 2000,
     setThinkingBudget: !!slot.setThinkingBudget,
   }));
@@ -154,6 +160,7 @@ const normalizeOpenAiCompatibleSettings = (
     apiKey: normalizedActiveSlot.apiKey,
     customModelConfig: normalizedActiveSlot.customModelConfig,
     useThinking: normalizedActiveSlot.useThinking,
+    thinkingLevel: normalizedActiveSlot.thinkingLevel,
     thinkingBudget: normalizedActiveSlot.thinkingBudget,
     setThinkingBudget: normalizedActiveSlot.setThinkingBudget,
     slots: normalizedSlots,
@@ -169,6 +176,7 @@ const getDefaultProviderSettings = (): Record<ModelProvider, ProviderSpecificCon
     apiKey: '',
     customModelConfig: getDefaultModelConfig(),
     useThinking: false,
+    thinkingLevel: '',
     thinkingBudget: 2000,
     setThinkingBudget: false,
   },
@@ -177,6 +185,7 @@ const getDefaultProviderSettings = (): Record<ModelProvider, ProviderSpecificCon
     apiKey: '',
     customModelConfig: getDefaultModelConfig(),
     useThinking: false,
+    thinkingLevel: '',
     thinkingBudget: 2000,
     setThinkingBudget: false,
   },
@@ -185,6 +194,7 @@ const getDefaultProviderSettings = (): Record<ModelProvider, ProviderSpecificCon
     apiKey: '',
     customModelConfig: getDefaultModelConfig(),
     useThinking: false,
+    thinkingLevel: '',
     thinkingBudget: 2000,
     setThinkingBudget: false,
     slots: [
@@ -195,6 +205,7 @@ const getDefaultProviderSettings = (): Record<ModelProvider, ProviderSpecificCon
         apiKey: '',
         customModelConfig: getDefaultModelConfig(),
         useThinking: false,
+        thinkingLevel: '',
         thinkingBudget: 2000,
         setThinkingBudget: false,
       }),
@@ -222,6 +233,7 @@ const getDefaultConfig = (): AiTranslatorConfig => {
     lastTextPromptPresetName: '',
     lastImagePromptPresetName: '',
     useThinking: providerSettings[initialProvider].useThinking,
+    thinkingLevel: providerSettings[initialProvider].thinkingLevel,
     thinkingBudget: providerSettings[initialProvider].thinkingBudget,
     setThinkingBudget: providerSettings[initialProvider].setThinkingBudget,
     providerSettings,
@@ -233,8 +245,9 @@ const normalizeProviderSettings = (config: unknown): ProviderSpecificConfig => {
   return {
     baseUrl: typeof candidate?.baseUrl === 'string' ? candidate.baseUrl : '',
     apiKey: typeof candidate?.apiKey === 'string' ? candidate.apiKey : '',
-    customModelConfig: getDefaultModelConfig(candidate?.customModelConfig as any),
+    customModelConfig: getDefaultModelConfig(candidate?.customModelConfig),
     useThinking: !!candidate?.useThinking,
+    thinkingLevel: typeof candidate?.thinkingLevel === 'string' ? candidate.thinkingLevel : '',
     thinkingBudget: typeof candidate?.thinkingBudget === 'number' ? candidate.thinkingBudget : 2000,
     setThinkingBudget: !!candidate?.setThinkingBudget,
     slots: Array.isArray(candidate?.slots) ? candidate?.slots : undefined,
@@ -280,6 +293,7 @@ const normalizeRehydratedConfig = (persistedState: unknown): AiTranslatorConfig 
     baseUrl: activeProviderSettings.baseUrl,
     customModelConfig: activeProviderSettings.customModelConfig,
     useThinking: activeProviderSettings.useThinking,
+    thinkingLevel: activeProviderSettings.thinkingLevel,
     thinkingBudget: activeProviderSettings.thinkingBudget,
     setThinkingBudget: activeProviderSettings.setThinkingBudget,
   };
@@ -305,6 +319,7 @@ export const useConfigStore = create<ConfigState>()(
               apiKey: '',
               customModelConfig: getDefaultModelConfig(),
               useThinking: false,
+              thinkingLevel: '',
               thinkingBudget: 2000,
               setThinkingBudget: false,
             };
@@ -316,6 +331,7 @@ export const useConfigStore = create<ConfigState>()(
               baseUrl: normalizedProviderSettings.baseUrl,
               customModelConfig: normalizedProviderSettings.customModelConfig,
               useThinking: normalizedProviderSettings.useThinking,
+              thinkingLevel: normalizedProviderSettings.thinkingLevel,
               thinkingBudget: normalizedProviderSettings.thinkingBudget,
               setThinkingBudget: normalizedProviderSettings.setThinkingBudget,
               providerSettings: {
@@ -325,13 +341,14 @@ export const useConfigStore = create<ConfigState>()(
             };
           }
 
-          // 2) apiKey / customModelConfig / useThinking / thinkingBudget / setThinkingBudget 변경 시 현재 provider 설정에 반영
+          // 2) apiKey / customModelConfig / useThinking / thinkingLevel / thinkingBudget / setThinkingBudget 변경 시 현재 provider 설정에 반영
           const currentProvider = newState.modelProvider;
           const currentProviderSettingsRaw = newState.providerSettings[currentProvider] || {
             baseUrl: '',
             apiKey: '',
             customModelConfig: getDefaultModelConfig(),
             useThinking: false,
+            thinkingLevel: '',
             thinkingBudget: 2000,
             setThinkingBudget: false,
           };
@@ -352,6 +369,10 @@ export const useConfigStore = create<ConfigState>()(
               update.useThinking !== undefined
                 ? update.useThinking
                 : currentProviderSettings.useThinking,
+            thinkingLevel:
+              update.thinkingLevel !== undefined
+                ? update.thinkingLevel
+                : currentProviderSettings.thinkingLevel,
             thinkingBudget:
               update.thinkingBudget !== undefined
                 ? update.thinkingBudget
@@ -383,6 +404,7 @@ export const useConfigStore = create<ConfigState>()(
                           baseUrl: providerPatched.baseUrl,
                           customModelConfig: providerPatched.customModelConfig,
                           useThinking: providerPatched.useThinking,
+                          thinkingLevel: providerPatched.thinkingLevel,
                           thinkingBudget: providerPatched.thinkingBudget,
                           setThinkingBudget: providerPatched.setThinkingBudget,
                         }
@@ -396,6 +418,7 @@ export const useConfigStore = create<ConfigState>()(
                       baseUrl: providerPatched.baseUrl,
                       customModelConfig: providerPatched.customModelConfig,
                       useThinking: providerPatched.useThinking,
+                      thinkingLevel: providerPatched.thinkingLevel,
                       thinkingBudget: providerPatched.thinkingBudget,
                       setThinkingBudget: providerPatched.setThinkingBudget,
                     }),
@@ -427,6 +450,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: '',
             customModelConfig: getDefaultModelConfig(),
             useThinking: false,
+            thinkingLevel: '',
             thinkingBudget: 2000,
             setThinkingBudget: false,
           };
@@ -442,6 +466,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: nextActive.apiKey,
             customModelConfig: nextActive.customModelConfig,
             useThinking: nextActive.useThinking,
+            thinkingLevel: nextActive.thinkingLevel,
             thinkingBudget: nextActive.thinkingBudget,
             setThinkingBudget: nextActive.setThinkingBudget,
           };
@@ -455,6 +480,7 @@ export const useConfigStore = create<ConfigState>()(
                   baseUrl: nextActive.baseUrl,
                   customModelConfig: nextActive.customModelConfig,
                   useThinking: nextActive.useThinking,
+                  thinkingLevel: nextActive.thinkingLevel,
                   thinkingBudget: nextActive.thinkingBudget,
                   setThinkingBudget: nextActive.setThinkingBudget,
                 }
@@ -475,6 +501,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: '',
             customModelConfig: getDefaultModelConfig(),
             useThinking: false,
+            thinkingLevel: '',
             thinkingBudget: 2000,
             setThinkingBudget: false,
           };
@@ -495,6 +522,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: activeSlot.apiKey,
             customModelConfig: activeSlot.customModelConfig,
             useThinking: activeSlot.useThinking,
+            thinkingLevel: activeSlot.thinkingLevel,
             thinkingBudget: activeSlot.thinkingBudget,
             setThinkingBudget: activeSlot.setThinkingBudget,
           });
@@ -508,6 +536,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: newSlot.apiKey,
             customModelConfig: newSlot.customModelConfig,
             useThinking: newSlot.useThinking,
+            thinkingLevel: newSlot.thinkingLevel,
             thinkingBudget: newSlot.thinkingBudget,
             setThinkingBudget: newSlot.setThinkingBudget,
           };
@@ -521,6 +550,7 @@ export const useConfigStore = create<ConfigState>()(
                   baseUrl: newSlot.baseUrl,
                   customModelConfig: newSlot.customModelConfig,
                   useThinking: newSlot.useThinking,
+                  thinkingLevel: newSlot.thinkingLevel,
                   thinkingBudget: newSlot.thinkingBudget,
                   setThinkingBudget: newSlot.setThinkingBudget,
                 }
@@ -541,6 +571,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: '',
             customModelConfig: getDefaultModelConfig(),
             useThinking: false,
+            thinkingLevel: '',
             thinkingBudget: 2000,
             setThinkingBudget: false,
           };
@@ -562,6 +593,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: nextActive.apiKey,
             customModelConfig: nextActive.customModelConfig,
             useThinking: nextActive.useThinking,
+            thinkingLevel: nextActive.thinkingLevel,
             thinkingBudget: nextActive.thinkingBudget,
             setThinkingBudget: nextActive.setThinkingBudget,
           };
@@ -575,6 +607,7 @@ export const useConfigStore = create<ConfigState>()(
                   baseUrl: nextActive.baseUrl,
                   customModelConfig: nextActive.customModelConfig,
                   useThinking: nextActive.useThinking,
+                  thinkingLevel: nextActive.thinkingLevel,
                   thinkingBudget: nextActive.thinkingBudget,
                   setThinkingBudget: nextActive.setThinkingBudget,
                 }
@@ -595,6 +628,7 @@ export const useConfigStore = create<ConfigState>()(
             apiKey: '',
             customModelConfig: getDefaultModelConfig(),
             useThinking: false,
+            thinkingLevel: '',
             thinkingBudget: 2000,
             setThinkingBudget: false,
           };

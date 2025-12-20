@@ -113,6 +113,15 @@ export class TranslatorAiSettingsDto {
   useThinking: boolean;
 
   @ApiProperty({
+    description: '모델의 생각(Reasoning) 강도',
+    example: 'low',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  thinkingLevel?: string;
+
+  @ApiProperty({
     description: '커스텀 생각 예산을 구성할지 여부',
     example: false,
   })

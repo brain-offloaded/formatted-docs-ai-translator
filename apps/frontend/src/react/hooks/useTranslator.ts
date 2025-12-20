@@ -38,6 +38,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
   const lastPresetName = useConfigStore((state) => state.lastPresetName);
   const selectedModelPresetId = useConfigStore((state) => state.selectedModelPresetId);
   const useThinking = useConfigStore((state) => state.useThinking);
+  const thinkingLevel = useConfigStore((state) => state.thinkingLevel);
   const thinkingBudget = useConfigStore((state) => state.thinkingBudget);
   const setThinkingBudget = useConfigStore((state) => state.setThinkingBudget);
   const providerSettings = useConfigStore((state) => state.providerSettings);
@@ -57,6 +58,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       selectedModelPresetId,
       lastPresetName,
       useThinking,
+      thinkingLevel,
       thinkingBudget,
       setThinkingBudget,
       providerSettings,
@@ -71,6 +73,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       lastPresetName,
       selectedModelPresetId,
       useThinking,
+      thinkingLevel,
       thinkingBudget,
       setThinkingBudget,
       providerSettings,

@@ -38,6 +38,8 @@ export class TextBatchTranslationService {
   public async translateText(param: TextTranslateParam): Promise<string[]> {
     const { sourceTexts, promptPresetContent, aiSettings, cacheTag } = param;
     const { sourceLanguage, targetLanguage, apiKey, customModelConfig, useThinking } = aiSettings;
+    const thinkingLevel = aiSettings.thinkingLevel?.trim();
+    const effectiveUseThinking = !!thinkingLevel || useThinking;
     const normalizedCacheTag = buildLanguageScopedCacheTag(
       cacheTag,
       sourceLanguage,
@@ -71,7 +73,7 @@ export class TextBatchTranslationService {
         const batchGroups = await this.tokenService.getBatchGroups({
           texts: remainingTextArray,
           maxOutputTokenCount,
-          useThinking,
+          useThinking: effectiveUseThinking,
         });
 
         const limitedBatchGroups = this.applyBatchSizeLimit(batchGroups, maxBatchTextCount);
@@ -363,6 +365,14 @@ export class TextBatchTranslationService {
   }
 
   private buildThinkingConfig(aiSettings: TranslatorAiSettings) {
+    const thinkingLevel = aiSettings.thinkingLevel?.trim();
+    if (thinkingLevel) {
+      return {
+        enabled: true,
+        useCustomBudget: false,
+        thinkingLevel,
+      };
+    }
     return {
       enabled: !!aiSettings.useThinking,
       useCustomBudget: !!aiSettings.setThinkingBudget,
