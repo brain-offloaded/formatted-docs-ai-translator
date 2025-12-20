@@ -6,7 +6,6 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsIn,
   IsString,
   Min,
   ValidateIf,
@@ -119,7 +118,6 @@ export class TranslatorAiSettingsDto {
     required: false,
   })
   @IsOptional()
-  @IsIn(['low', 'medium', 'high'])
   @IsString()
   thinkingLevel?: string;
 
