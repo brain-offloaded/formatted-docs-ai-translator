@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -16,6 +17,7 @@ import { SourceLanguage, TargetLanguage } from '@apps/common/dist/language';
 export enum ModelProvider {
   GOOGLE = 'Google',
   VERTEX_AI = 'vertex-ai',
+  OPENAI_COMPATIBLE = 'openai-compatible',
 }
 
 export class TranslatorModelConfigDto {
@@ -42,6 +44,14 @@ export class TranslatorModelConfigDto {
   @IsNumber()
   @Min(0)
   maxOutputTokenCount: number;
+
+  @ApiProperty({
+    description: '동시에 처리할 최대 요청 수',
+    example: 1,
+  })
+  @IsNumber()
+  @Min(1)
+  maxConcurrentRequests: number;
 }
 
 export class TranslatorAiSettingsDto {
@@ -76,6 +86,16 @@ export class TranslatorAiSettingsDto {
   @IsString()
   @IsNotEmpty()
   apiKey: string;
+
+  @ApiProperty({
+    description: 'OpenAI-compatible 제공자의 Base URL',
+    example: 'http://localhost:8001/v1',
+    required: false,
+  })
+  @ValidateIf((dto) => dto.modelProvider === ModelProvider.OPENAI_COMPATIBLE)
+  @IsNotEmpty()
+  @IsString()
+  baseUrl?: string;
 
   @ApiProperty({
     description: 'AI 모델 동작에 필요한 설정',

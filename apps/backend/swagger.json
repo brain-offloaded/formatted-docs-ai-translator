@@ -2673,12 +2673,18 @@
             "type": "number",
             "description": "출력 토큰의 최대 개수",
             "example": 4096
+          },
+          "maxConcurrentRequests": {
+            "type": "number",
+            "description": "동시에 처리할 최대 요청 수",
+            "example": 1
           }
         },
         "required": [
           "modelName",
           "requestsPerMinute",
-          "maxOutputTokenCount"
+          "maxOutputTokenCount",
+          "maxConcurrentRequests"
         ]
       },
       "TranslatorAiSettingsDto": {
@@ -2689,7 +2695,8 @@
             "description": "사용할 AI 모델 제공자",
             "enum": [
               "Google",
-              "vertex-ai"
+              "vertex-ai",
+              "openai-compatible"
             ],
             "example": "Google"
           },
@@ -2720,6 +2727,11 @@
             "type": "string",
             "description": "AI 제공자에 전달할 API 키 (공백으로 구분된 복수 키 허용)",
             "example": "key-1 key-2 key-3"
+          },
+          "baseUrl": {
+            "type": "string",
+            "description": "OpenAI-compatible 제공자의 Base URL",
+            "example": "http://localhost:8001/v1"
           },
           "customModelConfig": {
             "description": "AI 모델 동작에 필요한 설정",

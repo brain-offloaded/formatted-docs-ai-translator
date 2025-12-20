@@ -1,3 +1,5 @@
+import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import HelpIcon from '@mui/icons-material/Help';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -27,8 +29,9 @@ import {
   Switch,
   FormControlLabel,
   Slider,
+  SelectChangeEvent,
 } from '@mui/material';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 
 import { CopyButton } from '../../components/common/CopyButton';
@@ -36,6 +39,7 @@ import { InfoTooltip } from '../../components/common/InfoTooltip';
 import { useSettingsForm } from './hooks/useSettingsForm';
 import { TranslatorAiSettingsDto } from '@/react/api/generated/models/TranslatorAiSettingsDto';
 import { getWikiUrl, type WikiPageKey } from '../../utils/wiki';
+import { useConfigStore } from '@/react/config/config-store';
 
 const ModelProvider = TranslatorAiSettingsDto.modelProvider;
 
@@ -50,15 +54,22 @@ const SettingsView: React.FC = () => {
     toggleExpanded,
     handleProviderChange,
     handleApiKeyChange,
+    handleBaseUrlChange,
     updateCustomModelConfig,
     updateConfig,
   } = useSettingsForm();
+
+  const addOpenAiCompatibleSlot = useConfigStore((state) => state.addOpenAiCompatibleSlot);
+  const deleteOpenAiCompatibleSlot = useConfigStore((state) => state.deleteOpenAiCompatibleSlot);
+  const selectOpenAiCompatibleSlot = useConfigStore((state) => state.selectOpenAiCompatibleSlot);
 
   type TooltipTranslationKey =
     | 'tooltips.apiKey'
     | 'tooltips.modelName'
     | 'tooltips.requestsPerMinute'
     | 'tooltips.maxOutputTokens'
+    | 'tooltips.maxConcurrentRequests'
+    | 'tooltips.baseUrl'
     | 'tooltips.thinkingMode'
     | 'tooltips.setThinkingBudget'
     | 'tooltips.thinkingBudget';
@@ -84,6 +95,24 @@ const SettingsView: React.FC = () => {
         wikiAriaLabel={wikiOption ? t(wikiOption.wikiLabelKey) : undefined}
       />
     </Box>
+  );
+
+  const isOpenAiCompatible = config.modelProvider === ModelProvider.OPENAI_COMPATIBLE;
+  const openAiProviderSettings = config.providerSettings[ModelProvider.OPENAI_COMPATIBLE];
+  const openAiSlots = Array.isArray(openAiProviderSettings?.slots)
+    ? openAiProviderSettings.slots
+    : [];
+  const openAiActiveSlotId =
+    typeof openAiProviderSettings?.activeSlotId === 'string' &&
+    openAiSlots.some((s) => s.id === openAiProviderSettings.activeSlotId)
+      ? openAiProviderSettings.activeSlotId
+      : (openAiSlots[0]?.id ?? 'slot-1');
+
+  const handleOpenAiSlotSelect = useCallback(
+    (event: SelectChangeEvent<string>) => {
+      selectOpenAiCompatibleSlot(event.target.value);
+    },
+    [selectOpenAiCompatibleSlot]
   );
 
   return (
@@ -122,6 +151,9 @@ const SettingsView: React.FC = () => {
               >
                 <MenuItem value={ModelProvider.GOOGLE}>Google</MenuItem>
                 <MenuItem value={ModelProvider.VERTEX_AI}>Vertex AI</MenuItem>
+                <MenuItem value={ModelProvider.OPENAI_COMPATIBLE}>
+                  {t('settings.openAiCompatible')}
+                </MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -130,6 +162,46 @@ const SettingsView: React.FC = () => {
               {t('settings.allSettingsManual')}
             </Typography>
           </Grid>
+          {isOpenAiCompatible && (
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="openai-slot-label">{t('settings.providerSlot')}</InputLabel>
+                  <Select
+                    labelId="openai-slot-label"
+                    id="openai-slot"
+                    value={openAiActiveSlotId}
+                    onChange={handleOpenAiSlotSelect}
+                    label={t('settings.providerSlot')}
+                  >
+                    {openAiSlots.map((slot) => (
+                      <MenuItem key={slot.id} value={slot.id}>
+                        {slot.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Tooltip title={t('settings.providerSlotAdd')}>
+                  <IconButton
+                    aria-label={t('settings.providerSlotAdd')}
+                    onClick={addOpenAiCompatibleSlot}
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {openAiSlots.length > 1 && (
+                  <Tooltip title={t('settings.providerSlotDelete')}>
+                    <IconButton
+                      aria-label={t('settings.providerSlotDelete')}
+                      onClick={() => deleteOpenAiCompatibleSlot(openAiActiveSlotId)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            </Grid>
+          )}
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -166,6 +238,24 @@ const SettingsView: React.FC = () => {
               }}
             />
           </Grid>
+          {isOpenAiCompatible && (
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                id="base-url"
+                label={labelWithTooltip(t('settings.baseUrl'), 'tooltips.baseUrl')}
+                variant="outlined"
+                value={config.baseUrl}
+                onChange={handleBaseUrlChange}
+                helperText={
+                  !config.baseUrl ? t('settings.baseUrlRequired') : t('settings.baseUrlHelpText')
+                }
+                error={!config.baseUrl}
+                required
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          )}
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -235,6 +325,35 @@ const SettingsView: React.FC = () => {
                   : t('settings.maxOutputTokensHelpText')
               }
               error={!config.customModelConfig.maxOutputTokenCount}
+              required
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              id="max-concurrent-requests"
+              label={labelWithTooltip(
+                t('settings.maxConcurrentRequests'),
+                'tooltips.maxConcurrentRequests'
+              )}
+              variant="outlined"
+              type="number"
+              value={config.customModelConfig.maxConcurrentRequests || ''}
+              onChange={(e) =>
+                updateCustomModelConfig({
+                  maxConcurrentRequests: e.target.value === '' ? 0 : parseInt(e.target.value, 10),
+                })
+              }
+              InputProps={{
+                inputProps: { min: 1 },
+              }}
+              InputLabelProps={{ shrink: true }}
+              helperText={
+                !config.customModelConfig.maxConcurrentRequests
+                  ? t('settings.fieldRequired')
+                  : t('settings.maxConcurrentRequestsHelpText')
+              }
+              error={!config.customModelConfig.maxConcurrentRequests}
               required
             />
           </Grid>
@@ -345,6 +464,19 @@ const SettingsView: React.FC = () => {
                     <CopyButton targetValue={config.apiKey} size="small" />
                   </Box>
                 </Grid>
+                {isOpenAiCompatible && (
+                  <Grid item xs={12} sm={4}>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('settings.baseUrlLabel')}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                      <Typography variant="body1" fontWeight="medium">
+                        {config.baseUrl || t('settings.notSet')}
+                      </Typography>
+                      <CopyButton targetValue={config.baseUrl} size="small" />
+                    </Box>
+                  </Grid>
+                )}
                 <Grid item xs={12} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     {t('settings.requestsPerMinuteLabel')}
@@ -373,6 +505,20 @@ const SettingsView: React.FC = () => {
                     />
                   </Box>
                 </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('settings.maxConcurrentRequestsLabel')}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <Typography variant="body1" fontWeight="medium">
+                      {config.customModelConfig.maxConcurrentRequests || 0}
+                    </Typography>
+                    <CopyButton
+                      targetValue={String(config.customModelConfig.maxConcurrentRequests ?? '')}
+                      size="small"
+                    />
+                  </Box>
+                </Grid>
               </Grid>
               <Box sx={{ mt: 2 }}>
                 <Alert
@@ -384,18 +530,22 @@ const SettingsView: React.FC = () => {
                   }}
                 >
                   <Typography variant="body2">
-                    <Trans i18nKey="settings.apiKeyInfo">
-                      API 키는
-                      <a
-                        href="https://ai.google.dev/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: 'inherit', fontWeight: 'bold' }}
-                      >
-                        Google AI Studio
-                      </a>
-                      에서 발급받을 수 있습니다.
-                    </Trans>
+                    {isOpenAiCompatible ? (
+                      t('settings.openAiCompatibleInfo')
+                    ) : (
+                      <Trans i18nKey="settings.apiKeyInfo">
+                        API 키는
+                        <a
+                          href="https://ai.google.dev/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: 'inherit', fontWeight: 'bold' }}
+                        >
+                          Google AI Studio
+                        </a>
+                        에서 발급받을 수 있습니다.
+                      </Trans>
+                    )}
                   </Typography>
                 </Alert>
               </Box>
