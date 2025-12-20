@@ -28,9 +28,10 @@ import {
   Alert,
   Switch,
   FormControlLabel,
+  Slider,
   SelectChangeEvent,
 } from '@mui/material';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 
 import { CopyButton } from '../../components/common/CopyButton';
@@ -70,7 +71,9 @@ const SettingsView: React.FC = () => {
     | 'tooltips.maxConcurrentRequests'
     | 'tooltips.baseUrl'
     | 'tooltips.thinkingMode'
-    | 'tooltips.thinkingLevel';
+    | 'tooltips.thinkingLevel'
+    | 'tooltips.setThinkingBudget'
+    | 'tooltips.thinkingBudget';
 
   type WikiLabelKey = 'tooltips.links.gettingStarted';
 
@@ -112,6 +115,9 @@ const SettingsView: React.FC = () => {
     },
     [selectOpenAiCompatibleSlot]
   );
+  const [legacyThinkingOpen, setLegacyThinkingOpen] = useState(false);
+  const isThinkingLevelSet = config.thinkingLevel.trim().length > 0;
+  const legacyControlsDisabled = isThinkingLevelSet;
 
   return (
     <Card variant="outlined">
@@ -360,32 +366,116 @@ const SettingsView: React.FC = () => {
               <Typography variant="subtitle1" gutterBottom fontWeight="medium">
                 {t('settings.thinking')}
               </Typography>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={config.useThinking}
-                        onChange={(e) => updateConfig({ useThinking: e.target.checked })}
-                        name="thinking-toggle"
-                      />
+              <Box sx={{ mt: 2 }}>
+                <TextField
+                  fullWidth
+                  label={labelWithTooltip(t('settings.thinkingLevel'), 'tooltips.thinkingLevel')}
+                  placeholder={t('settings.thinkingLevelPlaceholder')}
+                  value={config.thinkingLevel}
+                  onChange={(e) => updateConfig({ thinkingLevel: e.target.value })}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
+                  <Typography variant="subtitle2" fontWeight="medium" sx={{ flexGrow: 1 }}>
+                    {t('settings.legacyThinkingOptions')}
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={() => setLegacyThinkingOpen((prev) => !prev)}
+                    endIcon={
+                      legacyThinkingOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />
                     }
-                    label={labelWithTooltip(t('settings.thinkingMode'), 'tooltips.thinkingMode')}
-                  />
-                </Grid>
-              </Grid>
-              <Collapse in={config.useThinking}>
-                <Box sx={{ mt: 2 }}>
-                  <TextField
-                    fullWidth
-                    label={labelWithTooltip(t('settings.thinkingLevel'), 'tooltips.thinkingLevel')}
-                    placeholder={t('settings.thinkingLevelPlaceholder')}
-                    value={config.thinkingLevel}
-                    onChange={(e) => updateConfig({ thinkingLevel: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                  />
+                    sx={{ textTransform: 'none' }}
+                  >
+                    {legacyThinkingOpen ? t('settings.hideLegacy') : t('settings.showLegacy')}
+                  </Button>
                 </Box>
-              </Collapse>
+                <Collapse in={legacyThinkingOpen}>
+                  <Box sx={{ mt: 2 }}>
+                    {legacyControlsDisabled && (
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        {t('settings.legacyThinkingDisabled')}
+                      </Alert>
+                    )}
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} md={6}>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={config.useThinking}
+                              onChange={(e) => updateConfig({ useThinking: e.target.checked })}
+                              name="thinking-toggle"
+                              disabled={legacyControlsDisabled}
+                            />
+                          }
+                          label={labelWithTooltip(
+                            t('settings.thinkingMode'),
+                            'tooltips.thinkingMode'
+                          )}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={config.setThinkingBudget}
+                              onChange={(e) =>
+                                updateConfig({ setThinkingBudget: e.target.checked })
+                              }
+                              name="set-thinking-budget-toggle"
+                              disabled={!config.useThinking || legacyControlsDisabled}
+                            />
+                          }
+                          label={labelWithTooltip(
+                            t('settings.setThinkingBudget'),
+                            'tooltips.setThinkingBudget'
+                          )}
+                        />
+                      </Grid>
+                    </Grid>
+                    <Collapse in={config.useThinking && config.setThinkingBudget}>
+                      <Box sx={{ mt: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Typography id="thinking-budget-slider" gutterBottom component="span">
+                            {t('settings.thinkingBudgetTokens', { budget: config.thinkingBudget })}
+                          </Typography>
+                          <InfoTooltip
+                            title={t('tooltips.thinkingBudget')}
+                            infoAriaLabel={t('tooltips.aria.info', {
+                              subject: t('settings.thinkingBudget'),
+                            })}
+                          />
+                        </Box>
+                        <Slider
+                          aria-labelledby="thinking-budget-slider"
+                          value={config.thinkingBudget || 0}
+                          onChange={(_, newValue) =>
+                            updateConfig({ thinkingBudget: newValue as number })
+                          }
+                          min={0}
+                          max={10000}
+                          step={100}
+                          valueLabelDisplay="auto"
+                          disabled={legacyControlsDisabled}
+                        />
+                        <TextField
+                          fullWidth
+                          label={labelWithTooltip(
+                            t('settings.thinkingBudget'),
+                            'tooltips.thinkingBudget'
+                          )}
+                          type="number"
+                          value={config.thinkingBudget}
+                          onChange={(e) => updateConfig({ thinkingBudget: Number(e.target.value) })}
+                          sx={{ mt: 1 }}
+                          InputLabelProps={{ shrink: true }}
+                          disabled={legacyControlsDisabled}
+                        />
+                      </Box>
+                    </Collapse>
+                  </Box>
+                </Collapse>
+              </Box>
             </Paper>
           </Grid>
         </Grid>
