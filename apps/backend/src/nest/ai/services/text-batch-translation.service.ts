@@ -39,7 +39,7 @@ export class TextBatchTranslationService {
     const { sourceTexts, promptPresetContent, aiSettings, cacheTag } = param;
     const { sourceLanguage, targetLanguage, apiKey, customModelConfig, useThinking } = aiSettings;
     const thinkingLevel = aiSettings.thinkingLevel?.trim();
-    const effectiveUseThinking = useThinking || !!thinkingLevel;
+    const effectiveUseThinking = !!thinkingLevel || useThinking;
     const normalizedCacheTag = buildLanguageScopedCacheTag(
       cacheTag,
       sourceLanguage,

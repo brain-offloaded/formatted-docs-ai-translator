@@ -1,4 +1,5 @@
 import { LoggerService } from '@/nest/logger/logger.service';
+import { ThinkingLevel, type ThinkingConfig } from '@google/genai';
 import { AiChatRequest, AiMessageContent, AiMessagePart } from '../../dto/common-ai.dto';
 
 export type GoogleContentPart =
@@ -53,9 +54,22 @@ export abstract class GoogleStyleProviderBase {
     }
   }
 
+  private toThinkingLevel(level: string): ThinkingLevel | undefined {
+    switch (level) {
+      case 'low':
+        return ThinkingLevel.LOW;
+      case 'medium':
+        return ThinkingLevel.MEDIUM;
+      case 'high':
+        return ThinkingLevel.HIGH;
+      default:
+        return undefined;
+    }
+  }
+
   protected buildProviderThinkingConfig(
     thinking?: AiChatRequest['thinking']
-  ): { includeThoughts: boolean; thinkingBudget?: number; thinkingLevel?: string } | undefined {
+  ): ThinkingConfig | undefined {
     if (!thinking) return undefined;
     const { enabled, useCustomBudget, budget, thinkingLevel } = thinking;
 
@@ -64,8 +78,16 @@ export abstract class GoogleStyleProviderBase {
     }
 
     const normalizedThinkingLevel = typeof thinkingLevel === 'string' ? thinkingLevel.trim() : '';
-    if (normalizedThinkingLevel) {
-      return { includeThoughts: false, thinkingLevel: normalizedThinkingLevel };
+    const mappedThinkingLevel = normalizedThinkingLevel
+      ? this.toThinkingLevel(normalizedThinkingLevel)
+      : undefined;
+    if (mappedThinkingLevel) {
+      // thinkingLevel은 모델의 추론 강도만 제어하며, 추론 내용을 노출하지 않도록 항상 false로 유지합니다.
+      return {
+        includeThoughts: false,
+        thinkingBudget: undefined,
+        thinkingLevel: mappedThinkingLevel,
+      };
     }
 
     if (useCustomBudget && typeof budget === 'number' && Number.isFinite(budget)) {
