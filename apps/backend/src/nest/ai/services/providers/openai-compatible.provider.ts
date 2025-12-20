@@ -97,10 +97,40 @@ export class OpenAiCompatibleProviderService {
     aiResponseFormat: AiResponseFormat
   ): ResponseFormatJSONSchema | undefined {
     if (aiResponseFormat?.type !== 'json_schema') return undefined;
+    const rawSchema = aiResponseFormat.jsonSchema as unknown;
+    if (this.isOpenAiJsonSchema(rawSchema)) {
+      return { type: 'json_schema', json_schema: rawSchema };
+    }
     return {
       type: 'json_schema',
-      json_schema: aiResponseFormat.jsonSchema as ResponseFormatJSONSchema.JSONSchema,
+      json_schema: {
+        name: this.inferResponseFormatName(rawSchema),
+        schema: rawSchema as Record<string, unknown>,
+      },
     };
+  }
+
+  private isOpenAiJsonSchema(schema: unknown): schema is ResponseFormatJSONSchema.JSONSchema {
+    if (!schema || typeof schema !== 'object') return false;
+    const candidate = schema as Record<string, unknown>;
+    const name = candidate?.name;
+    const hasName = typeof name === 'string' && name.length > 0;
+    const hasSchema = typeof candidate?.schema === 'object' && candidate.schema !== null;
+    const hasMetadata =
+      typeof candidate?.description === 'string' || typeof candidate?.strict === 'boolean';
+    return hasName && (hasSchema || hasMetadata);
+  }
+
+  private inferResponseFormatName(schema: unknown): string {
+    if (!schema || typeof schema !== 'object') return 'structured_response';
+    const properties = (schema as Record<string, unknown>)?.properties;
+    if (properties && typeof properties === 'object') {
+      if ('segments' in properties) return 'text_translation';
+      if ('ocr_result' in properties || 'translated_result' in properties) {
+        return 'image_ocr_translation';
+      }
+    }
+    return 'structured_response';
   }
 
   async chat({
@@ -122,7 +152,6 @@ export class OpenAiCompatibleProviderService {
     }
     const client = this.getOpenAIClient(baseURL, apiKey);
     try {
-      this.logger.info('\n\n\n\n response schema', { format: request.responseFormat });
       const response = await client.chat.completions.create({
         model: request.model || modelName,
         messages: request.messages.map((m) => this.toOpenAiMessage(m)),
