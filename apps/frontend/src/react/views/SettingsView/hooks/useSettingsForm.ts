@@ -75,7 +75,7 @@ export const useSettingsForm = () => {
         customModelConfig.requestsPerMinute &&
         customModelConfig.maxOutputTokenCount &&
         customModelConfig.maxConcurrentRequests &&
-        (!requiresBaseUrl || config.baseUrl)
+        (!requiresBaseUrl || config.baseUrl?.trim())
     );
   }, [config, customModelConfig]);
 

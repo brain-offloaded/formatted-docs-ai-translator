@@ -123,7 +123,17 @@ export class OpenAiCompatibleProviderService {
 
   private inferResponseFormatName(schema: unknown): string {
     if (!schema || typeof schema !== 'object') return 'structured_response';
-    const properties = (schema as Record<string, unknown>)?.properties;
+    const candidate = schema as { title?: unknown; $id?: unknown; properties?: unknown };
+
+    if (typeof candidate.title === 'string' && candidate.title.trim()) {
+      return candidate.title;
+    }
+
+    if (typeof candidate.$id === 'string' && candidate.$id.trim()) {
+      return candidate.$id;
+    }
+
+    const properties = candidate.properties;
     if (properties && typeof properties === 'object') {
       if ('segments' in properties) return 'text_translation';
       if ('ocr_result' in properties || 'translated_result' in properties) {
@@ -146,9 +156,9 @@ export class OpenAiCompatibleProviderService {
       modelProvider: provider,
       customModelConfig: { modelName },
     } = aiSettings;
-    const baseURL = getProviderUrl(provider, aiSettings.baseUrl);
+    const baseURL = getProviderUrl(provider, aiSettings.baseUrl?.trim());
     if (!baseURL) {
-      throw new AiProxyError('OpenAI-compatible baseUrl is required.');
+      throw new AiProxyError('OpenAI-compatible Base URL is required.');
     }
     const client = this.getOpenAIClient(baseURL, apiKey);
     try {

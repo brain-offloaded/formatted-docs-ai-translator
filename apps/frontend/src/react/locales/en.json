@@ -59,7 +59,7 @@
     "requestsPerMinuteHelpText": "Requests per minute matching the API rate limit",
     "maxOutputTokens": "Max Output Tokens",
     "maxOutputTokensHelpText": "Maximum number of tokens the model will generate",
-    "maxConcurrentRequests": "Max concurrent requests",
+    "maxConcurrentRequests": "Max Concurrent Requests",
     "maxConcurrentRequestsHelpText": "Limit the number of concurrent requests",
     "baseUrlHelpText": "Endpoint URL for the OpenAI-compatible server",
     "baseUrlRequired": "Enter a Base URL.",
@@ -77,7 +77,7 @@
     "baseUrlLabel": "Base URL:",
     "requestsPerMinuteLabel": "Requests Per Minute (RPM):",
     "maxOutputTokensLabel": "Max Output Tokens:",
-    "maxConcurrentRequestsLabel": "Max concurrent requests:",
+    "maxConcurrentRequestsLabel": "Max Concurrent Requests:",
     "apiKeyInfo": "API keys can be obtained from <1>Google AI Studio</1>.",
     "openAiCompatibleInfo": "Enter the Base URL and API key for your OpenAI-compatible server.",
     "apiKeyRoundRobinHint": "Separate multiple API keys with spaces to rotate them automatically in a round-robin order."

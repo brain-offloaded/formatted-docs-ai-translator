@@ -47,7 +47,7 @@ export class TranslatorModelConfigDto {
 
   @ApiProperty({
     description: '동시에 처리할 최대 요청 수',
-    example: 2,
+    example: 1,
   })
   @IsNumber()
   @Min(1)

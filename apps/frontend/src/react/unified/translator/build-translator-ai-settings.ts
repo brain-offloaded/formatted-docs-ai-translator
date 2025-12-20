@@ -19,7 +19,7 @@ export const buildTranslatorAiSettings = (config: AiTranslatorConfig): Translato
       modelName: config.customModelConfig.modelName,
       requestsPerMinute: config.customModelConfig.requestsPerMinute,
       maxOutputTokenCount: config.customModelConfig.maxOutputTokenCount,
-      maxConcurrentRequests: config.customModelConfig.maxConcurrentRequests,
+      maxConcurrentRequests: Math.max(1, config.customModelConfig.maxConcurrentRequests ?? 1),
     },
     useThinking: config.useThinking,
     setThinkingBudget: config.setThinkingBudget,

@@ -57,11 +57,15 @@ export interface ConfigState extends AiTranslatorConfig {
 const ModelProvider = TranslatorAiSettingsDto.modelProvider;
 type ModelProvider = TranslatorAiSettingsDto['modelProvider'];
 
+let slotIdCounter = 0;
+
 const createSlotId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
   }
-  return `slot-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  slotIdCounter += 1;
+  return `slot-${Date.now()}-${slotIdCounter}-${Math.random().toString(16).slice(2)}`;
 };
 
 const createSlot = ({
@@ -105,7 +109,7 @@ const normalizeOpenAiCompatibleSettings = (
       name: 'Slot 1',
       baseUrl: config.baseUrl ?? '',
       apiKey: config.apiKey ?? '',
-      customModelConfig: config.customModelConfig ?? getDefaultModelConfig(),
+      customModelConfig: getDefaultModelConfig(config.customModelConfig as any),
       useThinking: config.useThinking ?? false,
       thinkingBudget: config.thinkingBudget ?? 2000,
       setThinkingBudget: config.setThinkingBudget ?? false,
@@ -135,7 +139,7 @@ const normalizeOpenAiCompatibleSettings = (
     name: slot.name?.trim() ? slot.name : `Slot ${index + 1}`,
     baseUrl: slot.baseUrl ?? '',
     apiKey: slot.apiKey ?? '',
-    customModelConfig: slot.customModelConfig ?? getDefaultModelConfig(),
+    customModelConfig: getDefaultModelConfig(slot.customModelConfig as any),
     useThinking: !!slot.useThinking,
     thinkingBudget: typeof slot.thinkingBudget === 'number' ? slot.thinkingBudget : 2000,
     setThinkingBudget: !!slot.setThinkingBudget,
@@ -221,6 +225,63 @@ const getDefaultConfig = (): AiTranslatorConfig => {
     thinkingBudget: providerSettings[initialProvider].thinkingBudget,
     setThinkingBudget: providerSettings[initialProvider].setThinkingBudget,
     providerSettings,
+  };
+};
+
+const normalizeProviderSettings = (config: unknown): ProviderSpecificConfig => {
+  const candidate = config as Partial<ProviderSpecificConfig> | undefined;
+  return {
+    baseUrl: typeof candidate?.baseUrl === 'string' ? candidate.baseUrl : '',
+    apiKey: typeof candidate?.apiKey === 'string' ? candidate.apiKey : '',
+    customModelConfig: getDefaultModelConfig(candidate?.customModelConfig as any),
+    useThinking: !!candidate?.useThinking,
+    thinkingBudget: typeof candidate?.thinkingBudget === 'number' ? candidate.thinkingBudget : 2000,
+    setThinkingBudget: !!candidate?.setThinkingBudget,
+    slots: Array.isArray(candidate?.slots) ? candidate?.slots : undefined,
+    activeSlotId: typeof candidate?.activeSlotId === 'string' ? candidate.activeSlotId : undefined,
+  };
+};
+
+const normalizeRehydratedConfig = (persistedState: unknown): AiTranslatorConfig => {
+  const defaults = getDefaultConfig();
+  const persisted = (persistedState ?? {}) as Partial<AiTranslatorConfig>;
+
+  const rawProviderSettings =
+    persisted.providerSettings && typeof persisted.providerSettings === 'object'
+      ? (persisted.providerSettings as Record<string, unknown>)
+      : {};
+
+  const openAiProvider = ModelProvider.OPENAI_COMPATIBLE;
+  const normalizedProviderSettings: Record<ModelProvider, ProviderSpecificConfig> = {
+    [ModelProvider.GOOGLE]: normalizeProviderSettings(rawProviderSettings[ModelProvider.GOOGLE]),
+    [ModelProvider.VERTEX_AI]: normalizeProviderSettings(
+      rawProviderSettings[ModelProvider.VERTEX_AI]
+    ),
+    [openAiProvider]: normalizeOpenAiCompatibleSettings(
+      normalizeProviderSettings(rawProviderSettings[openAiProvider])
+    ).normalized,
+  };
+
+  const providerCandidates = Object.values(ModelProvider) as string[];
+  const modelProvider =
+    typeof persisted.modelProvider === 'string' &&
+    providerCandidates.includes(persisted.modelProvider)
+      ? (persisted.modelProvider as ModelProvider)
+      : defaults.modelProvider;
+
+  const activeProviderSettings = normalizedProviderSettings[modelProvider];
+
+  return {
+    ...defaults,
+    ...persisted,
+    modelProvider,
+    providerSettings: normalizedProviderSettings,
+    apiKey: activeProviderSettings.apiKey,
+    baseUrl: activeProviderSettings.baseUrl,
+    customModelConfig: activeProviderSettings.customModelConfig,
+    useThinking: activeProviderSettings.useThinking,
+    thinkingBudget: activeProviderSettings.thinkingBudget,
+    setThinkingBudget: activeProviderSettings.setThinkingBudget,
   };
 };
 
@@ -419,7 +480,15 @@ export const useConfigStore = create<ConfigState>()(
           };
           const { normalized, activeSlot } = normalizeOpenAiCompatibleSettings(openAiSettings);
           const slots = Array.isArray(normalized.slots) ? normalized.slots : [];
-          const nextSlotNumber = slots.length + 1;
+          const maxExistingSlotNumber = slots.reduce((max, slot) => {
+            const match = /^Slot (\\d+)$/.exec(slot.name ?? '');
+            if (!match) {
+              return max;
+            }
+            const slotNumber = Number.parseInt(match[1], 10);
+            return Number.isNaN(slotNumber) ? max : Math.max(max, slotNumber);
+          }, 0);
+          const nextSlotNumber = maxExistingSlotNumber + 1;
           const newSlot = createSlot({
             name: `Slot ${nextSlotNumber}`,
             baseUrl: activeSlot.baseUrl,
@@ -551,6 +620,14 @@ export const useConfigStore = create<ConfigState>()(
     {
       name: 'translator_config', // localStorage 키
       storage: createJSONStorage(createStorage),
+      version: 1,
+      merge: (persistedState, currentState) => {
+        const normalizedConfig = normalizeRehydratedConfig(persistedState);
+        return {
+          ...currentState,
+          ...normalizedConfig,
+        };
+      },
     }
   )
 );

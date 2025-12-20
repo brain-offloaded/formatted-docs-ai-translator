@@ -99,22 +99,9 @@ const SettingsView: React.FC = () => {
 
   const isOpenAiCompatible = config.modelProvider === ModelProvider.OPENAI_COMPATIBLE;
   const openAiProviderSettings = config.providerSettings[ModelProvider.OPENAI_COMPATIBLE];
-  const openAiSlots =
-    Array.isArray(openAiProviderSettings?.slots) && openAiProviderSettings.slots.length > 0
-      ? openAiProviderSettings.slots
-      : [
-          {
-            id: openAiProviderSettings?.activeSlotId ?? 'slot-1',
-            name: 'Slot 1',
-            baseUrl: openAiProviderSettings?.baseUrl ?? '',
-            apiKey: openAiProviderSettings?.apiKey ?? '',
-            customModelConfig:
-              openAiProviderSettings?.customModelConfig ?? config.customModelConfig,
-            useThinking: openAiProviderSettings?.useThinking ?? false,
-            thinkingBudget: openAiProviderSettings?.thinkingBudget ?? 2000,
-            setThinkingBudget: openAiProviderSettings?.setThinkingBudget ?? false,
-          },
-        ];
+  const openAiSlots = Array.isArray(openAiProviderSettings?.slots)
+    ? openAiProviderSettings.slots
+    : [];
   const openAiActiveSlotId =
     typeof openAiProviderSettings?.activeSlotId === 'string' &&
     openAiSlots.some((s) => s.id === openAiProviderSettings.activeSlotId)

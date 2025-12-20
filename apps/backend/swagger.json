@@ -2677,7 +2677,7 @@
           "maxConcurrentRequests": {
             "type": "number",
             "description": "동시에 처리할 최대 요청 수",
-            "example": 2
+            "example": 1
           }
         },
         "required": [
