@@ -6,6 +6,17 @@ export type ModelProvider = TranslatorAiSettingsDto.modelProvider;
 export type SourceLanguage = UiSourceLanguage;
 export type TargetLanguage = UiTargetLanguage;
 
+export interface ProviderSlotConfig {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  customModelConfig: TranslatorModelConfigDto;
+  useThinking: boolean;
+  thinkingBudget: number;
+  setThinkingBudget: boolean;
+}
+
 // Provider 별 개별로 저장될 설정 묶음
 export interface ProviderSpecificConfig {
   baseUrl: string;
@@ -14,6 +25,8 @@ export interface ProviderSpecificConfig {
   useThinking: boolean;
   thinkingBudget: number;
   setThinkingBudget: boolean;
+  slots?: ProviderSlotConfig[];
+  activeSlotId?: string;
 }
 
 export interface AiTranslatorConfig {

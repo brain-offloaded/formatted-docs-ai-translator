@@ -1,3 +1,5 @@
+import AddIcon from '@mui/icons-material/Add';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import HelpIcon from '@mui/icons-material/Help';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -29,7 +31,7 @@ import {
   Slider,
   SelectChangeEvent,
 } from '@mui/material';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 
 import { CopyButton } from '../../components/common/CopyButton';
@@ -37,10 +39,7 @@ import { InfoTooltip } from '../../components/common/InfoTooltip';
 import { useSettingsForm } from './hooks/useSettingsForm';
 import { TranslatorAiSettingsDto } from '@/react/api/generated/models/TranslatorAiSettingsDto';
 import { getWikiUrl, type WikiPageKey } from '../../utils/wiki';
-import { useTranslation as useTranslationContext } from '@/react/contexts/TranslationContext';
-import { useConfirmModal } from '@/react/components/common/ConfirmModal';
-import { ModelPresetsService } from '@/react/api/generated/services/ModelPresetsService';
-import { ModelPresetDto } from '@/react/api/generated/models/ModelPresetDto';
+import { useConfigStore } from '@/react/config/config-store';
 
 const ModelProvider = TranslatorAiSettingsDto.modelProvider;
 
@@ -59,11 +58,10 @@ const SettingsView: React.FC = () => {
     updateCustomModelConfig,
     updateConfig,
   } = useSettingsForm();
-  const { showSnackbar } = useTranslationContext();
-  const { openConfirmModal } = useConfirmModal();
 
-  const [modelPresets, setModelPresets] = useState<ModelPresetDto[]>([]);
-  const [modelPresetName, setModelPresetName] = useState('');
+  const addOpenAiCompatibleSlot = useConfigStore((state) => state.addOpenAiCompatibleSlot);
+  const deleteOpenAiCompatibleSlot = useConfigStore((state) => state.deleteOpenAiCompatibleSlot);
+  const selectOpenAiCompatibleSlot = useConfigStore((state) => state.selectOpenAiCompatibleSlot);
 
   type TooltipTranslationKey =
     | 'tooltips.apiKey'
@@ -100,208 +98,35 @@ const SettingsView: React.FC = () => {
   );
 
   const isOpenAiCompatible = config.modelProvider === ModelProvider.OPENAI_COMPATIBLE;
-  const selectedModelPresetId = config.selectedModelPresetId ?? '';
-  const selectedModelPreset = useMemo(
-    () => modelPresets.find((preset) => preset.id === selectedModelPresetId),
-    [modelPresets, selectedModelPresetId]
-  );
+  const openAiProviderSettings = config.providerSettings[ModelProvider.OPENAI_COMPATIBLE];
+  const openAiSlots =
+    Array.isArray(openAiProviderSettings?.slots) && openAiProviderSettings.slots.length > 0
+      ? openAiProviderSettings.slots
+      : [
+          {
+            id: openAiProviderSettings?.activeSlotId ?? 'slot-1',
+            name: 'Slot 1',
+            baseUrl: openAiProviderSettings?.baseUrl ?? '',
+            apiKey: openAiProviderSettings?.apiKey ?? '',
+            customModelConfig:
+              openAiProviderSettings?.customModelConfig ?? config.customModelConfig,
+            useThinking: openAiProviderSettings?.useThinking ?? false,
+            thinkingBudget: openAiProviderSettings?.thinkingBudget ?? 2000,
+            setThinkingBudget: openAiProviderSettings?.setThinkingBudget ?? false,
+          },
+        ];
+  const openAiActiveSlotId =
+    typeof openAiProviderSettings?.activeSlotId === 'string' &&
+    openAiSlots.some((s) => s.id === openAiProviderSettings.activeSlotId)
+      ? openAiProviderSettings.activeSlotId
+      : (openAiSlots[0]?.id ?? 'slot-1');
 
-  const applyModelPreset = useCallback(
-    (preset: ModelPresetDto) => {
-      updateConfig({
-        modelProvider: preset.modelProvider,
-        apiKey: preset.apiKey,
-        baseUrl: preset.baseUrl ?? '',
-        customModelConfig: {
-          modelName: preset.modelName,
-          requestsPerMinute: preset.requestsPerMinute,
-          maxOutputTokenCount: preset.maxOutputTokenCount,
-          maxConcurrentRequests: preset.maxConcurrentRequests,
-        },
-        useThinking: preset.useThinking,
-        setThinkingBudget: preset.setThinkingBudget,
-        thinkingBudget: preset.thinkingBudget ?? 0,
-        selectedModelPresetId: preset.id,
-      });
-    },
-    [updateConfig]
-  );
-
-  const fetchModelPresets = useCallback(async () => {
-    try {
-      const response = await ModelPresetsService.modelPresetControllerGetModelPresets();
-      if (response.success) {
-        setModelPresets(response.presets);
-      } else {
-        showSnackbar(response.message || t('settings.modelPresetLoadFailed'));
-      }
-    } catch (error) {
-      console.error('모델 프리셋 목록 조회 실패:', error);
-      showSnackbar(t('settings.modelPresetLoadFailed'));
-    }
-  }, [showSnackbar, t]);
-
-  useEffect(() => {
-    void fetchModelPresets();
-  }, [fetchModelPresets]);
-
-  useEffect(() => {
-    if (selectedModelPreset) {
-      setModelPresetName(selectedModelPreset.name);
-    } else if (!selectedModelPresetId) {
-      setModelPresetName('');
-    }
-  }, [selectedModelPreset, selectedModelPresetId]);
-
-  const handleModelPresetSelect = useCallback(
+  const handleOpenAiSlotSelect = useCallback(
     (event: SelectChangeEvent<string>) => {
-      const nextId = event.target.value ? Number(event.target.value) : undefined;
-      if (!nextId) {
-        updateConfig({ selectedModelPresetId: undefined });
-        setModelPresetName('');
-        return;
-      }
-      const preset = modelPresets.find((item) => item.id === nextId);
-      if (!preset) {
-        showSnackbar(t('settings.modelPresetLoadFailed'));
-        return;
-      }
-      applyModelPreset(preset);
+      selectOpenAiCompatibleSlot(event.target.value);
     },
-    [applyModelPreset, modelPresets, showSnackbar, t, updateConfig]
+    [selectOpenAiCompatibleSlot]
   );
-
-  const handleCreateModelPreset = useCallback(async () => {
-    if (!modelPresetName.trim()) {
-      showSnackbar(t('settings.modelPresetNameRequired'));
-      return;
-    }
-    if (isOpenAiCompatible && !config.baseUrl.trim()) {
-      showSnackbar(t('settings.baseUrlRequired'));
-      return;
-    }
-    try {
-      const response = await ModelPresetsService.modelPresetControllerCreateModelPreset({
-        requestBody: {
-          name: modelPresetName.trim(),
-          modelProvider: config.modelProvider,
-          baseUrl: config.baseUrl || undefined,
-          apiKey: config.apiKey,
-          modelName: config.customModelConfig.modelName,
-          requestsPerMinute: config.customModelConfig.requestsPerMinute,
-          maxOutputTokenCount: config.customModelConfig.maxOutputTokenCount,
-          maxConcurrentRequests: config.customModelConfig.maxConcurrentRequests,
-          useThinking: config.useThinking,
-          setThinkingBudget: config.setThinkingBudget,
-          thinkingBudget: config.thinkingBudget,
-        },
-      });
-      if (!response.success || !response.preset) {
-        showSnackbar(response.message || t('settings.modelPresetCreateFailed'));
-        return;
-      }
-      await fetchModelPresets();
-      applyModelPreset(response.preset);
-      showSnackbar(t('settings.modelPresetCreateSuccess'));
-    } catch (error) {
-      console.error('모델 프리셋 생성 실패:', error);
-      showSnackbar(t('settings.modelPresetCreateFailed'));
-    }
-  }, [
-    applyModelPreset,
-    config,
-    fetchModelPresets,
-    isOpenAiCompatible,
-    modelPresetName,
-    showSnackbar,
-    t,
-  ]);
-
-  const handleUpdateModelPreset = useCallback(async () => {
-    if (!selectedModelPresetId) {
-      showSnackbar(t('settings.modelPresetSelectRequired'));
-      return;
-    }
-    if (!modelPresetName.trim()) {
-      showSnackbar(t('settings.modelPresetNameRequired'));
-      return;
-    }
-    if (isOpenAiCompatible && !config.baseUrl.trim()) {
-      showSnackbar(t('settings.baseUrlRequired'));
-      return;
-    }
-    try {
-      const response = await ModelPresetsService.modelPresetControllerUpdateModelPreset({
-        id: Number(selectedModelPresetId),
-        requestBody: {
-          name: modelPresetName.trim(),
-          modelProvider: config.modelProvider,
-          baseUrl: config.baseUrl || undefined,
-          apiKey: config.apiKey,
-          modelName: config.customModelConfig.modelName,
-          requestsPerMinute: config.customModelConfig.requestsPerMinute,
-          maxOutputTokenCount: config.customModelConfig.maxOutputTokenCount,
-          maxConcurrentRequests: config.customModelConfig.maxConcurrentRequests,
-          useThinking: config.useThinking,
-          setThinkingBudget: config.setThinkingBudget,
-          thinkingBudget: config.thinkingBudget,
-        },
-      });
-      if (!response.success || !response.preset) {
-        showSnackbar(response.message || t('settings.modelPresetUpdateFailed'));
-        return;
-      }
-      await fetchModelPresets();
-      applyModelPreset(response.preset);
-      showSnackbar(t('settings.modelPresetUpdateSuccess'));
-    } catch (error) {
-      console.error('모델 프리셋 업데이트 실패:', error);
-      showSnackbar(t('settings.modelPresetUpdateFailed'));
-    }
-  }, [
-    applyModelPreset,
-    config,
-    fetchModelPresets,
-    isOpenAiCompatible,
-    modelPresetName,
-    selectedModelPresetId,
-    showSnackbar,
-    t,
-  ]);
-
-  const handleDeleteModelPreset = useCallback(() => {
-    if (!selectedModelPresetId) {
-      showSnackbar(t('settings.modelPresetSelectRequired'));
-      return;
-    }
-    openConfirmModal({
-      title: t('settings.modelPresetDeleteTitle'),
-      message: t('settings.modelPresetDeleteConfirm'),
-      confirmText: t('common.delete'),
-      cancelText: t('common.cancel'),
-      variant: 'danger',
-      onConfirm: () => {
-        void (async () => {
-          try {
-            const response = await ModelPresetsService.modelPresetControllerDeleteModelPreset({
-              id: Number(selectedModelPresetId),
-            });
-            if (!response.success) {
-              showSnackbar(response.message || t('settings.modelPresetDeleteFailed'));
-              return;
-            }
-            updateConfig({ selectedModelPresetId: undefined });
-            setModelPresetName('');
-            await fetchModelPresets();
-            showSnackbar(t('settings.modelPresetDeleteSuccess'));
-          } catch (error) {
-            console.error('모델 프리셋 삭제 실패:', error);
-            showSnackbar(t('settings.modelPresetDeleteFailed'));
-          }
-        })();
-      },
-    });
-  }, [fetchModelPresets, openConfirmModal, selectedModelPresetId, showSnackbar, t, updateConfig]);
 
   return (
     <Card variant="outlined">
@@ -350,6 +175,46 @@ const SettingsView: React.FC = () => {
               {t('settings.allSettingsManual')}
             </Typography>
           </Grid>
+          {isOpenAiCompatible && (
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="openai-slot-label">{t('settings.providerSlot')}</InputLabel>
+                  <Select
+                    labelId="openai-slot-label"
+                    id="openai-slot"
+                    value={openAiActiveSlotId}
+                    onChange={handleOpenAiSlotSelect}
+                    label={t('settings.providerSlot')}
+                  >
+                    {openAiSlots.map((slot) => (
+                      <MenuItem key={slot.id} value={slot.id}>
+                        {slot.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <Tooltip title={t('settings.providerSlotAdd')}>
+                  <IconButton
+                    aria-label={t('settings.providerSlotAdd')}
+                    onClick={addOpenAiCompatibleSlot}
+                  >
+                    <AddIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                {openAiSlots.length > 1 && (
+                  <Tooltip title={t('settings.providerSlotDelete')}>
+                    <IconButton
+                      aria-label={t('settings.providerSlotDelete')}
+                      onClick={() => deleteOpenAiCompatibleSlot(openAiActiveSlotId)}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            </Grid>
+          )}
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -696,70 +561,6 @@ const SettingsView: React.FC = () => {
                     )}
                   </Typography>
                 </Alert>
-              </Box>
-            </Paper>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-              <Typography variant="subtitle1" gutterBottom fontWeight="medium">
-                {t('settings.modelPresetTitle')}
-              </Typography>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={4}>
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="model-preset-label">
-                      {t('settings.modelPresetSelect')}
-                    </InputLabel>
-                    <Select
-                      labelId="model-preset-label"
-                      id="model-preset"
-                      value={selectedModelPresetId ? String(selectedModelPresetId) : ''}
-                      onChange={handleModelPresetSelect}
-                      label={t('settings.modelPresetSelect')}
-                    >
-                      <MenuItem value="">{t('settings.modelPresetNone')}</MenuItem>
-                      {modelPresets.map((preset) => (
-                        <MenuItem key={preset.id} value={String(preset.id)}>
-                          {preset.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    id="model-preset-name"
-                    label={t('settings.modelPresetName')}
-                    variant="outlined"
-                    value={modelPresetName}
-                    onChange={(e) => setModelPresetName(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Typography variant="body2" color="text.secondary">
-                    {t('settings.modelPresetHint')}
-                  </Typography>
-                </Grid>
-              </Grid>
-              <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Button variant="contained" onClick={handleCreateModelPreset}>
-                  {t('settings.modelPresetCreate')}
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleUpdateModelPreset}
-                  disabled={!selectedModelPresetId}
-                >
-                  {t('settings.modelPresetUpdate')}
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={handleDeleteModelPreset}
-                  disabled={!selectedModelPresetId}
-                >
-                  {t('settings.modelPresetDelete')}
-                </Button>
               </Box>
             </Paper>
           </Box>
