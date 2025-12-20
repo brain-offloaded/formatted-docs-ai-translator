@@ -165,7 +165,7 @@
   "dependencies": {
     "@fastify/swagger": "^9.5.2",
     "@fastify/swagger-ui": "^5.2.3",
-    "@google/genai": "^1.25.0",
+    "@google/genai": "^1.30.0",
     "@nestjs/common": "^11.0.12",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.12",

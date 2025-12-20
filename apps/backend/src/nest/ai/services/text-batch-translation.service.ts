@@ -363,10 +363,12 @@ export class TextBatchTranslationService {
   }
 
   private buildThinkingConfig(aiSettings: TranslatorAiSettings) {
+    const thinkingLevel = aiSettings.thinkingLevel?.trim();
     return {
       enabled: !!aiSettings.useThinking,
       useCustomBudget: !!aiSettings.setThinkingBudget,
       budget: aiSettings.thinkingBudget,
+      ...(thinkingLevel ? { thinkingLevel } : {}),
     };
   }
 

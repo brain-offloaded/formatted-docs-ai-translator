@@ -55,12 +55,17 @@ export abstract class GoogleStyleProviderBase {
 
   protected buildProviderThinkingConfig(
     thinking?: AiChatRequest['thinking']
-  ): { includeThoughts: boolean; thinkingBudget: number } | undefined {
+  ): { includeThoughts: boolean; thinkingBudget?: number; thinkingLevel?: string } | undefined {
     if (!thinking) return undefined;
-    const { enabled, useCustomBudget, budget } = thinking;
+    const { enabled, useCustomBudget, budget, thinkingLevel } = thinking;
 
     if (!enabled) {
       return { includeThoughts: false, thinkingBudget: 0 };
+    }
+
+    const normalizedThinkingLevel = typeof thinkingLevel === 'string' ? thinkingLevel.trim() : '';
+    if (normalizedThinkingLevel) {
+      return { includeThoughts: false, thinkingLevel: normalizedThinkingLevel };
     }
 
     if (useCustomBudget && typeof budget === 'number' && Number.isFinite(budget)) {
