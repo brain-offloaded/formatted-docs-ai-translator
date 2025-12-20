@@ -76,25 +76,6 @@ model PromptPreset {
   @@map("prompt_presets")
 }
 
-model TranslatorModelPreset {
-  id                    Int      @id @default(autoincrement())
-  name                  String   @unique(map: "IDX_translator_model_preset_name")
-  modelProvider         String   @map("model_provider")
-  baseUrl               String?  @map("base_url")
-  apiKey                String   @map("api_key")
-  modelName             String   @map("model_name")
-  requestsPerMinute     Int      @map("requests_per_minute")
-  maxOutputTokenCount   Int      @map("max_output_token_count")
-  maxConcurrentRequests Int      @map("max_concurrent_requests")
-  useThinking           Boolean  @default(false) @map("use_thinking")
-  setThinkingBudget     Boolean  @default(false) @map("set_thinking_budget")
-  thinkingBudget        Int?     @map("thinking_budget")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @default(now()) @map("updated_at")
-
-  @@map("translator_model_presets")
-}
-
 model Translation {
   id              Int                  @id @default(autoincrement())
   source          String
