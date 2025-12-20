@@ -28,7 +28,6 @@ import {
   Alert,
   Switch,
   FormControlLabel,
-  Slider,
   SelectChangeEvent,
 } from '@mui/material';
 import React, { useCallback } from 'react';
@@ -71,8 +70,7 @@ const SettingsView: React.FC = () => {
     | 'tooltips.maxConcurrentRequests'
     | 'tooltips.baseUrl'
     | 'tooltips.thinkingMode'
-    | 'tooltips.setThinkingBudget'
-    | 'tooltips.thinkingBudget';
+    | 'tooltips.thinkingLevel';
 
   type WikiLabelKey = 'tooltips.links.gettingStarted';
 
@@ -375,55 +373,15 @@ const SettingsView: React.FC = () => {
                     label={labelWithTooltip(t('settings.thinkingMode'), 'tooltips.thinkingMode')}
                   />
                 </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={config.setThinkingBudget}
-                        onChange={(e) => updateConfig({ setThinkingBudget: e.target.checked })}
-                        name="set-thinking-budget-toggle"
-                        disabled={!config.useThinking}
-                      />
-                    }
-                    label={labelWithTooltip(
-                      t('settings.setThinkingBudget'),
-                      'tooltips.setThinkingBudget'
-                    )}
-                  />
-                </Grid>
               </Grid>
-              <Collapse in={config.useThinking && config.setThinkingBudget}>
+              <Collapse in={config.useThinking}>
                 <Box sx={{ mt: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Typography id="thinking-budget-slider" gutterBottom component="span">
-                      {t('settings.thinkingBudgetTokens', { budget: config.thinkingBudget })}
-                    </Typography>
-                    <InfoTooltip
-                      title={t('tooltips.thinkingBudget')}
-                      infoAriaLabel={t('tooltips.aria.info', {
-                        subject: t('settings.thinkingBudget'),
-                      })}
-                    />
-                  </Box>
-                  <Slider
-                    aria-labelledby="thinking-budget-slider"
-                    value={config.thinkingBudget || 0}
-                    onChange={(_, newValue) => updateConfig({ thinkingBudget: newValue as number })}
-                    min={0}
-                    max={10000}
-                    step={100}
-                    valueLabelDisplay="auto"
-                  />
                   <TextField
                     fullWidth
-                    label={labelWithTooltip(
-                      t('settings.thinkingBudget'),
-                      'tooltips.thinkingBudget'
-                    )}
-                    type="number"
-                    value={config.thinkingBudget}
-                    onChange={(e) => updateConfig({ thinkingBudget: Number(e.target.value) })}
-                    sx={{ mt: 1 }}
+                    label={labelWithTooltip(t('settings.thinkingLevel'), 'tooltips.thinkingLevel')}
+                    placeholder={t('settings.thinkingLevelPlaceholder')}
+                    value={config.thinkingLevel}
+                    onChange={(e) => updateConfig({ thinkingLevel: e.target.value })}
                     InputLabelProps={{ shrink: true }}
                   />
                 </Box>

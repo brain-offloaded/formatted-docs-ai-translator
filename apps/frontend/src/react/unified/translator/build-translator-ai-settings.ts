@@ -9,6 +9,7 @@ const toDtoTargetLanguage = (language: TargetLanguage): TranslatorAiSettingsDto.
   language as unknown as TranslatorAiSettingsDto.targetLanguage;
 
 export const buildTranslatorAiSettings = (config: AiTranslatorConfig): TranslatorAiSettingsDto => {
+  const normalizedThinkingLevel = config.thinkingLevel?.trim();
   return {
     modelProvider: config.modelProvider,
     sourceLanguage: toDtoSourceLanguage(config.sourceLanguage),
@@ -24,5 +25,6 @@ export const buildTranslatorAiSettings = (config: AiTranslatorConfig): Translato
     useThinking: config.useThinking,
     setThinkingBudget: config.setThinkingBudget,
     thinkingBudget: config.thinkingBudget,
+    ...(normalizedThinkingLevel ? { thinkingLevel: normalizedThinkingLevel } : {}),
   };
 };
