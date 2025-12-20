@@ -8,6 +8,7 @@ import {
   AiMessageContent,
   AiMessagePart,
   AiProxyError,
+  AiResponseFormat,
 } from '../../dto/common-ai.dto';
 import { getProviderUrl } from '@/nest/ai/services/providers/provider-url';
 import { LoggerService } from '@/nest/logger/logger.service';
@@ -92,6 +93,16 @@ export class OpenAiCompatibleProviderService {
     };
   }
 
+  private toOpenAiResponseFormat(
+    aiResponseFormat: AiResponseFormat
+  ): ResponseFormatJSONSchema | undefined {
+    if (aiResponseFormat?.type !== 'json_schema') return undefined;
+    return {
+      type: 'json_schema',
+      json_schema: aiResponseFormat.jsonSchema as ResponseFormatJSONSchema.JSONSchema,
+    };
+  }
+
   async chat({
     aiSettings,
     request,
@@ -111,20 +122,14 @@ export class OpenAiCompatibleProviderService {
     }
     const client = this.getOpenAIClient(baseURL, apiKey);
     try {
+      this.logger.info('\n\n\n\n response schema', { format: request.responseFormat });
       const response = await client.chat.completions.create({
         model: request.model || modelName,
         messages: request.messages.map((m) => this.toOpenAiMessage(m)),
         temperature: request.temperature,
         max_tokens: request.maxTokens,
         top_p: request.topP,
-        response_format:
-          request.responseFormat?.type === 'json_schema'
-            ? {
-                type: 'json_schema',
-                json_schema: request.responseFormat
-                  .jsonSchema as ResponseFormatJSONSchema.JSONSchema,
-              }
-            : undefined,
+        response_format: this.toOpenAiResponseFormat(request.responseFormat),
       });
       return this.fromOpenAiResponse(response);
     } catch (err: unknown) {
