@@ -2746,6 +2746,11 @@
             "description": "모델의 생각(Reasoning) 모드를 사용할지 여부",
             "example": false
           },
+          "thinkingLevel": {
+            "type": "string",
+            "description": "모델의 생각(Reasoning) 강도",
+            "example": "low"
+          },
           "setThinkingBudget": {
             "type": "boolean",
             "description": "커스텀 생각 예산을 구성할지 여부",

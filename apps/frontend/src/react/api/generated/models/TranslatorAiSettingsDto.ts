@@ -74,3 +74,4 @@ export namespace TranslatorAiSettingsDto {
         ZH = 'zh',
     }
 }
+
