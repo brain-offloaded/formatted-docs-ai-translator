@@ -7,6 +7,8 @@ export const getProviderUrl = (provider: ModelProvider, customUrl?: string): str
       return 'https://generativelanguage.googleapis.com/v1beta';
     case ModelProvider.VERTEX_AI:
       return ''; // Vertex AI doesn't need a base URL as it's handled by the SDK
+    case ModelProvider.OPENAI_COMPATIBLE:
+      return '';
     default:
       throw new Error(`Unsupported AI provider: ${provider}`);
   }

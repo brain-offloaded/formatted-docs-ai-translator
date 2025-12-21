@@ -29,6 +29,7 @@ export interface AiChatRequest {
     enabled: boolean;
     useCustomBudget: boolean;
     budget?: number;
+    thinkingLevel?: string;
   };
 }
 

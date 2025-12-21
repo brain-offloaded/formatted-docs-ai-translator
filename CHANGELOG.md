@@ -1,5 +1,12 @@
 # Change Log
 
+## [1.0.5] - 2025-12-21
+
+### Chores
+
+- CI: PR 대상 브랜치 확대 및 빌드/린트/코드젠 검증 추가
+- 개발 환경: pre-push에서 build/lint 실행, CI에서는 Husky 비활성화
+
 ## [1.0.4] - 2025-12-02
 
 ### Features

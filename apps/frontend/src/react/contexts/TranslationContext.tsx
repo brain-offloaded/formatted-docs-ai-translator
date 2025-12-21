@@ -67,8 +67,8 @@ export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ childre
   }
 
   const customModelConfig = useConfigStore((state) => state.customModelConfig);
-  const requestsPerMinute = customModelConfig?.requestsPerMinute ?? 5;
-  const concurrencyLimit = Math.max(1, Math.min(5, requestsPerMinute));
+  const maxConcurrentRequests = customModelConfig?.maxConcurrentRequests ?? 1;
+  const concurrencyLimit = Math.max(1, maxConcurrentRequests);
 
   const {
     getJobManager,

@@ -21,6 +21,10 @@ export type TranslatorAiSettingsDto = {
      */
     apiKey: string;
     /**
+     * OpenAI-compatible 제공자의 Base URL
+     */
+    baseUrl?: string;
+    /**
      * AI 모델 동작에 필요한 설정
      */
     customModelConfig: TranslatorModelConfigDto;
@@ -28,6 +32,10 @@ export type TranslatorAiSettingsDto = {
      * 모델의 생각(Reasoning) 모드를 사용할지 여부
      */
     useThinking: boolean;
+    /**
+     * 모델의 생각(Reasoning) 강도
+     */
+    thinkingLevel?: string;
     /**
      * 커스텀 생각 예산을 구성할지 여부
      */
@@ -44,6 +52,7 @@ export namespace TranslatorAiSettingsDto {
     export enum modelProvider {
         GOOGLE = 'Google',
         VERTEX_AI = 'vertex-ai',
+        OPENAI_COMPATIBLE = 'openai-compatible',
     }
     /**
      * 원본 언어

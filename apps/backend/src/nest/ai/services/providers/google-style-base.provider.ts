@@ -1,4 +1,5 @@
 import { LoggerService } from '@/nest/logger/logger.service';
+import type { ThinkingConfig, ThinkingLevel } from '@google/genai';
 import { AiChatRequest, AiMessageContent, AiMessagePart } from '../../dto/common-ai.dto';
 
 export type GoogleContentPart =
@@ -55,12 +56,22 @@ export abstract class GoogleStyleProviderBase {
 
   protected buildProviderThinkingConfig(
     thinking?: AiChatRequest['thinking']
-  ): { includeThoughts: boolean; thinkingBudget: number } | undefined {
+  ): ThinkingConfig | undefined {
     if (!thinking) return undefined;
-    const { enabled, useCustomBudget, budget } = thinking;
+    const { enabled, useCustomBudget, budget, thinkingLevel } = thinking;
 
     if (!enabled) {
       return { includeThoughts: false, thinkingBudget: 0 };
+    }
+
+    const normalizedThinkingLevel = typeof thinkingLevel === 'string' ? thinkingLevel.trim() : '';
+    if (normalizedThinkingLevel) {
+      // 레벨 값은 제공자 확장에 맞춰 그대로 전달하며, 추론 내용은 노출하지 않습니다.
+      return {
+        includeThoughts: false,
+        thinkingBudget: undefined,
+        thinkingLevel: normalizedThinkingLevel as ThinkingLevel,
+      };
     }
 
     if (useCustomBudget && typeof budget === 'number' && Number.isFinite(budget)) {
