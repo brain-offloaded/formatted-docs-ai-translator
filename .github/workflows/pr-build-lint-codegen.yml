@@ -9,6 +9,8 @@ jobs:
   build-lint-codegen:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      HUSKY: 0
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js
