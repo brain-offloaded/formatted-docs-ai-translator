@@ -1,0 +1,36 @@
+name: pr-build-lint-codegen
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  build-lint-codegen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.11.1
+          cache: 'yarn'
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Use Yarn 4.9.2
+        run: corepack prepare yarn@4.9.2 --activate
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Build
+        run: yarn build
+      - name: Lint
+        run: yarn lint
+      - name: Codegen
+        run: yarn codegen
+      - name: Verify codegen sync
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+            exit 1
+          fi
