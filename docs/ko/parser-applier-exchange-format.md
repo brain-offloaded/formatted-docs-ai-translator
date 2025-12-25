@@ -34,11 +34,6 @@
 {
   "formatVersion": 1,
   "parserId": "string",
-  "createdAt": "2025-01-01T00:00:00Z",
-  "lineCount": 3,
-  "files": [
-    { "path": "docs/example.txt" }
-  ],
   "units": [
     { "key": "docs/example.txt:1", "file": "docs/example.txt", "meta": {} },
     { "key": "docs/example.txt:2", "file": "docs/example.txt", "meta": {} },
@@ -51,11 +46,10 @@
 
 -   `formatVersion` – 고정 값 `1`.
 -   `parserId` – 어떤 파서/어플라이어로 생성했는지 식별자.
--   `createdAt` – ISO 8601.
--   `lineCount` – `source.txt`의 총 라인 수.
--   `files` – `original_files/`에 들어있는 파일의 상대 경로 목록.
 -   `units` – `source.txt`의 **라인 순서와 1:1 대응**하는 배열.
     -   `key`/`file`/`meta`는 어플라이어용이며 외부 번역기는 수정하지 않습니다.
+
+`original_files/`에 들어있는 파일은 모두 보존합니다. 번역 단위가 없는 파일도 원본 그대로 출력됩니다.
 
 ## 라인 정합 정책 (가장 중요)
 
