@@ -17,6 +17,7 @@ interface TranslationTypeSelectorProps {
 const TranslationTypeSelector: React.FC<TranslationTypeSelectorProps> = ({
   selectedType,
   onChange,
+  availableTypes,
 }) => {
   // 사용 가능한 번역 유형 가져오기
   const translationTypes = getTranslationTypes();

@@ -2,12 +2,14 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Box, Button, Card, CardContent, Divider, Stack, Typography } from '@mui/material';
 import JSZip from 'jszip';
 import { useTranslation as useI18n } from 'react-i18next';
-import { useTranslation as useTranslationContext } from '@/react/contexts/TranslationContext';
+import {
+  TranslationType,
+  useTranslation as useTranslationContext,
+} from '@/react/contexts/TranslationContext';
 import FileUploader from '@/react/components/common/FileUploader';
 import TranslationProgress from '@/react/components/common/TranslationProgress';
 import TranslationError from '@/react/components/common/TranslationError';
 import TranslationTypeSelector from '@/react/components/common/TranslationTypeSelector';
-import { TranslationType } from '@/react/contexts/TranslationContext';
 import { ParseOptionsFactory } from '@/react/factories/ParseOptionsFactory';
 import { TranslatorFactory } from '@/react/factories/TranslatorFactory';
 import { useOptionsPanel } from '@/react/views/TranslateView/hooks/useOptionsPanel';
@@ -146,10 +148,7 @@ const ParserApplierView: React.FC = () => {
     [applyType]
   );
 
-  const parseTranslatorConfig = useMemo(
-    () => TranslatorFactory.getConfig(parseType),
-    [parseType]
-  );
+  const parseTranslatorConfig = useMemo(() => TranslatorFactory.getConfig(parseType), [parseType]);
 
   const handleParseTypeChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -510,7 +509,11 @@ const ParserApplierView: React.FC = () => {
                 severity="success"
                 action={
                   parseResult.download ? (
-                    <Button color="inherit" size="small" onClick={() => handleDownload(parseResult)}>
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => handleDownload(parseResult)}
+                    >
                       {t('parserApplier.common.download')}
                     </Button>
                   ) : undefined
@@ -592,7 +595,11 @@ const ParserApplierView: React.FC = () => {
                 severity="success"
                 action={
                   applyResult.download ? (
-                    <Button color="inherit" size="small" onClick={() => handleDownload(applyResult)}>
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={() => handleDownload(applyResult)}
+                    >
                       {t('parserApplier.common.download')}
                     </Button>
                   ) : undefined
