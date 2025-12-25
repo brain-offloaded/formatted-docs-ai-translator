@@ -10,6 +10,7 @@ import AppSettingsView from './views/AppSettingsView';
 import SettingsView from './views/SettingsView';
 import PresetView from './views/PresetView';
 import TranslateView from './views/TranslateView';
+import ParserApplierView from './views/ParserApplierView';
 import LogView from './views/LogView';
 import CacheView from './views/CacheView';
 import CacheTagView from './views/CacheTagView';
@@ -54,6 +55,8 @@ const App: React.FC = () => {
     switch (activeView) {
       case 'translation':
         return t('menu.translation');
+      case 'parser-applier':
+        return t('menu.parserApplier');
       case 'image-viewer':
         return t('menu.imageViewer');
       case 'presets':
@@ -79,6 +82,8 @@ const App: React.FC = () => {
     switch (activeView) {
       case 'translation':
         return <TranslateView />;
+      case 'parser-applier':
+        return <ParserApplierView />;
       case 'image-viewer':
         return <ImageViewerView />;
       case 'presets':

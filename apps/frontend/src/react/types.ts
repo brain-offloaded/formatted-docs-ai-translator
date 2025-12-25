@@ -1,5 +1,6 @@
 export type Page =
   | 'translation'
+  | 'parser-applier'
   | 'image-viewer'
   | 'presets'
   | 'app-settings'

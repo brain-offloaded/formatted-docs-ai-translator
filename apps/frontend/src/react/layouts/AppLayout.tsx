@@ -1,6 +1,7 @@
 import '../api/init-openapi';
 import {
   Translate as TranslateIcon,
+  SwapHoriz as SwapHorizIcon,
   Storage as StorageIcon,
   Article as ArticleIcon,
   Menu as MenuIcon,
@@ -51,6 +52,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChang
 
   const menuItems = [
     { id: 'translation', label: t('menu.translation'), icon: <TranslateIcon /> },
+    { id: 'parser-applier', label: t('menu.parserApplier'), icon: <SwapHorizIcon /> },
     { id: 'presets', label: t('menu.presets'), icon: <StyleIcon /> },
     { id: 'model-settings', label: t('menu.modelSettings'), icon: <SettingsIcon /> },
     { id: 'image-viewer', label: t('menu.imageViewer'), icon: <ImageIcon /> },

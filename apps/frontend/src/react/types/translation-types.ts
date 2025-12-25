@@ -27,6 +27,7 @@ export interface BaseParseOptionsProps<T extends BaseParseOptionsDto = BaseParse
   // 설정 패널 표시 여부 상태 (상태 끌어올리기)
   showSettings?: boolean;
   onToggleSettings?: () => void;
+  showFileToggle?: boolean;
 }
 
 /**

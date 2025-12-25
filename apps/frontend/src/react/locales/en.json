@@ -21,6 +21,7 @@
   },
   "menu": {
     "translation": "Execute Translation",
+    "parserApplier": "Parse/Apply",
     "imageViewer": "Image Viewer",
     "presets": "Manage Presets",
     "appSettings": "App Settings",
@@ -29,6 +30,44 @@
     "cache": "Manage Cache",
     "cacheTags": "Cache Tag List",
     "bugReport": "Bug Report"
+  },
+  "parserApplier": {
+    "common": {
+      "formatLabel": "Format",
+      "download": "Download"
+    },
+    "parse": {
+      "title": "Parse",
+      "description": "Parse files and generate a ZIP with source.txt and metadata.json.",
+      "fileLabel": "Input files",
+      "action": "Create Parse ZIP",
+      "progress": "Parsing...",
+      "completed": "Parsing completed",
+      "done": "ZIP created ({{fileCount}} files, {{lineCount}} lines)"
+    },
+    "apply": {
+      "title": "Apply",
+      "description": "Apply translations from a ZIP that includes target.txt.",
+      "zipLabel": "Apply ZIP",
+      "action": "Apply translations",
+      "progress": "Applying...",
+      "completed": "Apply completed",
+      "done": "Apply completed",
+      "doneWithFailures": "Apply completed ({{failCount}} failed)"
+    },
+    "errors": {
+      "missingOptions": "Set parser options first.",
+      "missingFiles": "Select input files.",
+      "missingZip": "Select a ZIP to apply.",
+      "missingRequiredFiles": "ZIP must include source.txt, target.txt, metadata.json.",
+      "missingOriginalFiles": "ZIP must include original_files/.",
+      "invalidMetadata": "metadata.json format is invalid.",
+      "parserIdMismatch": "metadata.json parserId ({{actual}}) does not match selected format ({{expected}}).",
+      "lineCountMismatch": "source/target line counts differ. source {{sourceCount}}, target {{targetCount}}",
+      "metadataLineMismatch": "metadata.json unit count ({{unitCount}}) differs from source lines ({{sourceCount}}).",
+      "parseFailed": "Parse failed: {{message}}",
+      "applyFailed": "Apply failed: {{message}}"
+    }
   },
   "settings": {
     "title": "Settings",

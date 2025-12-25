@@ -11,6 +11,7 @@ import { getTranslationTypes } from '../../constants/TranslationTypeMapping';
 interface TranslationTypeSelectorProps {
   selectedType: TranslationType;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  availableTypes?: TranslationType[];
 }
 
 const TranslationTypeSelector: React.FC<TranslationTypeSelectorProps> = ({
@@ -19,11 +20,15 @@ const TranslationTypeSelector: React.FC<TranslationTypeSelectorProps> = ({
 }) => {
   // 사용 가능한 번역 유형 가져오기
   const translationTypes = getTranslationTypes();
+  const filteredTypes =
+    availableTypes && availableTypes.length > 0
+      ? translationTypes.filter((type) => availableTypes.includes(type.value))
+      : translationTypes;
 
   return (
     <FormControl component="fieldset">
       <RadioGroup row value={selectedType} onChange={onChange} aria-label="translation-type">
-        {translationTypes.map((type) => (
+        {filteredTypes.map((type) => (
           <MuiFormControlLabel
             key={type.value}
             value={type.value}

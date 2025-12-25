@@ -21,6 +21,7 @@
   },
   "menu": {
     "translation": "执行翻译",
+    "parserApplier": "解析/应用",
     "imageViewer": "图片查看器",
     "presets": "预设管理",
     "appSettings": "应用设置",
@@ -29,6 +30,44 @@
     "cache": "缓存管理",
     "cacheTags": "缓存标签列表",
     "bugReport": "错误报告"
+  },
+  "parserApplier": {
+    "common": {
+      "formatLabel": "格式",
+      "download": "下载"
+    },
+    "parse": {
+      "title": "解析",
+      "description": "解析文件并生成包含 source.txt 和 metadata.json 的 ZIP。",
+      "fileLabel": "输入文件",
+      "action": "生成解析 ZIP",
+      "progress": "解析中...",
+      "completed": "解析完成",
+      "done": "ZIP 已生成（{{fileCount}} 个文件，{{lineCount}} 行）"
+    },
+    "apply": {
+      "title": "应用",
+      "description": "从包含 target.txt 的 ZIP 应用翻译。",
+      "zipLabel": "应用 ZIP",
+      "action": "应用翻译",
+      "progress": "应用中...",
+      "completed": "应用完成",
+      "done": "翻译应用完成",
+      "doneWithFailures": "翻译应用完成（{{failCount}} 个失败）"
+    },
+    "errors": {
+      "missingOptions": "请先设置解析选项。",
+      "missingFiles": "请选择输入文件。",
+      "missingZip": "请选择要应用的 ZIP 文件。",
+      "missingRequiredFiles": "ZIP 必须包含 source.txt、target.txt、metadata.json。",
+      "missingOriginalFiles": "ZIP 必须包含 original_files/。",
+      "invalidMetadata": "metadata.json 格式不正确。",
+      "parserIdMismatch": "metadata.json 的 parserId（{{actual}}）与所选格式（{{expected}}）不一致。",
+      "lineCountMismatch": "source/target 行数不一致。source {{sourceCount}} 行，target {{targetCount}} 行",
+      "metadataLineMismatch": "metadata.json 的 unit 数（{{unitCount}}）与 source 行数（{{sourceCount}}）不一致。",
+      "parseFailed": "解析失败：{{message}}",
+      "applyFailed": "应用失败：{{message}}"
+    }
   },
   "settings": {
     "title": "设置",

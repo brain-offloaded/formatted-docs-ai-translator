@@ -21,6 +21,7 @@
   },
   "menu": {
     "translation": "翻訳実行",
+    "parserApplier": "解析/適用",
     "imageViewer": "画像ビューア",
     "presets": "プリセット管理",
     "appSettings": "アプリ設定",
@@ -29,6 +30,44 @@
     "cache": "キャッシュ管理",
     "cacheTags": "キャッシュタグ一覧",
     "bugReport": "バグレポート"
+  },
+  "parserApplier": {
+    "common": {
+      "formatLabel": "形式",
+      "download": "ダウンロード"
+    },
+    "parse": {
+      "title": "解析",
+      "description": "ファイルを解析し、source.txt と metadata.json を含む ZIP を生成します。",
+      "fileLabel": "入力ファイル",
+      "action": "解析 ZIP 作成",
+      "progress": "解析中...",
+      "completed": "解析完了",
+      "done": "ZIP 作成完了 (ファイル {{fileCount}} 件、ライン {{lineCount}} 行)"
+    },
+    "apply": {
+      "title": "適用",
+      "description": "target.txt を含む ZIP から翻訳を適用します。",
+      "zipLabel": "適用 ZIP",
+      "action": "翻訳適用",
+      "progress": "適用中...",
+      "completed": "適用完了",
+      "done": "翻訳適用完了",
+      "doneWithFailures": "翻訳適用完了 ({{failCount}} 件失敗)"
+    },
+    "errors": {
+      "missingOptions": "パーサーオプションを先に設定してください。",
+      "missingFiles": "入力ファイルを選択してください。",
+      "missingZip": "適用する ZIP ファイルを選択してください。",
+      "missingRequiredFiles": "ZIP に source.txt, target.txt, metadata.json が必要です。",
+      "missingOriginalFiles": "ZIP に original_files/ がありません。",
+      "invalidMetadata": "metadata.json の形式が正しくありません。",
+      "parserIdMismatch": "metadata.json の parserId ({{actual}}) が選択した形式 ({{expected}}) と一致しません。",
+      "lineCountMismatch": "source/target の行数が一致しません。source {{sourceCount}} 行, target {{targetCount}} 行",
+      "metadataLineMismatch": "metadata.json の unit 数 ({{unitCount}}) と source 行数 ({{sourceCount}}) が一致しません。",
+      "parseFailed": "解析失敗: {{message}}",
+      "applyFailed": "適用失敗: {{message}}"
+    }
   },
   "settings": {
     "title": "設定",

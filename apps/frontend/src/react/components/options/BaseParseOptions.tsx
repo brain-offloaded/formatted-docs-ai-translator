@@ -17,6 +17,7 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
   label,
   showSettings, // props로 showSettings 받기
   onToggleSettings, // props로 onToggleSettings 받기
+  showFileToggle = true,
 }: BaseParseOptionsProps<T>): React.ReactElement => {
   const { t } = useTranslation();
   const sourceLanguage = useConfigStore((state) => state.sourceLanguage);
@@ -70,15 +71,20 @@ export const BaseParseOptions = <T extends BaseParseOptionsDto = BaseParseOption
         </Box>
       )}
 
-      {/* isFile 스위치 (설정 패널 아래로 이동) */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <FormControlLabel
-          control={
-            <Switch checked={isFileChecked} onChange={handleFileToggle} disabled={isTranslating} />
-          }
-          label={t('baseParseOptions.filePathMode')}
-        />
-      </Box>
+      {showFileToggle && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isFileChecked}
+                onChange={handleFileToggle}
+                disabled={isTranslating}
+              />
+            }
+            label={t('baseParseOptions.filePathMode')}
+          />
+        </Box>
+      )}
     </Box>
   );
 };

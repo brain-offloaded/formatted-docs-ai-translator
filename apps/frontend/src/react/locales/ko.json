@@ -21,6 +21,7 @@
   },
   "menu": {
     "translation": "번역 실행",
+    "parserApplier": "파싱/적용",
     "imageViewer": "이미지 뷰어",
     "presets": "프리셋 관리",
     "appSettings": "앱 설정",
@@ -29,6 +30,44 @@
     "cache": "캐시 관리",
     "cacheTags": "캐시 태그 목록",
     "bugReport": "버그 리포트"
+  },
+  "parserApplier": {
+    "common": {
+      "formatLabel": "형식 선택",
+      "download": "다운로드"
+    },
+    "parse": {
+      "title": "파싱",
+      "description": "파일을 파싱해 source.txt와 metadata.json을 포함한 ZIP을 생성합니다.",
+      "fileLabel": "입력 파일",
+      "action": "파싱 ZIP 생성",
+      "progress": "파싱 중...",
+      "completed": "파싱 완료",
+      "done": "ZIP 생성 완료 (파일 {{fileCount}}개, 라인 {{lineCount}}개)"
+    },
+    "apply": {
+      "title": "적용",
+      "description": "target.txt가 포함된 ZIP을 읽어 번역을 적용합니다.",
+      "zipLabel": "적용 ZIP",
+      "action": "번역 적용",
+      "progress": "적용 중...",
+      "completed": "적용 완료",
+      "done": "번역 적용 완료",
+      "doneWithFailures": "번역 적용 완료 ({{failCount}}개 실패)"
+    },
+    "errors": {
+      "missingOptions": "파서 옵션을 먼저 설정해주세요.",
+      "missingFiles": "입력 파일을 선택해주세요.",
+      "missingZip": "적용할 ZIP 파일을 선택해주세요.",
+      "missingRequiredFiles": "ZIP에 source.txt, target.txt, metadata.json이 필요합니다.",
+      "missingOriginalFiles": "ZIP에 original_files/가 없습니다.",
+      "invalidMetadata": "metadata.json 형식이 올바르지 않습니다.",
+      "parserIdMismatch": "metadata.json의 parserId({{actual}})가 선택된 형식({{expected}})과 다릅니다.",
+      "lineCountMismatch": "source/target 라인 수가 다릅니다. source {{sourceCount}}줄, target {{targetCount}}줄",
+      "metadataLineMismatch": "metadata.json의 unit 수({{unitCount}})와 source 라인 수({{sourceCount}})가 다릅니다.",
+      "parseFailed": "파싱 실패: {{message}}",
+      "applyFailed": "적용 실패: {{message}}"
+    }
   },
   "settings": {
     "title": "설정",
