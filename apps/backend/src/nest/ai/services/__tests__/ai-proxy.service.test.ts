@@ -33,8 +33,16 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['첫 번째 원문', [0]],
       ['두 번째 원문', [1]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [1, '첫 번째 원문'],
+      [2, '두 번째 원문'],
+    ]);
 
-    const { translations } = await service.parseTranslationResponse(response, remainingTexts);
+    const { translations } = await service.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText
+    );
 
     expect(translations.get('첫 번째 원문')?.text).toBe('첫 줄\n둘째 줄');
     expect(translations.get('두 번째 원문')?.text).toBe('다음 문장');
@@ -62,8 +70,16 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['첫 번째 문장', [0]],
       ['두 번째 문장', [1]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [5, '첫 번째 문장'],
+      [6, '두 번째 문장'],
+    ]);
 
-    const { translations } = await service.parseTranslationResponse(response, remainingTexts);
+    const { translations } = await service.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText
+    );
 
     expect(translations.get('첫 번째 문장')?.text).toBe('첫 번째 번역');
     expect(translations.get('두 번째 문장')?.text).toBe('두 번째 번역');
@@ -87,10 +103,16 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['두 번째 문장', [1]],
       ['세 번째 문장', [2]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [1, '첫 번째 문장'],
+      [2, '두 번째 문장'],
+      [3, '세 번째 문장'],
+    ]);
 
     const { translations, hasPartialData } = await service.parseTranslationResponse(
       response,
-      remainingTexts
+      remainingTexts,
+      expectedIdToText
     );
 
     expect(hasPartialData).toBe(true);
@@ -115,10 +137,15 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['첫 번째 문장', [0]],
       ['두 번째 문장', [1]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [1, '첫 번째 문장'],
+      [2, '두 번째 문장'],
+    ]);
 
     const { translations, hasPartialData } = await service.parseTranslationResponse(
       response,
-      remainingTexts
+      remainingTexts,
+      expectedIdToText
     );
 
     expect(hasPartialData).toBe(true);
@@ -143,9 +170,10 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
     };
 
     const remainingTexts = new Map<string, number[]>([['첫 번째 문장', [0]]]);
+    const expectedIdToText = new Map<number, string>([[1, '첫 번째 문장']]);
 
-    expect(() => service.parseTranslationResponse(response, remainingTexts)).toThrow(
-      TranslationParsingError
-    );
+    expect(() =>
+      service.parseTranslationResponse(response, remainingTexts, expectedIdToText)
+    ).toThrow(TranslationParsingError);
   });
 });

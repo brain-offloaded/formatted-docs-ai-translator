@@ -42,8 +42,9 @@ export class AiProxyService {
 
   public async parseTranslationResponse(
     response: AiChatResponse,
-    remainingTexts: Map<string, number[]>
+    remainingTexts: Map<string, number[]>,
+    expectedIdToText?: Map<number, string>
   ): Promise<{ translations: Map<string, TranslationResult>; hasPartialData: boolean }> {
-    return this.responseParser.parseTranslationResponse(response, remainingTexts);
+    return this.responseParser.parseTranslationResponse(response, remainingTexts, expectedIdToText);
   }
 }

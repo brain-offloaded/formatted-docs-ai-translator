@@ -76,19 +76,31 @@ I understood. I have translated all sentences without omission. I must respond w
     sourceLanguage,
     targetLanguage,
     content,
+    includeSegmentMap,
   }: {
     requestId: string;
     promptPresetContent?: string;
     sourceLanguage: SourceLanguage;
     targetLanguage: TargetLanguage;
     content: string | string[];
-  }): Promise<string> {
+    includeSegmentMap?: boolean;
+  }): Promise<{ prompt: string; idToOriginalText?: Map<number, string> }> {
     let currentPrompt = this.getPrompt(promptPresetContent);
 
     const example = await this.exampleManager.getExample(requestId, sourceLanguage, targetLanguage);
     const startIndex = example?.lineCount ? example.lineCount + 1 : 1;
+    let idToOriginalText: Map<number, string> | undefined;
     const contentText = Array.isArray(content)
-      ? tagTexts(content, startIndex).taggedTexts
+      ? (() => {
+          const tagged = tagTexts(content, startIndex);
+          if (includeSegmentMap) {
+            idToOriginalText = new Map<number, string>();
+            tagged.segments.forEach((segment, index) => {
+              idToOriginalText?.set(segment.id, tagged.originalTexts[index]);
+            });
+          }
+          return tagged.taggedTexts;
+        })()
       : content;
     currentPrompt = this._replaceRolePlaceholder(
       currentPrompt,
@@ -123,7 +135,7 @@ I understood. I have translated all sentences without omission. I must respond w
       'Target language is required'
     );
 
-    return currentPrompt;
+    return { prompt: currentPrompt, idToOriginalText };
   }
 
   public async getChatBlock({
@@ -190,8 +202,41 @@ I understood. I have translated all sentences without omission. I must respond w
     });
 
     return this.parsePromptToChatBlock({
-      currentPrompt: replacedPrompt,
+      currentPrompt: replacedPrompt.prompt,
     });
+  }
+
+  public async getChatBlockWithSegmentMap({
+    requestId,
+    content,
+    sourceLanguage,
+    targetLanguage,
+    promptPresetContent,
+  }: {
+    requestId: string;
+    content: string[];
+    sourceLanguage?: SourceLanguage;
+    targetLanguage?: TargetLanguage;
+    promptPresetContent?: string;
+  }): Promise<{
+    messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[];
+    idToOriginalText: Map<number, string>;
+  }> {
+    const finalSourceLanguage = sourceLanguage ?? SourceLanguage.ENGLISH;
+    const finalTargetLanguage = targetLanguage || defaultTargetLanguage;
+    const { prompt, idToOriginalText } = await this.replacePrompt({
+      requestId,
+      promptPresetContent,
+      sourceLanguage: finalSourceLanguage,
+      targetLanguage: finalTargetLanguage,
+      content,
+      includeSegmentMap: true,
+    });
+
+    return {
+      messages: this.parsePromptToChatBlock({ currentPrompt: prompt }),
+      idToOriginalText: idToOriginalText ?? new Map<number, string>(),
+    };
   }
 
   protected isPromptSystemRole(role: string) {

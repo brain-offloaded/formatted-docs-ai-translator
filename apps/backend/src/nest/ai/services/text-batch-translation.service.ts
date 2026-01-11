@@ -283,13 +283,14 @@ export class TextBatchTranslationService {
       const next = apiKeyIterator.next();
       const apiKey = !next.done ? (next.value as string) : undefined;
       if (!apiKey) throw new Error('API key is required');
-      const messages = await this.promptConverterService.getChatBlock({
-        requestId,
-        content: Array.from(remainingTexts.keys()),
-        sourceLanguage,
-        targetLanguage,
-        promptPresetContent,
-      });
+      const { messages, idToOriginalText } =
+        await this.promptConverterService.getChatBlockWithSegmentMap({
+          requestId,
+          content: Array.from(remainingTexts.keys()),
+          sourceLanguage,
+          targetLanguage,
+          promptPresetContent,
+        });
 
       this.logger.debug('번역 요청 전 프롬프트:', {
         messages,
@@ -311,7 +312,7 @@ export class TextBatchTranslationService {
       });
 
       const { translations: batchTranslations, hasPartialData } =
-        await this.aiProxy.parseTranslationResponse(response, remainingTexts);
+        await this.aiProxy.parseTranslationResponse(response, remainingTexts, idToOriginalText);
       return {
         batchTranslations,
         response,
