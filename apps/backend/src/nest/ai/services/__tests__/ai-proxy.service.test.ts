@@ -12,7 +12,7 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
     jest.clearAllMocks();
   });
 
-  it('태그 사이에 실제 개행이 포함된 번역 결과도 파싱한다', async () => {
+  it('줄바꿈 불일치가 있는 번역 결과는 제외한다', async () => {
     const response: AiChatResponse = {
       choices: [
         {
@@ -38,15 +38,16 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       [2, '두 번째 원문'],
     ]);
 
-    const { translations } = await service.parseTranslationResponse(
+    const { translations, lineBreakMismatchTexts } = await service.parseTranslationResponse(
       response,
       remainingTexts,
       expectedIdToText
     );
 
-    expect(translations.get('첫 번째 원문')?.text).toBe('첫 줄\n둘째 줄');
+    expect(translations.has('첫 번째 원문')).toBe(false);
+    expect(lineBreakMismatchTexts.has('첫 번째 원문')).toBe(true);
     expect(translations.get('두 번째 원문')?.text).toBe('다음 문장');
-    expect(logger.debug).toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
   });
 
   it('예제 태그 오프셋이 있는 번역 결과도 파싱한다', async () => {

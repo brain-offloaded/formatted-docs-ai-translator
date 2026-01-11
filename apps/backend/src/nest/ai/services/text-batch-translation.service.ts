@@ -67,6 +67,7 @@ export class TextBatchTranslationService {
       let intermediateTexts = [...texts];
       let maxBatchTextCount: number | null = null;
       let stableBatchSuccessCount = 0;
+      const lineBreakMismatchCounts = new Map<string, number>();
 
       while (currentRemainingTexts.size > 0) {
         const remainingTextArray = Array.from(currentRemainingTexts.keys());
@@ -90,15 +91,47 @@ export class TextBatchTranslationService {
               currentRemainingTexts.delete(text);
             }
 
-            const { batchTranslations, response, shouldReduceBatchSize, hasPartialData } =
-              await this.translateUncachedTexts({
-                requestId: param.requestId,
-                remainingTexts: batchRemainingTexts,
-                apiKeyIterator,
-                promptPresetContent,
-                aiSettings,
-                cacheTag: normalizedCacheTag,
-              });
+            const {
+              batchTranslations,
+              response,
+              shouldReduceBatchSize,
+              hasPartialData,
+              lineBreakMismatchTexts,
+            } = await this.translateUncachedTexts({
+              requestId: param.requestId,
+              remainingTexts: batchRemainingTexts,
+              apiKeyIterator,
+              promptPresetContent,
+              aiSettings,
+              cacheTag: normalizedCacheTag,
+            });
+
+            const hasLineBreakMismatch = lineBreakMismatchTexts.size > 0;
+            const giveUpTexts = new Set<string>();
+            if (hasLineBreakMismatch) {
+              for (const text of lineBreakMismatchTexts) {
+                const nextCount = (lineBreakMismatchCounts.get(text) ?? 0) + 1;
+                lineBreakMismatchCounts.set(text, nextCount);
+                if (nextCount >= this.MAX_ATTEMPT_COUNT) {
+                  giveUpTexts.add(text);
+                }
+              }
+              if (giveUpTexts.size > 0) {
+                for (const text of giveUpTexts) {
+                  const indices = batchRemainingTexts.get(text) || [];
+                  indices.forEach((index) => {
+                    intermediateTexts[index] = text;
+                  });
+                  batchRemainingTexts.delete(text);
+                  currentRemainingTexts.delete(text);
+                  lineBreakMismatchCounts.delete(text);
+                }
+                this.logger.warn('줄바꿈 불일치가 반복되어 원문을 유지합니다.', {
+                  count: giveUpTexts.size,
+                });
+              }
+              stableBatchSuccessCount = 0;
+            }
 
             const madeProgress = batchTranslations.size > 0;
             let failureRecorded = false;
@@ -118,6 +151,13 @@ export class TextBatchTranslationService {
             if (!failureRecorded) {
               if (madeProgress) {
                 consecutiveFailures = 0;
+              } else if (hasLineBreakMismatch) {
+                consecutiveFailures = 0;
+                stableBatchSuccessCount = 0;
+                this.logger.warn('줄바꿈 불일치가 감지되어 재시도합니다.', {
+                  batchSize: batchTexts.length,
+                  mismatchCount: lineBreakMismatchTexts.size,
+                });
               } else {
                 failureRecorded = true;
                 consecutiveFailures++;
@@ -134,6 +174,7 @@ export class TextBatchTranslationService {
 
             for (const [originalText, result] of batchTranslations.entries()) {
               newTranslations.set(originalText, result);
+              lineBreakMismatchCounts.delete(originalText);
             }
 
             if (madeProgress) {
@@ -164,6 +205,9 @@ export class TextBatchTranslationService {
             }
 
             for (const text of batchTexts) {
+              if (giveUpTexts.has(text)) {
+                continue;
+              }
               if (!batchTranslations.has(text)) {
                 const indices = batchRemainingTexts.get(text) || [];
                 currentRemainingTexts.set(text, indices);
@@ -174,7 +218,12 @@ export class TextBatchTranslationService {
               maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
               shouldRestartBatching = true;
               stableBatchSuccessCount = 0;
-            } else if (maxBatchTextCount !== null && madeProgress && !failureRecorded) {
+            } else if (
+              maxBatchTextCount !== null &&
+              madeProgress &&
+              !failureRecorded &&
+              !hasLineBreakMismatch
+            ) {
               stableBatchSuccessCount++;
               if (stableBatchSuccessCount >= this.STABLE_BATCH_RECOVERY_THRESHOLD) {
                 this.logger.debug('배치 제한 해제 시도', {
@@ -271,6 +320,7 @@ export class TextBatchTranslationService {
     response: AiChatResponse;
     shouldReduceBatchSize: boolean;
     hasPartialData: boolean;
+    lineBreakMismatchTexts: Set<string>;
   }> {
     const {
       sourceLanguage,
@@ -311,13 +361,17 @@ export class TextBatchTranslationService {
         },
       });
 
-      const { translations: batchTranslations, hasPartialData } =
-        await this.aiProxy.parseTranslationResponse(response, remainingTexts, idToOriginalText);
+      const {
+        translations: batchTranslations,
+        hasPartialData,
+        lineBreakMismatchTexts,
+      } = await this.aiProxy.parseTranslationResponse(response, remainingTexts, idToOriginalText);
       return {
         batchTranslations,
         response,
         shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response) || hasPartialData,
         hasPartialData,
+        lineBreakMismatchTexts,
       };
     } catch (error) {
       const translationsToCache = new Map<string, string>();
@@ -421,10 +475,39 @@ export class TextBatchTranslationService {
     if (originalText.trim() === '') return { translatedText: originalText, isCacheHit: true };
 
     const cachedTranslation = cachedResults.get(originalText);
+    if (!isNullish(cachedTranslation)) {
+      const normalizedOriginal = originalText.trim();
+      const normalizedTranslated = cachedTranslation.trim();
+      const originalStats = this.getLineBreakStats(normalizedOriginal);
+      const translatedStats = this.getLineBreakStats(normalizedTranslated);
+      if (originalStats.lf !== translatedStats.lf || originalStats.cr !== translatedStats.cr) {
+        this.logger.warn('캐시 번역 줄바꿈 불일치로 재번역합니다.', {
+          originalLineBreaks: originalStats,
+          translatedLineBreaks: translatedStats,
+          originalLength: normalizedOriginal.length,
+          translatedLength: normalizedTranslated.length,
+        });
+        return { translatedText: originalText, isCacheHit: false };
+      }
+    }
     const translatedText = isNullish(cachedTranslation) ? originalText : cachedTranslation;
     const isCacheHit = !isNullish(cachedTranslation);
 
     return { translatedText, isCacheHit };
+  }
+
+  private getLineBreakStats(text: string): { lf: number; cr: number } {
+    let lf = 0;
+    let cr = 0;
+    for (let i = 0; i < text.length; i++) {
+      const code = text.charCodeAt(i);
+      if (code === 10) {
+        lf++;
+      } else if (code === 13) {
+        cr++;
+      }
+    }
+    return { lf, cr };
   }
 
   private async updateTranslationsAndCache({

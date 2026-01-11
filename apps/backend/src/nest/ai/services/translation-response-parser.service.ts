@@ -56,7 +56,11 @@ export class TranslationResponseParser {
     response: AiChatResponse,
     remainingTexts: Map<string, number[]>,
     expectedIdToText?: Map<number, string>
-  ): { translations: Map<string, TranslationResult>; hasPartialData: boolean } {
+  ): {
+    translations: Map<string, TranslationResult>;
+    hasPartialData: boolean;
+    lineBreakMismatchTexts: Set<string>;
+  } {
     const responseText = this.getResponseText(response);
     const { matches, hasPartialData } = this.parseSegmentMatches(responseText);
     const useStrictIdMatching = !!expectedIdToText && expectedIdToText.size > 0;
@@ -65,6 +69,7 @@ export class TranslationResponseParser {
     let offset: number | null;
     let expectedIds: number[] = [];
     let unexpectedIdCount: number | undefined;
+    const lineBreakMismatchTexts = new Set<string>();
 
     if (useStrictIdMatching && expectedIdToText) {
       expectedIds = Array.from(expectedIdToText.keys());
@@ -72,7 +77,8 @@ export class TranslationResponseParser {
         matches,
         expectedIds,
         expectedIdToText,
-        remainingTexts
+        remainingTexts,
+        lineBreakMismatchTexts
       );
       translations = strictResult.translations;
       excludeFrom = strictResult.excludeFrom;
@@ -83,7 +89,8 @@ export class TranslationResponseParser {
       const fallbackResult = this.buildTranslationsWithOffset(
         matches,
         remainingTextArray,
-        remainingTexts
+        remainingTexts,
+        lineBreakMismatchTexts
       );
       translations = fallbackResult.translations;
       excludeFrom = fallbackResult.excludeFrom;
@@ -105,7 +112,7 @@ export class TranslationResponseParser {
       unexpectedIdCount,
     });
 
-    return { translations, hasPartialData };
+    return { translations, hasPartialData, lineBreakMismatchTexts };
   }
 
   private getResponseText(response: AiChatResponse): string {
@@ -345,7 +352,8 @@ export class TranslationResponseParser {
   private buildTranslationsWithOffset(
     matches: Array<{ id: number; translatedText: string }>,
     remainingTextArray: string[],
-    remainingTexts: Map<string, number[]>
+    remainingTexts: Map<string, number[]>,
+    lineBreakMismatchTexts: Set<string>
   ): { translations: Map<string, TranslationResult>; excludeFrom: number; offset: number } {
     const offset = this.calculateOffset(matches);
     const { successfulIds, duplicateIds } = this.determineSuccessAndDuplicates(matches);
@@ -361,7 +369,8 @@ export class TranslationResponseParser {
       offset,
       excludeFrom,
       remainingTextArray,
-      remainingTexts
+      remainingTexts,
+      lineBreakMismatchTexts
     );
     return { translations, excludeFrom, offset };
   }
@@ -370,7 +379,8 @@ export class TranslationResponseParser {
     matches: Array<{ id: number; translatedText: string }>,
     expectedIds: number[],
     expectedIdToText: Map<number, string>,
-    remainingTexts: Map<string, number[]>
+    remainingTexts: Map<string, number[]>,
+    lineBreakMismatchTexts: Set<string>
   ): {
     translations: Map<string, TranslationResult>;
     excludeFrom: number;
@@ -398,10 +408,25 @@ export class TranslationResponseParser {
       if (expectedIndex >= excludeFrom) continue;
       const originalText = expectedIdToText.get(id);
       if (!originalText) continue;
+      const normalizedOriginal = originalText.trim();
+      const normalizedTranslated = translatedText.trim();
+      const originalStats = this.getLineBreakStats(normalizedOriginal);
+      const translatedStats = this.getLineBreakStats(normalizedTranslated);
+      if (originalStats.lf !== translatedStats.lf || originalStats.cr !== translatedStats.cr) {
+        lineBreakMismatchTexts.add(originalText);
+        this.logger.warn('라인 브레이크 개수 불일치로 번역 제외', {
+          id,
+          originalLineBreaks: originalStats,
+          translatedLineBreaks: translatedStats,
+          originalLength: normalizedOriginal.length,
+          translatedLength: normalizedTranslated.length,
+        });
+        continue;
+      }
       const indices = remainingTexts.get(originalText) || [];
-      if (translatedText.trim()) {
+      if (normalizedTranslated) {
         translations.set(originalText, {
-          text: translatedText.trim(),
+          text: normalizedTranslated,
           indices,
         });
       }
@@ -420,7 +445,8 @@ export class TranslationResponseParser {
     offset: number,
     excludeFrom: number,
     remainingTextArray: string[],
-    remainingTexts: Map<string, number[]>
+    remainingTexts: Map<string, number[]>,
+    lineBreakMismatchTexts: Set<string>
   ): Map<string, TranslationResult> {
     const translations = new Map<string, TranslationResult>();
     for (const { id, translatedText } of matches) {
@@ -429,14 +455,44 @@ export class TranslationResponseParser {
       if (normalizedId >= excludeFrom) continue;
 
       const originalText = remainingTextArray[normalizedId - 1];
+      const normalizedOriginal = originalText.trim();
+      const normalizedTranslated = translatedText.trim();
+      const originalStats = this.getLineBreakStats(normalizedOriginal);
+      const translatedStats = this.getLineBreakStats(normalizedTranslated);
+      if (originalStats.lf !== translatedStats.lf || originalStats.cr !== translatedStats.cr) {
+        lineBreakMismatchTexts.add(originalText);
+        this.logger.warn('라인 브레이크 개수 불일치로 번역 제외', {
+          id,
+          normalizedId,
+          originalLineBreaks: originalStats,
+          translatedLineBreaks: translatedStats,
+          originalLength: normalizedOriginal.length,
+          translatedLength: normalizedTranslated.length,
+        });
+        continue;
+      }
       const indices = remainingTexts.get(originalText) || [];
-      if (translatedText.trim()) {
+      if (normalizedTranslated) {
         translations.set(originalText, {
-          text: translatedText.trim(),
+          text: normalizedTranslated,
           indices,
         });
       }
     }
     return translations;
+  }
+
+  private getLineBreakStats(text: string): { lf: number; cr: number } {
+    let lf = 0;
+    let cr = 0;
+    for (let i = 0; i < text.length; i++) {
+      const code = text.charCodeAt(i);
+      if (code === 10) {
+        lf++;
+      } else if (code === 13) {
+        cr++;
+      }
+    }
+    return { lf, cr };
   }
 }
