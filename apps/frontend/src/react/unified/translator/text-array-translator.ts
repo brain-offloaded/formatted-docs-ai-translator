@@ -8,10 +8,11 @@ import { TranslateTextArrayRequestDto } from '@/react/api/generated/models/Trans
 import { TranslateTextArrayResponseDto } from '@/react/api/generated/models/TranslateTextArrayResponseDto';
 import { TextTranslatorService as TextTranslatorApiService } from '@/react/api/generated/services/TextTranslatorService';
 import { buildTranslatorAiSettings } from './build-translator-ai-settings';
+import { normalizeLineEndings } from '../parser/utils/normalize-line-endings';
 
 export class TextArrayTranslator implements ITranslator {
-  private removeLineBreaks(text: string): string {
-    return text.replace(/\r?\n|\r/g, '');
+  private normalizeText(text: string): string {
+    return normalizeLineEndings(text);
   }
 
   async translate(
@@ -22,12 +23,12 @@ export class TextArrayTranslator implements ITranslator {
   ): Promise<TranslationUnit[]> {
     const requestId = crypto.randomUUID();
 
-    // 개행 제거는 요청 품질 및 캐시 키 안정화를 위해 수행
+    // 줄바꿈 표준화로 요청/캐시 키 안정화를 유지하면서 라인 수는 보존
     // const lineRemovedUnits: TranslationUnit[] = units.map(({ key, source, target }) => ({
-    // 1) 개행 제거로 정규화
+    // 1) 줄바꿈 표준화로 정규화
     const normalizedUnits: TranslationUnit[] = units.map(({ key, source, target }) => ({
       key,
-      source: this.removeLineBreaks(source),
+      source: this.normalizeText(source),
       target,
     }));
     // 빈 문자열은 번역 요청에서 제외하되, 원본 인덱스 매핑을 유지

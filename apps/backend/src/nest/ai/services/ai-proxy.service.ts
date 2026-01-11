@@ -44,7 +44,11 @@ export class AiProxyService {
     response: AiChatResponse,
     remainingTexts: Map<string, number[]>,
     expectedIdToText?: Map<number, string>
-  ): Promise<{ translations: Map<string, TranslationResult>; hasPartialData: boolean }> {
+  ): Promise<{
+    translations: Map<string, TranslationResult>;
+    hasPartialData: boolean;
+    lineBreakMismatchTexts: Set<string>;
+  }> {
     return this.responseParser.parseTranslationResponse(response, remainingTexts, expectedIdToText);
   }
 }
