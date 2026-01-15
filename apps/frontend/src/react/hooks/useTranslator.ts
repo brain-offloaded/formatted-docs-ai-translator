@@ -143,6 +143,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
   const handleTranslate = useTranslationRunner({
     input,
     config,
+    translationType,
     validateInput,
     translatorEngine,
     parserOptions,

@@ -3,18 +3,22 @@ import { TranslationOutput } from '@/react/unified/domain/translation-output';
 import { TranslationInput } from '@/react/unified/domain/translation-input';
 import { TranslatorEngine } from '@/react/unified/engine/translator-engine';
 import { TranslationUnit } from '@/react/unified/domain/translation-unit';
+import { translationStrategyFactory } from '@/react/factories/translation-strategy-factory';
 import type { BaseParseOptionsDto } from '@/react/unified/domain/options/base-parse-options.dto';
 import type { AiTranslatorConfig } from '@/react/types/config';
 import type { Job } from '@/react/services/job-manager/job';
 import { JobStatus } from '@/react/services/job-manager/job';
 import type { TranslationOutput as TranslationOutputType } from '@/react/unified/domain/translation-output';
 import type { TranslationResultState, UIState } from '@/react/contexts/TranslationContext';
+import { TranslationType } from '@/react/contexts/TranslationContext';
 import type { TranslationJobManager } from '@/react/services/job-manager/TranslationJobManager';
 import type { TFunction } from 'i18next';
+import type { IApplier } from '@/react/unified/applier/i-applier';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   input: string | File[];
   config: AiTranslatorConfig;
+  translationType: TranslationType;
   validateInput: (input: string | File[]) => boolean;
   translatorEngine: TranslatorEngine<TranslationInput, TranslationUnit[], TranslationOutputType>;
   parserOptions?: T | null;
@@ -31,6 +35,12 @@ interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   ensureCacheTagExists: () => Promise<boolean>;
   showSnackbar: (message: string) => void;
   t: TFunction;
+}
+
+interface BatchParseResult<TInput extends TranslationInput> {
+  translationInput: TInput;
+  parsed: TranslationUnit[];
+  applier: IApplier<TInput, TranslationUnit[], TranslationOutputType>;
 }
 
 const buildFailureOutputs = (jobs: Job<File | string>[], t: TFunction) =>
@@ -78,6 +88,7 @@ const createResultSummary = (
 export const useTranslationRunner = <T extends BaseParseOptionsDto>({
   input,
   config,
+  translationType,
   validateInput,
   translatorEngine,
   parserOptions,
@@ -100,6 +111,12 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
     if (!isCacheTagValid) return;
 
     const translationStartTime = Date.now();
+    const shouldBatchAcrossFiles =
+      currentIsFileInput &&
+      Array.isArray(input) &&
+      input.length > 1 &&
+      !!parserOptions?.batchRequestAcrossFiles &&
+      translationType !== TranslationType.Image;
 
     try {
       if (!validateInput(input)) {
@@ -143,6 +160,81 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
         }));
       });
 
+      const buildBatchOutputs = async (
+        results: Job<File | string>[]
+      ): Promise<TranslationOutputType[]> => {
+        const failedOutputs = buildFailureOutputs(results, t);
+        const successfulJobs = results.filter(
+          (job) => job.status === JobStatus.SUCCEEDED && job.result
+        ) as Array<Job<File | string> & { result: BatchParseResult<TranslationInput> }>;
+
+        if (successfulJobs.length === 0) {
+          return failedOutputs;
+        }
+
+        const parsedResults = successfulJobs.map(
+          (job) => job.result as BatchParseResult<TranslationInput>
+        );
+
+        const combinedIndexMap: Array<{ fileIndex: number; unitIndex: number }> = [];
+        const combinedUnits: TranslationUnit[] = [];
+
+        parsedResults.forEach((parsedResult, fileIndex) => {
+          parsedResult.parsed.forEach((unit, unitIndex) => {
+            combinedUnits.push(unit);
+            combinedIndexMap.push({ fileIndex, unitIndex });
+          });
+        });
+
+        const outputs: TranslationOutputType[] = [];
+
+        try {
+          const translatedCombined = combinedUnits.length
+            ? await translatorEngine.translateUnits(combinedUnits, config, promptPresetContent)
+            : combinedUnits;
+
+          const translatedByFile = parsedResults.map((parsedResult) =>
+            parsedResult.parsed.map((unit) => ({ ...unit }))
+          );
+
+          combinedIndexMap.forEach(({ fileIndex, unitIndex }, index) => {
+            const translatedUnit = translatedCombined[index];
+            if (!translatedUnit) return;
+            translatedByFile[fileIndex][unitIndex] = {
+              ...translatedByFile[fileIndex][unitIndex],
+              target: translatedUnit.target,
+            };
+          });
+
+          const appliedOutputs = await Promise.all(
+            parsedResults.map((parsedResult, index) =>
+              parsedResult.applier.apply(parsedResult.translationInput, translatedByFile[index])
+            )
+          );
+          outputs.push(...appliedOutputs);
+        } catch (error) {
+          const message = (error as Error)?.message || t('translationRunner.unknownError');
+          parsedResults.forEach((parsedResult) => {
+            const jobData = parsedResult.translationInput.content;
+            const name = typeof jobData === 'string' ? t('translationRunner.text') : jobData.name;
+            outputs.push(
+              new TranslationOutput([
+                {
+                  name,
+                  success: false,
+                  message,
+                  result: message,
+                  originalFileName: typeof jobData === 'string' ? undefined : jobData.name,
+                },
+              ])
+            );
+          });
+        }
+
+        outputs.push(...failedOutputs);
+        return outputs;
+      };
+
       manager.on('onAllComplete', async (results: Job<File | string>[]) => {
         const cancelledCount = results.filter((job) => job.status === JobStatus.CANCELLED).length;
 
@@ -161,12 +253,14 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           return;
         }
 
-        const outputs: TranslationOutputType[] = results
-          .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
-          .map((job) => job.result as TranslationOutputType);
-
-        const failedOutputs = buildFailureOutputs(results, t);
-        outputs.push(...failedOutputs);
+        const outputs: TranslationOutputType[] = shouldBatchAcrossFiles
+          ? await buildBatchOutputs(results)
+          : [
+              ...results
+                .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
+                .map((job) => job.result as TranslationOutputType),
+              ...buildFailureOutputs(results, t),
+            ];
 
         setUIState((prev) => ({
           ...prev,
@@ -288,6 +382,15 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           config,
           promptPresetContent
         );
+        if (shouldBatchAcrossFiles) {
+          const strategy = translationStrategyFactory.create(translationType);
+          const parsed = await strategy.parser.parse(translationInput);
+          return {
+            translationInput,
+            parsed,
+            applier: strategy.applier,
+          } as BatchParseResult<TranslationInput>;
+        }
         return translatorEngine.translate(translationInput);
       };
 
@@ -310,6 +413,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
   }, [
     input,
     config,
+    translationType,
     validateInput,
     translatorEngine,
     parserOptions,
