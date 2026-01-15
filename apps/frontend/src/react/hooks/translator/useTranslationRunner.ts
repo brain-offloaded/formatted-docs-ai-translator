@@ -14,6 +14,7 @@ import { TranslationType } from '@/react/contexts/TranslationContext';
 import type { TranslationJobManager } from '@/react/services/job-manager/TranslationJobManager';
 import type { TFunction } from 'i18next';
 import type { IApplier } from '@/react/unified/applier/i-applier';
+import { batchTranslateParsedResults, BatchParseResult } from './batch-translation';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   input: string | File[];
@@ -35,12 +36,6 @@ interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   ensureCacheTagExists: () => Promise<boolean>;
   showSnackbar: (message: string) => void;
   t: TFunction;
-}
-
-interface BatchParseResult<TInput extends TranslationInput> {
-  translationInput: TInput;
-  parsed: TranslationUnit[];
-  applier: IApplier<TInput, TranslationUnit[], TranslationOutputType>;
 }
 
 const buildFailureOutputs = (jobs: Job<File | string>[], t: TFunction) =>
@@ -166,51 +161,25 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
         const failedOutputs = buildFailureOutputs(results, t);
         const successfulJobs = results.filter(
           (job) => job.status === JobStatus.SUCCEEDED && job.result
-        ) as Array<Job<File | string> & { result: BatchParseResult<TranslationInput> }>;
+        ) as Array<
+          Job<File | string> & { result: BatchParseResult<TranslationInput, TranslationOutputType> }
+        >;
 
         if (successfulJobs.length === 0) {
           return failedOutputs;
         }
 
-        const parsedResults = successfulJobs.map(
-          (job) => job.result as BatchParseResult<TranslationInput>
-        );
-
-        const combinedIndexMap: Array<{ fileIndex: number; unitIndex: number }> = [];
-        const combinedUnits: TranslationUnit[] = [];
-
-        parsedResults.forEach((parsedResult, fileIndex) => {
-          parsedResult.parsed.forEach((unit, unitIndex) => {
-            combinedUnits.push(unit);
-            combinedIndexMap.push({ fileIndex, unitIndex });
-          });
-        });
+        const parsedResults = successfulJobs.map((job) => job.result);
 
         const outputs: TranslationOutputType[] = [];
 
         try {
-          const translatedCombined = combinedUnits.length
-            ? await translatorEngine.translateUnits(combinedUnits, config, promptPresetContent)
-            : combinedUnits;
-
-          const translatedByFile = parsedResults.map((parsedResult) =>
-            parsedResult.parsed.map((unit) => ({ ...unit }))
-          );
-
-          combinedIndexMap.forEach(({ fileIndex, unitIndex }, index) => {
-            const translatedUnit = translatedCombined[index];
-            if (!translatedUnit) return;
-            translatedByFile[fileIndex][unitIndex] = {
-              ...translatedByFile[fileIndex][unitIndex],
-              target: translatedUnit.target,
-            };
+          const appliedOutputs = await batchTranslateParsedResults({
+            translatorEngine,
+            parsedResults,
+            config,
+            promptPresetContent,
           });
-
-          const appliedOutputs = await Promise.all(
-            parsedResults.map((parsedResult, index) =>
-              parsedResult.applier.apply(parsedResult.translationInput, translatedByFile[index])
-            )
-          );
           outputs.push(...appliedOutputs);
         } catch (error) {
           const message = (error as Error)?.message || t('translationRunner.unknownError');
@@ -389,7 +358,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             translationInput,
             parsed,
             applier: strategy.applier,
-          } as BatchParseResult<TranslationInput>;
+          } as BatchParseResult<TranslationInput, TranslationOutputType>;
         }
         return translatorEngine.translate(translationInput);
       };
