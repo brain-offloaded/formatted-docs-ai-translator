@@ -2,6 +2,7 @@ import { TranslationStrategy } from '../domain/translation-strategy';
 import { TranslationInput } from '../domain/translation-input';
 import { TranslationOutput } from '../domain/translation-output';
 import { TranslationUnit } from '../domain/translation-unit';
+import { AiTranslatorConfig } from '@/react/types/config';
 
 export type ProgressPhase = 'parsing' | 'translating' | 'applying' | 'done';
 
@@ -48,5 +49,22 @@ export class TranslatorEngine<
 
     onProgress?.('done', 100);
     return output as TOutput;
+  }
+
+  async parse(input: TInput): Promise<TIntermediate> {
+    return (await this.strategy.parser.parse(input)) as TIntermediate;
+  }
+
+  async translateUnits(
+    units: TranslationUnit[],
+    config: AiTranslatorConfig,
+    promptPresetContent?: string,
+    sourceFilePath?: string
+  ): Promise<TranslationUnit[]> {
+    return this.strategy.translator.translate(units, config, promptPresetContent, sourceFilePath);
+  }
+
+  async apply(input: TInput, translated: TIntermediate): Promise<TOutput> {
+    return (await this.strategy.applier.apply(input, translated)) as TOutput;
   }
 }
