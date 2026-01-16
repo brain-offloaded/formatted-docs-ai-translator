@@ -13,7 +13,6 @@ import type { TranslationResultState, UIState } from '@/react/contexts/Translati
 import { TranslationType } from '@/react/contexts/TranslationContext';
 import type { TranslationJobManager } from '@/react/services/job-manager/TranslationJobManager';
 import type { TFunction } from 'i18next';
-import type { IApplier } from '@/react/unified/applier/i-applier';
 import { batchTranslateParsedResults, BatchParseResult } from './batch-translation';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
@@ -110,7 +109,6 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       currentIsFileInput &&
       Array.isArray(input) &&
       input.length > 1 &&
-      !!parserOptions?.batchRequestAcrossFiles &&
       translationType !== TranslationType.Image;
 
     try {
@@ -141,18 +139,39 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       setIsTranslating(true);
       const manager = getJobManager();
 
+      // 배치 모드에서는 파일 Job 완료가 파싱 완료를 의미함
+      // 파싱 30% + 번역 65% + 적용 5% = 100%
       manager.on('onProgress', ({ total, completed, failed, cancelled }) => {
-        const finished = completed + failed + cancelled;
-        const progress = total > 0 ? (finished / total) * 100 : 0;
-        setUIState((prev) => ({
-          ...prev,
-          translationProgress: progress,
-          progressMessage: t('translationRunner.inProgress'),
-          completed: completed + cancelled,
-          totalJobs: total,
-          failed,
-          cancelled,
-        }));
+        if (!shouldBatchAcrossFiles) {
+          // 일반 모드: 파일 Job 완료가 곧 전체 번역 완료
+          const finished = completed + failed + cancelled;
+          const progress = total > 0 ? (finished / total) * 100 : 0;
+          setUIState((prev) => ({
+            ...prev,
+            translationProgress: progress,
+            progressMessage: t('translationRunner.inProgress'),
+            completed: completed + cancelled,
+            totalJobs: total,
+            failed,
+            cancelled,
+          }));
+        } else {
+          // 배치 모드: 파일 Job 완료는 파싱 완료(30%)
+          const finished = completed + failed + cancelled;
+          const parsingProgress = total > 0 ? (finished / total) * 30 : 0;
+          setUIState((prev) => ({
+            ...prev,
+            translationProgress: parsingProgress,
+            progressMessage:
+              parsingProgress < 30
+                ? t('translationRunner.parsing')
+                : t('translationRunner.inProgress'),
+            completed: completed + cancelled,
+            totalJobs: total,
+            failed,
+            cancelled,
+          }));
+        }
       });
 
       const buildBatchOutputs = async (
@@ -179,6 +198,16 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             parsedResults,
             config,
             promptPresetContent,
+            onProgress: (completed, total) => {
+              // 파싱 30% 완료 후, 번역은 30% ~ 95% 구간 (65% 비중)
+              const translationProgress = total > 0 ? (completed / total) * 65 : 0;
+              const overallProgress = 30 + translationProgress;
+              setUIState((prev) => ({
+                ...prev,
+                translationProgress: overallProgress,
+                progressMessage: t('translationRunner.translating'),
+              }));
+            },
           });
           outputs.push(...appliedOutputs);
         } catch (error) {

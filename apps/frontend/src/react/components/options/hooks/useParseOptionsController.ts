@@ -92,10 +92,6 @@ export const useParseOptionsController = <T extends BaseParseOptionsDto>({
         optionsToSet = { ...optionsToSet, isFile: false } as T;
       }
 
-      if (optionsToSet.batchRequestAcrossFiles === undefined) {
-        optionsToSet = { ...optionsToSet, batchRequestAcrossFiles: false } as T;
-      }
-
       if (optionsToSet) {
         onOptionsChange(optionsToSet);
         prevOptionsRef.current = optionsToSet;

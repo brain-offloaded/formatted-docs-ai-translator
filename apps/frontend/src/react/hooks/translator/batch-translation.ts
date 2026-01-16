@@ -7,7 +7,7 @@ import type { IApplier } from '@/react/unified/applier/i-applier';
 
 export interface BatchParseResult<
   TInput extends TranslationInput,
-  TOutput extends TranslationOutput
+  TOutput extends TranslationOutput,
 > {
   translationInput: TInput;
   parsed: TranslationUnit[];
@@ -16,22 +16,24 @@ export interface BatchParseResult<
 
 interface BatchTranslateOptions<
   TInput extends TranslationInput,
-  TOutput extends TranslationOutput
+  TOutput extends TranslationOutput,
 > {
   translatorEngine: TranslatorEngine<TInput, TranslationUnit[], TOutput>;
   parsedResults: BatchParseResult<TInput, TOutput>[];
   config: AiTranslatorConfig;
   promptPresetContent?: string | null;
+  onProgress?: (completed: number, total: number) => void;
 }
 
 export const batchTranslateParsedResults = async <
   TInput extends TranslationInput,
-  TOutput extends TranslationOutput
+  TOutput extends TranslationOutput,
 >({
   translatorEngine,
   parsedResults,
   config,
   promptPresetContent,
+  onProgress,
 }: BatchTranslateOptions<TInput, TOutput>): Promise<TOutput[]> => {
   const combinedIndexMap: Array<{ fileIndex: number; unitIndex: number }> = [];
   const combinedUnits: TranslationUnit[] = [];
@@ -43,13 +45,14 @@ export const batchTranslateParsedResults = async <
     });
   });
 
+  const totalUnits = combinedUnits.length;
+  onProgress?.(0, totalUnits);
+
   const translatedCombined: TranslationUnit[] = combinedUnits.length
-    ? await translatorEngine.translateUnits(
-        combinedUnits,
-        config,
-        promptPresetContent ?? undefined
-      )
+    ? await translatorEngine.translateUnits(combinedUnits, config, promptPresetContent ?? undefined)
     : [];
+
+  onProgress?.(totalUnits, totalUnits);
 
   const translatedByFile = parsedResults.map((parsedResult) =>
     parsedResult.parsed.map((unit) => ({ ...unit }))

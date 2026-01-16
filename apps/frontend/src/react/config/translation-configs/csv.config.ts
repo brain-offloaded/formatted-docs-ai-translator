@@ -40,12 +40,6 @@ export const csvConfig: TranslationConfigDefinition<CsvParserOptionsDto> = {
           type: OptionType.BOOLEAN,
           description: '첫 번째 줄 건너뛰기 (헤더가 있는 경우)',
         },
-        {
-          key: 'batchRequestAcrossFiles',
-          label: '파일 묶음 번역 요청',
-          type: OptionType.BOOLEAN,
-          description: '여러 파일을 파싱한 뒤 한 번에 번역 요청을 보냅니다.',
-        },
       ],
     },
     dto: CsvParserOptionsDto,

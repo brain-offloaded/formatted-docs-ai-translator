@@ -1,6 +1,5 @@
 import { TranslationConfigDefinition } from '@/react/types/translation-config-types';
 import { SubtitleParserOptionsDto } from '@/react/unified/domain/options/subtitle-parser-options.dto';
-import { OptionType } from '@/react/components/options/DynamicOptions';
 
 export const subtitleConfig: TranslationConfigDefinition<SubtitleParserOptionsDto> = {
   type: 'subtitle',
@@ -16,14 +15,7 @@ export const subtitleConfig: TranslationConfigDefinition<SubtitleParserOptionsDt
   parser: {
     options: {
       label: '자막 파싱 옵션',
-      optionItems: [
-        {
-          key: 'batchRequestAcrossFiles',
-          label: '파일 묶음 번역 요청',
-          type: OptionType.BOOLEAN,
-          description: '여러 파일을 파싱한 뒤 한 번에 번역 요청을 보냅니다.',
-        },
-      ],
+      optionItems: [],
     },
     dto: SubtitleParserOptionsDto,
   },

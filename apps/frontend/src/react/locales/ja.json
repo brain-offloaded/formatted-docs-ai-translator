@@ -616,10 +616,12 @@
     "filesCompleted": "{{total}}個のファイルのうち{{success}}個の翻訳が完了しました{{failureMessage}}",
     "inProgress": "翻訳進行中...",
     "invalidInput": "無効な入力です。",
+    "parsing": "ファイルを分析中...",
     "preparing": "翻訳準備中...",
     "someFailures": "翻訳に失敗した項目があります。",
     "successLine": "✅ 成功: {{count}}個のファイル\n",
     "text": "テキスト",
+    "translating": "翻訳中...",
     "unknownError": "不明なエラー",
     "userCancelled": "ユーザーが翻訳をキャンセルしました。"
   }
