@@ -23,12 +23,6 @@ export const jsonConfig: TranslationConfigDefinition<JsonParserOptionsDto> = {
           type: OptionType.BOOLEAN,
           description: '문자열로 직렬화된 JSON 값을 해제해 중첩 텍스트를 번역합니다.',
         },
-        {
-          key: 'batchRequestAcrossFiles',
-          label: '파일 묶음 번역 요청',
-          type: OptionType.BOOLEAN,
-          description: '여러 파일을 파싱한 뒤 한 번에 번역 요청을 보냅니다.',
-        },
       ],
     },
     dto: JsonParserOptionsDto,

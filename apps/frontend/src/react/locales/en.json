@@ -616,10 +616,12 @@
     "filesCompleted": "{{success}} out of {{total}} files translated{{failureMessage}}",
     "inProgress": "Translation in progress...",
     "invalidInput": "Invalid input.",
+    "parsing": "Analyzing files...",
     "preparing": "Preparing for translation...",
     "someFailures": "Some items failed to translate.",
     "successLine": "✅ Success: {{count}} files\n",
     "text": "Text",
+    "translating": "Translating...",
     "unknownError": "Unknown error",
     "userCancelled": "Translation cancelled by user."
   }

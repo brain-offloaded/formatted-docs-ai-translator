@@ -21,7 +21,11 @@ describe('batchTranslateParsedResults', () => {
   ) => ({
     translationInput: createTranslationInput(content),
     parsed,
-    applier: { apply: applyMock } as IApplier<TranslationInput, TranslationUnit[], TranslationOutput>,
+    applier: { apply: applyMock } as IApplier<
+      TranslationInput,
+      TranslationUnit[],
+      TranslationOutput
+    >,
   });
 
   it('aggregates multiple files into one request and applies per file', async () => {
@@ -37,16 +41,12 @@ describe('batchTranslateParsedResults', () => {
     } as unknown as TranslatorEngine<TranslationInput, TranslationUnit[], TranslationOutput>;
 
     const firstApply = jest.fn(async (_input, translatedUnits) => {
-      const value = translatedUnits
-        .map((unit: TranslationUnit) => unit.target ?? '')
-        .join('|');
+      const value = translatedUnits.map((unit: TranslationUnit) => unit.target ?? '').join('|');
       return new TranslationOutput([{ name: 'first.txt', success: true, result: value }]);
     });
 
     const secondApply = jest.fn(async (_input, translatedUnits) => {
-      const value = translatedUnits
-        .map((unit: TranslationUnit) => unit.target ?? '')
-        .join('|');
+      const value = translatedUnits.map((unit: TranslationUnit) => unit.target ?? '').join('|');
       return new TranslationOutput([{ name: 'second.txt', success: true, result: value }]);
     });
 
@@ -59,11 +59,7 @@ describe('batchTranslateParsedResults', () => {
         ],
         firstApply
       ),
-      createParsedResult(
-        'second content',
-        [{ key: 'line_0', source: 'foo' }],
-        secondApply
-      ),
+      createParsedResult('second content', [{ key: 'line_0', source: 'foo' }], secondApply),
     ];
 
     const outputs = await batchTranslateParsedResults({
