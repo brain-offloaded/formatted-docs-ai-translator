@@ -140,7 +140,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       const manager = getJobManager();
 
       // 배치 모드에서는 파일 Job 완료가 파싱 완료를 의미함
-      // 파싱 30% + 번역 65% + 적용 5% = 100%
+      // 파싱 중: 0% (파싱중...), 번역 중: 0~100%, 적용 중: 100% (적용중...)
       manager.on('onProgress', ({ total, completed, failed, cancelled }) => {
         if (!shouldBatchAcrossFiles) {
           // 일반 모드: 파일 Job 완료가 곧 전체 번역 완료
@@ -156,16 +156,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             cancelled,
           }));
         } else {
-          // 배치 모드: 파일 Job 완료는 파싱 완료(30%)
-          const finished = completed + failed + cancelled;
-          const parsingProgress = total > 0 ? (finished / total) * 30 : 0;
+          // 배치 모드: 파싱 중에는 0% 유지, "파싱 중..." 메시지 표시
           setUIState((prev) => ({
             ...prev,
-            translationProgress: parsingProgress,
-            progressMessage:
-              parsingProgress < 30
-                ? t('translationRunner.parsing')
-                : t('translationRunner.inProgress'),
+            translationProgress: 0,
+            progressMessage: t('translationRunner.parsing'),
             completed: completed + cancelled,
             totalJobs: total,
             failed,
@@ -199,13 +194,15 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             config,
             promptPresetContent,
             onProgress: (completed, total) => {
-              // 파싱 30% 완료 후, 번역은 30% ~ 95% 구간 (65% 비중)
-              const translationProgress = total > 0 ? (completed / total) * 65 : 0;
-              const overallProgress = 30 + translationProgress;
+              // 순수 번역 진행률: 0% ~ 100%
+              const translationProgress = total > 0 ? (completed / total) * 100 : 0;
+              const isApplyingPhase = completed === total && total > 0;
               setUIState((prev) => ({
                 ...prev,
-                translationProgress: overallProgress,
-                progressMessage: t('translationRunner.translating'),
+                translationProgress: translationProgress,
+                progressMessage: isApplyingPhase
+                  ? t('translationRunner.aggregating')
+                  : t('translationRunner.translating'),
               }));
             },
           });
