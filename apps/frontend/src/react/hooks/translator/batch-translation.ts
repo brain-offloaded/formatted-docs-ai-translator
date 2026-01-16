@@ -60,7 +60,12 @@ export const batchTranslateParsedResults = async <
 
   combinedIndexMap.forEach(({ fileIndex, unitIndex }, index) => {
     const translatedUnit = translatedCombined[index];
-    if (!translatedUnit) return;
+    if (!translatedUnit) {
+      console.warn(
+        `[batch-translation] translatedUnit이 없습니다. index=${index}, fileIndex=${fileIndex}, unitIndex=${unitIndex}`
+      );
+      return;
+    }
     translatedByFile[fileIndex][unitIndex] = {
       ...translatedByFile[fileIndex][unitIndex],
       target: translatedUnit.target,

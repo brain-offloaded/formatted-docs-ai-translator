@@ -369,6 +369,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       const itemsToTranslate = Array.isArray(input) ? input : [input];
       manager.add(itemsToTranslate);
 
+      // 배치 모드일 때 strategy를 한 번만 생성하여 재사용
+      const batchStrategy = shouldBatchAcrossFiles
+        ? translationStrategyFactory.create(translationType)
+        : null;
+
       const worker = async (job: Job<File | string>) => {
         const jobInput = job.data;
         const translationInput = new TranslationInput(
@@ -377,13 +382,12 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           config,
           promptPresetContent
         );
-        if (shouldBatchAcrossFiles) {
-          const strategy = translationStrategyFactory.create(translationType);
-          const parsed = await strategy.parser.parse(translationInput);
+        if (shouldBatchAcrossFiles && batchStrategy) {
+          const parsed = await batchStrategy.parser.parse(translationInput);
           return {
             translationInput,
             parsed,
-            applier: strategy.applier,
+            applier: batchStrategy.applier,
           } as BatchParseResult<TranslationInput, TranslationOutputType>;
         }
         return translatorEngine.translate(translationInput);
