@@ -59,9 +59,16 @@ export class TranslatorEngine<
     units: TranslationUnit[],
     config: AiTranslatorConfig,
     promptPresetContent?: string,
-    sourceFilePath?: string
+    sourceFilePath?: string,
+    onProgress?: (completed: number, total: number) => void
   ): Promise<TranslationUnit[]> {
-    return this.strategy.translator.translate(units, config, promptPresetContent, sourceFilePath);
+    return this.strategy.translator.translate(
+      units,
+      config,
+      promptPresetContent,
+      sourceFilePath,
+      onProgress
+    );
   }
 
   async apply(input: TInput, translated: TIntermediate): Promise<TOutput> {

@@ -45,14 +45,20 @@ export const batchTranslateParsedResults = async <
     });
   });
 
-  const totalUnits = combinedUnits.length;
-  onProgress?.(0, totalUnits);
-
   const translatedCombined: TranslationUnit[] = combinedUnits.length
-    ? await translatorEngine.translateUnits(combinedUnits, config, promptPresetContent ?? undefined)
+    ? await translatorEngine.translateUnits(
+        combinedUnits,
+        config,
+        promptPresetContent ?? undefined,
+        undefined, // sourceFilePath
+        onProgress // 백엔드 스트리밍에서 진행률을 보고받음
+      )
     : [];
 
-  onProgress?.(totalUnits, totalUnits);
+  // 번역이 없는 경우에도 완료 보고
+  if (combinedUnits.length === 0) {
+    onProgress?.(0, 0);
+  }
 
   const translatedByFile = parsedResults.map((parsedResult) =>
     parsedResult.parsed.map((unit) => ({ ...unit }))
