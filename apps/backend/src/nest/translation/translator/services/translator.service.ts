@@ -4,6 +4,7 @@ import { convertFullWidthToHalfWidth } from '@apps/common/dist/language';
 import { TextBatchTranslationService } from '../../../ai/services/text-batch-translation.service';
 import { TranslateTextArrayRequestDto } from '../dto/request/translate-text-array-request.dto';
 import { TranslatedTextPathDto } from '@/nest/translator/common/dto/translation-text-path.dto';
+import { TranslationProgressEvent } from '@/nest/ai/services/translator.types';
 
 @Injectable()
 export class TranslatorService {
@@ -46,13 +47,16 @@ export class TranslatorService {
     return batches;
   }
 
-  public async translate({
-    requestId,
-    aiSettings,
-    textPaths,
-    promptPresetContent,
-    cacheTag,
-  }: TranslateTextArrayRequestDto): Promise<TranslatedTextPathDto[]> {
+  public async translate(
+    {
+      requestId,
+      aiSettings,
+      textPaths,
+      promptPresetContent,
+      cacheTag,
+    }: TranslateTextArrayRequestDto,
+    onProgress?: (event: TranslationProgressEvent) => void
+  ): Promise<TranslatedTextPathDto[]> {
     const sourceTexts = textPaths.map((item) => item.text);
 
     const preprocessedTexts = sourceTexts.map((text) => this.preprocessText(text));
@@ -63,6 +67,7 @@ export class TranslatorService {
       promptPresetContent: promptPresetContent ?? '',
       aiSettings,
       cacheTag,
+      onProgress,
     });
 
     const translatedTexts = translationResult;

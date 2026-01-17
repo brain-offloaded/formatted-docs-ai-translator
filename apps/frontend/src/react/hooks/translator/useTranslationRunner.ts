@@ -3,18 +3,22 @@ import { TranslationOutput } from '@/react/unified/domain/translation-output';
 import { TranslationInput } from '@/react/unified/domain/translation-input';
 import { TranslatorEngine } from '@/react/unified/engine/translator-engine';
 import { TranslationUnit } from '@/react/unified/domain/translation-unit';
+import { translationStrategyFactory } from '@/react/factories/translation-strategy-factory';
 import type { BaseParseOptionsDto } from '@/react/unified/domain/options/base-parse-options.dto';
 import type { AiTranslatorConfig } from '@/react/types/config';
 import type { Job } from '@/react/services/job-manager/job';
 import { JobStatus } from '@/react/services/job-manager/job';
 import type { TranslationOutput as TranslationOutputType } from '@/react/unified/domain/translation-output';
 import type { TranslationResultState, UIState } from '@/react/contexts/TranslationContext';
+import { TranslationType } from '@/react/contexts/TranslationContext';
 import type { TranslationJobManager } from '@/react/services/job-manager/TranslationJobManager';
 import type { TFunction } from 'i18next';
+import { batchTranslateParsedResults, BatchParseResult } from './batch-translation';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   input: string | File[];
   config: AiTranslatorConfig;
+  translationType: TranslationType;
   validateInput: (input: string | File[]) => boolean;
   translatorEngine: TranslatorEngine<TranslationInput, TranslationUnit[], TranslationOutputType>;
   parserOptions?: T | null;
@@ -78,6 +82,7 @@ const createResultSummary = (
 export const useTranslationRunner = <T extends BaseParseOptionsDto>({
   input,
   config,
+  translationType,
   validateInput,
   translatorEngine,
   parserOptions,
@@ -100,6 +105,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
     if (!isCacheTagValid) return;
 
     const translationStartTime = Date.now();
+    const shouldBatchAcrossFiles =
+      currentIsFileInput &&
+      Array.isArray(input) &&
+      input.length > 1 &&
+      translationType !== TranslationType.Image;
 
     try {
       if (!validateInput(input)) {
@@ -129,19 +139,96 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       setIsTranslating(true);
       const manager = getJobManager();
 
+      // 배치 모드에서는 파일 Job 완료가 파싱 완료를 의미함
+      // 파싱 중: 0% (파싱중...), 번역 중: 0~100%, 적용 중: 100% (적용중...)
       manager.on('onProgress', ({ total, completed, failed, cancelled }) => {
-        const finished = completed + failed + cancelled;
-        const progress = total > 0 ? (finished / total) * 100 : 0;
-        setUIState((prev) => ({
-          ...prev,
-          translationProgress: progress,
-          progressMessage: t('translationRunner.inProgress'),
-          completed: completed + cancelled,
-          totalJobs: total,
-          failed,
-          cancelled,
-        }));
+        if (!shouldBatchAcrossFiles) {
+          // 일반 모드: 파일 Job 완료가 곧 전체 번역 완료
+          const finished = completed + failed + cancelled;
+          const progress = total > 0 ? (finished / total) * 100 : 0;
+          setUIState((prev) => ({
+            ...prev,
+            translationProgress: progress,
+            progressMessage: t('translationRunner.inProgress'),
+            completed: completed + cancelled,
+            totalJobs: total,
+            failed,
+            cancelled,
+          }));
+        } else {
+          // 배치 모드: 파싱 중에는 0% 유지, "파싱 중..." 메시지 표시
+          setUIState((prev) => ({
+            ...prev,
+            translationProgress: 0,
+            progressMessage: t('translationRunner.parsing'),
+            completed: completed + cancelled,
+            totalJobs: total,
+            failed,
+            cancelled,
+          }));
+        }
       });
+
+      const buildBatchOutputs = async (
+        results: Job<File | string>[]
+      ): Promise<TranslationOutputType[]> => {
+        const failedOutputs = buildFailureOutputs(results, t);
+        const successfulJobs = results.filter(
+          (job) => job.status === JobStatus.SUCCEEDED && job.result
+        ) as Array<
+          Job<File | string> & { result: BatchParseResult<TranslationInput, TranslationOutputType> }
+        >;
+
+        if (successfulJobs.length === 0) {
+          return failedOutputs;
+        }
+
+        const parsedResults = successfulJobs.map((job) => job.result);
+
+        const outputs: TranslationOutputType[] = [];
+
+        try {
+          const appliedOutputs = await batchTranslateParsedResults({
+            translatorEngine,
+            parsedResults,
+            config,
+            promptPresetContent,
+            onProgress: (completed, total) => {
+              // 순수 번역 진행률: 0% ~ 100%
+              const translationProgress = total > 0 ? (completed / total) * 100 : 0;
+              const isApplyingPhase = completed === total && total > 0;
+              setUIState((prev) => ({
+                ...prev,
+                translationProgress: translationProgress,
+                progressMessage: isApplyingPhase
+                  ? t('translationRunner.aggregating')
+                  : t('translationRunner.translating'),
+              }));
+            },
+          });
+          outputs.push(...appliedOutputs);
+        } catch (error) {
+          const message = (error as Error)?.message || t('translationRunner.unknownError');
+          parsedResults.forEach((parsedResult) => {
+            const jobData = parsedResult.translationInput.content;
+            const name = typeof jobData === 'string' ? t('translationRunner.text') : jobData.name;
+            outputs.push(
+              new TranslationOutput([
+                {
+                  name,
+                  success: false,
+                  message,
+                  result: message,
+                  originalFileName: typeof jobData === 'string' ? undefined : jobData.name,
+                },
+              ])
+            );
+          });
+        }
+
+        outputs.push(...failedOutputs);
+        return outputs;
+      };
 
       manager.on('onAllComplete', async (results: Job<File | string>[]) => {
         const cancelledCount = results.filter((job) => job.status === JobStatus.CANCELLED).length;
@@ -161,12 +248,14 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           return;
         }
 
-        const outputs: TranslationOutputType[] = results
-          .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
-          .map((job) => job.result as TranslationOutputType);
-
-        const failedOutputs = buildFailureOutputs(results, t);
-        outputs.push(...failedOutputs);
+        const outputs: TranslationOutputType[] = shouldBatchAcrossFiles
+          ? await buildBatchOutputs(results)
+          : [
+              ...results
+                .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
+                .map((job) => job.result as TranslationOutputType),
+              ...buildFailureOutputs(results, t),
+            ];
 
         setUIState((prev) => ({
           ...prev,
@@ -280,6 +369,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       const itemsToTranslate = Array.isArray(input) ? input : [input];
       manager.add(itemsToTranslate);
 
+      // 배치 모드일 때 strategy를 한 번만 생성하여 재사용
+      const batchStrategy = shouldBatchAcrossFiles
+        ? translationStrategyFactory.create(translationType)
+        : null;
+
       const worker = async (job: Job<File | string>) => {
         const jobInput = job.data;
         const translationInput = new TranslationInput(
@@ -288,6 +382,14 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           config,
           promptPresetContent
         );
+        if (shouldBatchAcrossFiles && batchStrategy) {
+          const parsed = await batchStrategy.parser.parse(translationInput);
+          return {
+            translationInput,
+            parsed,
+            applier: batchStrategy.applier,
+          } as BatchParseResult<TranslationInput, TranslationOutputType>;
+        }
         return translatorEngine.translate(translationInput);
       };
 
@@ -310,6 +412,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
   }, [
     input,
     config,
+    translationType,
     validateInput,
     translatorEngine,
     parserOptions,

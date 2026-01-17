@@ -1045,6 +1045,30 @@
         ]
       }
     },
+    "/translator/text/translate/stream": {
+      "post": {
+        "operationId": "TextTranslatorController_streamTranslateText",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateTextArrayRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "텍스트 배열을 번역하며 진행률을 NDJSON 스트림으로 전송합니다."
+          }
+        },
+        "tags": [
+          "text-translator"
+        ]
+      }
+    },
     "/temp-workspaces/{workspaceId}": {
       "delete": {
         "operationId": "TempWorkspaceController_deleteTempWorkspace",

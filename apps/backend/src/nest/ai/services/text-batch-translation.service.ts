@@ -36,7 +36,7 @@ export class TextBatchTranslationService {
   ) {}
 
   public async translateText(param: TextTranslateParam): Promise<string[]> {
-    const { sourceTexts, promptPresetContent, aiSettings, cacheTag } = param;
+    const { sourceTexts, promptPresetContent, aiSettings, cacheTag, onProgress } = param;
     const { sourceLanguage, targetLanguage, apiKey, customModelConfig, useThinking } = aiSettings;
     const thinkingLevel = aiSettings.thinkingLevel?.trim();
     const effectiveUseThinking = !!thinkingLevel || useThinking;
@@ -51,6 +51,8 @@ export class TextBatchTranslationService {
     const apiKeyIterator = keyRoundRobin(apiKey);
     if (!apiKeyIterator) throw new Error('API key is required for translation');
 
+    const totalTexts = sourceTexts.length;
+
     try {
       const { texts, remainingTexts } = await this.applyTranslationCache(
         sourceTexts,
@@ -58,8 +60,13 @@ export class TextBatchTranslationService {
       );
 
       if (remainingTexts.size === 0) {
+        onProgress?.({ completed: totalTexts, total: totalTexts });
         return texts;
       }
+
+      // 캐시 히트된 만큼 초기 진행률 보고
+      const initialCompleted = totalTexts - remainingTexts.size;
+      onProgress?.({ completed: initialCompleted, total: totalTexts });
 
       const newTranslations = new Map<string, TranslationResult>();
       const currentRemainingTexts = new Map(remainingTexts);
@@ -187,6 +194,10 @@ export class TextBatchTranslationService {
                 modelName,
                 cacheTag: normalizedCacheTag,
               });
+
+              // 진행률 보고: 완료된 텍스트 수 = 전체 - 남은 텍스트 수
+              const completed = totalTexts - currentRemainingTexts.size;
+              onProgress?.({ completed, total: totalTexts });
             }
 
             const missingTexts = batchTexts.filter((text) => !batchTranslations.has(text));
