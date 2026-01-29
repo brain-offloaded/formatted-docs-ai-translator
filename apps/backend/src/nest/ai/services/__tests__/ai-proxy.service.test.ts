@@ -12,7 +12,7 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
     jest.clearAllMocks();
   });
 
-  it('줄바꿈 불일치가 있는 번역 결과는 제외한다', async () => {
+  it('플레이스홀더 보존 불일치가 있는 번역 결과는 제외한다', async () => {
     const response: AiChatResponse = {
       choices: [
         {
@@ -38,15 +38,51 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       [2, '두 번째 원문'],
     ]);
 
-    const { translations, lineBreakMismatchTexts } = await service.parseTranslationResponse(
+    const { translations, validationMismatchTexts } = await service.parseTranslationResponse(
       response,
       remainingTexts,
-      expectedIdToText
+      expectedIdToText,
+      {
+        enabled: true,
+        rules: [{ pattern: '\\n', flags: '' }],
+      }
     );
 
     expect(translations.has('첫 번째 원문')).toBe(false);
-    expect(lineBreakMismatchTexts.has('첫 번째 원문')).toBe(true);
+    expect(validationMismatchTexts.has('첫 번째 원문')).toBe(true);
     expect(translations.get('두 번째 원문')?.text).toBe('다음 문장');
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('플레이스홀더 매칭 문자열이 바뀌면 불일치로 처리한다', async () => {
+    const response: AiChatResponse = {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: JSON.stringify({
+              segments: [{ id: 1, translated_text: '{A} love {C}' }],
+            }),
+          },
+        },
+      ],
+    };
+
+    const remainingTexts = new Map<string, number[]>([['{A} love {B}', [0]]]);
+    const expectedIdToText = new Map<number, string>([[1, '{A} love {B}']]);
+
+    const { translations, validationMismatchTexts } = await service.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText,
+      {
+        enabled: true,
+        rules: [{ pattern: '\\{.+?\\}', flags: '' }],
+      }
+    );
+
+    expect(translations.has('{A} love {B}')).toBe(false);
+    expect(validationMismatchTexts.has('{A} love {B}')).toBe(true);
     expect(logger.warn).toHaveBeenCalled();
   });
 

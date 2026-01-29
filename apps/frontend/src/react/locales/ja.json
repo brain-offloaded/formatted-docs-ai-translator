@@ -25,6 +25,7 @@
     "presets": "プリセット管理",
     "appSettings": "アプリ設定",
     "modelSettings": "モデル設定",
+    "prepostSettings": "前処理/後処理",
     "log": "ログ表示",
     "cache": "キャッシュ管理",
     "cacheTags": "キャッシュタグ一覧",
@@ -86,7 +87,34 @@
     "maxConcurrentRequestsLabel": "最大同時リクエスト数:",
     "apiKeyInfo": "APIキーは<1>Google AI Studio</1>で発行できます。",
     "openAiCompatibleInfo": "OpenAI互換サーバーのBase URLとAPIキーを入力してください。",
-    "apiKeyRoundRobinHint": "複数のAPIキーをスペースで区切って入力すると、ラウンドロビン方式で自動的に順番に使用されます。"
+    "apiKeyRoundRobinHint": "複数のAPIキーをスペースで区切って入力すると、ラウンドロビン方式で自動的に順番に使用されます。",
+    "translationValidation": "翻訳の検証",
+    "placeholderPreservation": {
+      "title": "プレースホルダー保持チェック",
+      "description": "各パターンの一致した文字列が翻訳前後で同一である必要があります。（順序は不問）",
+      "enabled": "プレースホルダー保持チェックを使用",
+      "patternLabel": "正規表現パターン",
+      "patternHelper": "スラッシュ（/.../）なしでパターンのみ入力",
+      "flagsLabel": "フラグ",
+      "flagsHelper": "例: i, m, s, u, y（g は内部で適用）",
+      "addRule": "パターン追加",
+      "resetDefaults": "デフォルトに戻す",
+      "previewTitle": "一致テスト",
+      "previewPass": "合格",
+      "previewFail": "不一致",
+      "previewValueMismatch": "一致内容が異なります",
+      "previewSourceLabel": "原文（サンプル）",
+      "previewSourcePlaceholder": "原文を入力してください",
+      "previewTargetLabel": "訳文（サンプル）",
+      "previewTargetPlaceholder": "訳文を入力してください",
+      "previewRun": "一致結果を表示",
+      "warning": {
+        "emptyMatch": "空文字列にも一致する可能性があり、過剰一致の恐れがあります。"
+      },
+      "error": {
+        "invalidRegex": "正規表現が正しくありません。"
+      }
+    }
   },
   "tooltips": {
     "aria": {

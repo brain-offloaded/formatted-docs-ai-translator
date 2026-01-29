@@ -73,6 +73,15 @@ export class TextArrayTranslator implements ITranslator {
       sourceFilePath: sourceFilePath ?? '',
       textPaths: translatable.map(({ unit: { source, key } }) => ({ text: source, path: key })),
       cacheTag: config.cacheTag?.trim() ? config.cacheTag.trim() : DEFAULT_CACHE_TAG,
+      placeholderPreservation: {
+        enabled: config.placeholderPreservationEnabled,
+        rules: config.placeholderPreservationRules
+          .filter(({ pattern }) => pattern.trim().length > 0)
+          .map(({ pattern, flags }) => ({
+            pattern,
+            flags: flags.trim() ? flags.trim() : undefined,
+          })),
+      },
     };
 
     // 스트리밍 엔드포인트 호출

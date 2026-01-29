@@ -3,6 +3,7 @@ import { AiChatResponse, toTextFromMessageContent } from '../dto/common-ai.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { LoggerService } from '@/nest/logger/logger.service';
 import { errorToString } from '@/nest/utils/error-stringify';
+import type { PlaceholderPreservationSettings } from './translator.types';
 
 export class TranslationParsingError extends Error {
   public readonly shouldReduceBatchSize: boolean;
@@ -55,11 +56,12 @@ export class TranslationResponseParser {
   public parseTranslationResponse(
     response: AiChatResponse,
     remainingTexts: Map<string, number[]>,
-    expectedIdToText?: Map<number, string>
+    expectedIdToText?: Map<number, string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): {
     translations: Map<string, TranslationResult>;
     hasPartialData: boolean;
-    lineBreakMismatchTexts: Set<string>;
+    validationMismatchTexts: Set<string>;
   } {
     const responseText = this.getResponseText(response);
     const { matches, hasPartialData } = this.parseSegmentMatches(responseText);
@@ -69,7 +71,7 @@ export class TranslationResponseParser {
     let offset: number | null;
     let expectedIds: number[] = [];
     let unexpectedIdCount: number | undefined;
-    const lineBreakMismatchTexts = new Set<string>();
+    const validationMismatchTexts = new Set<string>();
 
     if (useStrictIdMatching && expectedIdToText) {
       expectedIds = Array.from(expectedIdToText.keys());
@@ -78,7 +80,8 @@ export class TranslationResponseParser {
         expectedIds,
         expectedIdToText,
         remainingTexts,
-        lineBreakMismatchTexts
+        validationMismatchTexts,
+        placeholderPreservation
       );
       translations = strictResult.translations;
       excludeFrom = strictResult.excludeFrom;
@@ -90,7 +93,8 @@ export class TranslationResponseParser {
         matches,
         remainingTextArray,
         remainingTexts,
-        lineBreakMismatchTexts
+        validationMismatchTexts,
+        placeholderPreservation
       );
       translations = fallbackResult.translations;
       excludeFrom = fallbackResult.excludeFrom;
@@ -112,7 +116,7 @@ export class TranslationResponseParser {
       unexpectedIdCount,
     });
 
-    return { translations, hasPartialData, lineBreakMismatchTexts };
+    return { translations, hasPartialData, validationMismatchTexts };
   }
 
   private getResponseText(response: AiChatResponse): string {
@@ -353,7 +357,8 @@ export class TranslationResponseParser {
     matches: Array<{ id: number; translatedText: string }>,
     remainingTextArray: string[],
     remainingTexts: Map<string, number[]>,
-    lineBreakMismatchTexts: Set<string>
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): { translations: Map<string, TranslationResult>; excludeFrom: number; offset: number } {
     const offset = this.calculateOffset(matches);
     const { successfulIds, duplicateIds } = this.determineSuccessAndDuplicates(matches);
@@ -370,7 +375,8 @@ export class TranslationResponseParser {
       excludeFrom,
       remainingTextArray,
       remainingTexts,
-      lineBreakMismatchTexts
+      validationMismatchTexts,
+      placeholderPreservation
     );
     return { translations, excludeFrom, offset };
   }
@@ -380,7 +386,8 @@ export class TranslationResponseParser {
     expectedIds: number[],
     expectedIdToText: Map<number, string>,
     remainingTexts: Map<string, number[]>,
-    lineBreakMismatchTexts: Set<string>
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): {
     translations: Map<string, TranslationResult>;
     excludeFrom: number;
@@ -410,18 +417,25 @@ export class TranslationResponseParser {
       if (!originalText) continue;
       const normalizedOriginal = originalText.trim();
       const normalizedTranslated = translatedText.trim();
-      const originalStats = this.getLineBreakStats(normalizedOriginal);
-      const translatedStats = this.getLineBreakStats(normalizedTranslated);
-      if (originalStats.lf !== translatedStats.lf || originalStats.cr !== translatedStats.cr) {
-        lineBreakMismatchTexts.add(originalText);
-        this.logger.warn('라인 브레이크 개수 불일치로 번역 제외', {
-          id,
-          originalLineBreaks: originalStats,
-          translatedLineBreaks: translatedStats,
-          originalLength: normalizedOriginal.length,
-          translatedLength: normalizedTranslated.length,
+      if (
+        placeholderPreservation?.enabled &&
+        Array.isArray(placeholderPreservation.rules) &&
+        placeholderPreservation.rules.length > 0
+      ) {
+        const mismatch = this.hasPlaceholderPreservationMismatch({
+          beforeText: normalizedOriginal,
+          afterText: normalizedTranslated,
+          placeholderPreservation,
         });
-        continue;
+        if (mismatch) {
+          validationMismatchTexts.add(originalText);
+          this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
+            id,
+            originalLength: normalizedOriginal.length,
+            translatedLength: normalizedTranslated.length,
+          });
+          continue;
+        }
       }
       const indices = remainingTexts.get(originalText) || [];
       if (normalizedTranslated) {
@@ -446,7 +460,8 @@ export class TranslationResponseParser {
     excludeFrom: number,
     remainingTextArray: string[],
     remainingTexts: Map<string, number[]>,
-    lineBreakMismatchTexts: Set<string>
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): Map<string, TranslationResult> {
     const translations = new Map<string, TranslationResult>();
     for (const { id, translatedText } of matches) {
@@ -457,19 +472,26 @@ export class TranslationResponseParser {
       const originalText = remainingTextArray[normalizedId - 1];
       const normalizedOriginal = originalText.trim();
       const normalizedTranslated = translatedText.trim();
-      const originalStats = this.getLineBreakStats(normalizedOriginal);
-      const translatedStats = this.getLineBreakStats(normalizedTranslated);
-      if (originalStats.lf !== translatedStats.lf || originalStats.cr !== translatedStats.cr) {
-        lineBreakMismatchTexts.add(originalText);
-        this.logger.warn('라인 브레이크 개수 불일치로 번역 제외', {
-          id,
-          normalizedId,
-          originalLineBreaks: originalStats,
-          translatedLineBreaks: translatedStats,
-          originalLength: normalizedOriginal.length,
-          translatedLength: normalizedTranslated.length,
+      if (
+        placeholderPreservation?.enabled &&
+        Array.isArray(placeholderPreservation.rules) &&
+        placeholderPreservation.rules.length > 0
+      ) {
+        const mismatch = this.hasPlaceholderPreservationMismatch({
+          beforeText: normalizedOriginal,
+          afterText: normalizedTranslated,
+          placeholderPreservation,
         });
-        continue;
+        if (mismatch) {
+          validationMismatchTexts.add(originalText);
+          this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
+            id,
+            normalizedId,
+            originalLength: normalizedOriginal.length,
+            translatedLength: normalizedTranslated.length,
+          });
+          continue;
+        }
       }
       const indices = remainingTexts.get(originalText) || [];
       if (normalizedTranslated) {
@@ -482,17 +504,93 @@ export class TranslationResponseParser {
     return translations;
   }
 
-  private getLineBreakStats(text: string): { lf: number; cr: number } {
-    let lf = 0;
-    let cr = 0;
-    for (let i = 0; i < text.length; i++) {
-      const code = text.charCodeAt(i);
-      if (code === 10) {
-        lf++;
-      } else if (code === 13) {
-        cr++;
+  private hasPlaceholderPreservationMismatch({
+    beforeText,
+    afterText,
+    placeholderPreservation,
+  }: {
+    beforeText: string;
+    afterText: string;
+    placeholderPreservation: PlaceholderPreservationSettings;
+  }): boolean {
+    for (const rule of placeholderPreservation.rules) {
+      if (!rule || typeof rule.pattern !== 'string') continue;
+      const pattern = rule.pattern;
+      if (!pattern.trim()) continue;
+      const flags = typeof rule.flags === 'string' ? rule.flags : '';
+      const compiled = this.safeCompileRule(pattern, flags);
+      if (!compiled) continue;
+      const before = this.safeBuildMatchMultiset(beforeText, compiled);
+      const after = this.safeBuildMatchMultiset(afterText, compiled);
+      if (before.kind !== 'ok' || after.kind !== 'ok') {
+        return true;
       }
+      if (!this.isSameMatchMultiset(before.multiset, after.multiset)) return true;
     }
-    return { lf, cr };
+    return false;
+  }
+
+  private safeCompileRule(pattern: string, flags: string): RegExp | null {
+    try {
+      const normalizedFlags = this.normalizeFlagsForCounting(flags);
+      return new RegExp(pattern, normalizedFlags);
+    } catch (error) {
+      this.logger.warn('플레이스홀더 정규식 컴파일 실패로 규칙을 무시합니다.', {
+        pattern,
+        flags,
+        error: errorToString(error),
+      });
+      return null;
+    }
+  }
+
+  private normalizeFlagsForCounting(flags: string): string {
+    const raw = typeof flags === 'string' ? flags : '';
+    const filtered = raw.replace(/[^dgimsuvy]/g, '');
+    const unique = Array.from(new Set(filtered.split(''))).join('');
+    return unique.includes('g') ? unique : `${unique}g`;
+  }
+
+  private isSameMatchMultiset(a: Map<string, number>, b: Map<string, number>): boolean {
+    if (a.size !== b.size) return false;
+    for (const [value, count] of a) {
+      if (b.get(value) !== count) return false;
+    }
+    return true;
+  }
+
+  private safeBuildMatchMultiset(
+    text: string,
+    regex: RegExp
+  ): { kind: 'ok'; multiset: Map<string, number> } | { kind: 'too_many' } | { kind: 'error' } {
+    try {
+      const maxMatches = 10000;
+      let count = 0;
+      const multiset = new Map<string, number>();
+      regex.lastIndex = 0;
+      while (true) {
+        const match = regex.exec(text);
+        if (!match) break;
+        const value = match[0];
+        multiset.set(value, (multiset.get(value) || 0) + 1);
+        count++;
+        if (count >= maxMatches) {
+          this.logger.warn('플레이스홀더 매칭이 너무 많아 검증에 실패합니다.', {
+            maxMatches,
+          });
+          return { kind: 'too_many' };
+        }
+        if (value === '') {
+          regex.lastIndex++;
+          if (regex.lastIndex > text.length) break;
+        }
+      }
+      return { kind: 'ok', multiset };
+    } catch (error) {
+      this.logger.warn('플레이스홀더 매칭 카운트 실패로 검증에 실패합니다.', {
+        error: errorToString(error),
+      });
+      return { kind: 'error' };
+    }
   }
 }

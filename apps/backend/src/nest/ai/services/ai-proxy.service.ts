@@ -8,6 +8,7 @@ import {
 } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { TranslationResponseParser } from './translation-response-parser.service';
+import type { PlaceholderPreservationSettings } from './translator.types';
 
 @Injectable()
 export class AiProxyService {
@@ -43,12 +44,18 @@ export class AiProxyService {
   public async parseTranslationResponse(
     response: AiChatResponse,
     remainingTexts: Map<string, number[]>,
-    expectedIdToText?: Map<number, string>
+    expectedIdToText?: Map<number, string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): Promise<{
     translations: Map<string, TranslationResult>;
     hasPartialData: boolean;
-    lineBreakMismatchTexts: Set<string>;
+    validationMismatchTexts: Set<string>;
   }> {
-    return this.responseParser.parseTranslationResponse(response, remainingTexts, expectedIdToText);
+    return this.responseParser.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText,
+      placeholderPreservation
+    );
   }
 }

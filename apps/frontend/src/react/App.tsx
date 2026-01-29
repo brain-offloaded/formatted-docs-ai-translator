@@ -8,6 +8,7 @@ import { ModalProvider } from './contexts/ModalContext';
 import { ModalRoot } from './components/common/ModalRoot';
 import AppSettingsView from './views/AppSettingsView';
 import SettingsView from './views/SettingsView';
+import PrePostProcessingView from './views/PrePostProcessingView';
 import PresetView from './views/PresetView';
 import TranslateView from './views/TranslateView';
 import LogView from './views/LogView';
@@ -62,6 +63,8 @@ const App: React.FC = () => {
         return t('menu.appSettings');
       case 'model-settings':
         return t('menu.modelSettings');
+      case 'prepost-settings':
+        return t('menu.prepostSettings');
       case 'log':
         return t('menu.log');
       case 'cache':
@@ -87,6 +90,8 @@ const App: React.FC = () => {
         return <AppSettingsView />;
       case 'model-settings':
         return <SettingsView />;
+      case 'prepost-settings':
+        return <PrePostProcessingView />;
       case 'log':
         return <LogView />;
       case 'cache':
