@@ -1,6 +1,6 @@
 import { Body, Controller, Post, Res, SerializeOptions } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { Response } from 'express';
+import { FastifyReply } from 'fastify';
 
 import { TranslatorService } from './services/translator.service';
 import { TranslateTextArrayRequestDto } from './dto/request/translate-text-array-request.dto';
@@ -34,17 +34,17 @@ export class TextTranslatorController {
   })
   async streamTranslateText(
     @Body() dto: TranslateTextArrayRequestDto,
-    @Res() res: Response
+    @Res() reply: FastifyReply
   ): Promise<void> {
-    res.setHeader('Content-Type', 'application/x-ndjson');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    reply.header('Content-Type', 'application/x-ndjson');
+    reply.header('Transfer-Encoding', 'chunked');
+    reply.header('Cache-Control', 'no-cache');
+    reply.header('Connection', 'keep-alive');
 
     try {
       const translatedTextPaths = await this.translatorService.translate(dto, (event) => {
         const chunk = JSON.stringify({ type: 'progress', ...event }) + '\n';
-        res.write(chunk);
+        reply.raw.write(chunk);
       });
 
       const finalChunk =
@@ -54,8 +54,8 @@ export class TextTranslatorController {
           message: '텍스트 배열 번역이 완료되었습니다.',
           translatedTextPaths,
         }) + '\n';
-      res.write(finalChunk);
-      res.end();
+      reply.raw.write(finalChunk);
+      reply.raw.end();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const errorChunk =
@@ -64,8 +64,8 @@ export class TextTranslatorController {
           success: false,
           message: errorMessage,
         }) + '\n';
-      res.write(errorChunk);
-      res.end();
+      reply.raw.write(errorChunk);
+      reply.raw.end();
     }
   }
 }

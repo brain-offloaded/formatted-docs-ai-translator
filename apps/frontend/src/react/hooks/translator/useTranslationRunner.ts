@@ -157,12 +157,13 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           }));
         } else {
           // 배치 모드: 파싱 중에는 0% 유지, "파싱 중..." 메시지 표시
+          // completed는 번역 단위 기준으로 batchTranslateParsedResults에서 업데이트되므로 여기서는 0 유지
           setUIState((prev) => ({
             ...prev,
             translationProgress: 0,
             progressMessage: t('translationRunner.parsing'),
-            completed: completed + cancelled,
-            totalJobs: total,
+            completed: 0,
+            totalJobs: 0,
             failed,
             cancelled,
           }));
@@ -193,16 +194,19 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             parsedResults,
             config,
             promptPresetContent,
-            onProgress: (completed, total) => {
-              // 순수 번역 진행률: 0% ~ 100%
-              const translationProgress = total > 0 ? (completed / total) * 100 : 0;
-              const isApplyingPhase = completed === total && total > 0;
+            onProgress: (completedUnits, totalUnits) => {
+              // 순수 번역 진행률: 0% ~ 100% (TranslationUnit 기준)
+              const translationProgress = totalUnits > 0 ? (completedUnits / totalUnits) * 100 : 0;
+              const isApplyingPhase = completedUnits === totalUnits && totalUnits > 0;
               setUIState((prev) => ({
                 ...prev,
                 translationProgress: translationProgress,
                 progressMessage: isApplyingPhase
                   ? t('translationRunner.aggregating')
                   : t('translationRunner.translating'),
+                // 번역 완료된 TranslationUnit 개수 기준으로 completed와 totalJobs 업데이트
+                completed: completedUnits,
+                totalJobs: totalUnits,
               }));
             },
           });
