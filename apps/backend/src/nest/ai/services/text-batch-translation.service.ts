@@ -18,6 +18,7 @@ import { AiChatResponse, AiMessage, AiProxyError } from '../dto/common-ai.dto';
 import type { PlaceholderPreservationSettings, TextTranslateParam } from './translator.types';
 import { AiRateLimiterService } from './ai-rate-limiter.service';
 import { TranslationParsingError } from './translation-response-parser.service';
+import { errorToString } from '@/nest/utils/error-stringify';
 
 @Injectable()
 export class TextBatchTranslationService {
@@ -567,7 +568,7 @@ export class TextBatchTranslationService {
       this.logger.warn('플레이스홀더 정규식 컴파일 실패로 규칙을 무시합니다.', {
         pattern,
         flags,
-        error,
+        error: errorToString(error),
       });
       return null;
     }
@@ -616,7 +617,9 @@ export class TextBatchTranslationService {
       }
       return { kind: 'ok', multiset };
     } catch (error) {
-      this.logger.warn('플레이스홀더 매칭 카운트 실패로 검증에 실패합니다.', { error });
+      this.logger.warn('플레이스홀더 매칭 카운트 실패로 검증에 실패합니다.', {
+        error: errorToString(error),
+      });
       return { kind: 'error' };
     }
   }

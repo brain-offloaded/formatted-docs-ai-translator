@@ -42,6 +42,7 @@ export class PlaceholderPreservationSettingsDto {
     type: () => [PlaceholderPreservationRuleDto],
     required: false,
   })
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PlaceholderPreservationRuleDto)
