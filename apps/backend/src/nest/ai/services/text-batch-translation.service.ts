@@ -15,9 +15,10 @@ import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
 import { TranslatorAiSettings } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { AiChatResponse, AiMessage, AiProxyError } from '../dto/common-ai.dto';
-import { TextTranslateParam } from './translator.types';
+import type { PlaceholderPreservationSettings, TextTranslateParam } from './translator.types';
 import { AiRateLimiterService } from './ai-rate-limiter.service';
 import { TranslationParsingError } from './translation-response-parser.service';
+import { hasPlaceholderPreservationMismatch } from './placeholder-preservation-validator';
 
 @Injectable()
 export class TextBatchTranslationService {
@@ -36,7 +37,14 @@ export class TextBatchTranslationService {
   ) {}
 
   public async translateText(param: TextTranslateParam): Promise<string[]> {
-    const { sourceTexts, promptPresetContent, aiSettings, cacheTag } = param;
+    const {
+      sourceTexts,
+      promptPresetContent,
+      aiSettings,
+      cacheTag,
+      onProgress,
+      placeholderPreservation,
+    } = param;
     const { sourceLanguage, targetLanguage, apiKey, customModelConfig, useThinking } = aiSettings;
     const thinkingLevel = aiSettings.thinkingLevel?.trim();
     const effectiveUseThinking = !!thinkingLevel || useThinking;
@@ -51,15 +59,23 @@ export class TextBatchTranslationService {
     const apiKeyIterator = keyRoundRobin(apiKey);
     if (!apiKeyIterator) throw new Error('API key is required for translation');
 
+    const totalTexts = sourceTexts.length;
+
     try {
       const { texts, remainingTexts } = await this.applyTranslationCache(
         sourceTexts,
-        normalizedCacheTag
+        normalizedCacheTag,
+        placeholderPreservation
       );
 
       if (remainingTexts.size === 0) {
+        onProgress?.({ completed: totalTexts, total: totalTexts });
         return texts;
       }
+
+      // 캐시 히트된 만큼 초기 진행률 보고
+      const initialCompleted = totalTexts - remainingTexts.size;
+      onProgress?.({ completed: initialCompleted, total: totalTexts });
 
       const newTranslations = new Map<string, TranslationResult>();
       const currentRemainingTexts = new Map(remainingTexts);
@@ -67,6 +83,7 @@ export class TextBatchTranslationService {
       let intermediateTexts = [...texts];
       let maxBatchTextCount: number | null = null;
       let stableBatchSuccessCount = 0;
+      const validationMismatchCounts = new Map<string, number>();
 
       while (currentRemainingTexts.size > 0) {
         const remainingTextArray = Array.from(currentRemainingTexts.keys());
@@ -90,15 +107,48 @@ export class TextBatchTranslationService {
               currentRemainingTexts.delete(text);
             }
 
-            const { batchTranslations, response, shouldReduceBatchSize, hasPartialData } =
-              await this.translateUncachedTexts({
-                requestId: param.requestId,
-                remainingTexts: batchRemainingTexts,
-                apiKeyIterator,
-                promptPresetContent,
-                aiSettings,
-                cacheTag: normalizedCacheTag,
-              });
+            const {
+              batchTranslations,
+              response,
+              shouldReduceBatchSize,
+              hasPartialData,
+              validationMismatchTexts,
+            } = await this.translateUncachedTexts({
+              requestId: param.requestId,
+              remainingTexts: batchRemainingTexts,
+              apiKeyIterator,
+              promptPresetContent,
+              aiSettings,
+              cacheTag: normalizedCacheTag,
+              placeholderPreservation,
+            });
+
+            const hasValidationMismatch = validationMismatchTexts.size > 0;
+            const giveUpTexts = new Set<string>();
+            if (hasValidationMismatch) {
+              for (const text of validationMismatchTexts) {
+                const nextCount = (validationMismatchCounts.get(text) ?? 0) + 1;
+                validationMismatchCounts.set(text, nextCount);
+                if (nextCount >= this.MAX_ATTEMPT_COUNT) {
+                  giveUpTexts.add(text);
+                }
+              }
+              if (giveUpTexts.size > 0) {
+                for (const text of giveUpTexts) {
+                  const indices = batchRemainingTexts.get(text) || [];
+                  indices.forEach((index) => {
+                    intermediateTexts[index] = text;
+                  });
+                  batchRemainingTexts.delete(text);
+                  currentRemainingTexts.delete(text);
+                  validationMismatchCounts.delete(text);
+                }
+                this.logger.warn('검증 불일치가 반복되어 원문을 유지합니다.', {
+                  count: giveUpTexts.size,
+                });
+              }
+              stableBatchSuccessCount = 0;
+            }
 
             const madeProgress = batchTranslations.size > 0;
             let failureRecorded = false;
@@ -118,6 +168,13 @@ export class TextBatchTranslationService {
             if (!failureRecorded) {
               if (madeProgress) {
                 consecutiveFailures = 0;
+              } else if (hasValidationMismatch) {
+                consecutiveFailures = 0;
+                stableBatchSuccessCount = 0;
+                this.logger.warn('검증 불일치가 감지되어 재시도합니다.', {
+                  batchSize: batchTexts.length,
+                  mismatchCount: validationMismatchTexts.size,
+                });
               } else {
                 failureRecorded = true;
                 consecutiveFailures++;
@@ -134,6 +191,7 @@ export class TextBatchTranslationService {
 
             for (const [originalText, result] of batchTranslations.entries()) {
               newTranslations.set(originalText, result);
+              validationMismatchCounts.delete(originalText);
             }
 
             if (madeProgress) {
@@ -146,6 +204,10 @@ export class TextBatchTranslationService {
                 modelName,
                 cacheTag: normalizedCacheTag,
               });
+
+              // 진행률 보고: 완료된 텍스트 수 = 전체 - 남은 텍스트 수
+              const completed = totalTexts - currentRemainingTexts.size;
+              onProgress?.({ completed, total: totalTexts });
             }
 
             const missingTexts = batchTexts.filter((text) => !batchTranslations.has(text));
@@ -164,6 +226,9 @@ export class TextBatchTranslationService {
             }
 
             for (const text of batchTexts) {
+              if (giveUpTexts.has(text)) {
+                continue;
+              }
               if (!batchTranslations.has(text)) {
                 const indices = batchRemainingTexts.get(text) || [];
                 currentRemainingTexts.set(text, indices);
@@ -174,7 +239,12 @@ export class TextBatchTranslationService {
               maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
               shouldRestartBatching = true;
               stableBatchSuccessCount = 0;
-            } else if (maxBatchTextCount !== null && madeProgress && !failureRecorded) {
+            } else if (
+              maxBatchTextCount !== null &&
+              madeProgress &&
+              !failureRecorded &&
+              !hasValidationMismatch
+            ) {
               stableBatchSuccessCount++;
               if (stableBatchSuccessCount >= this.STABLE_BATCH_RECOVERY_THRESHOLD) {
                 this.logger.debug('배치 제한 해제 시도', {
@@ -259,6 +329,7 @@ export class TextBatchTranslationService {
     aiSettings,
     promptPresetContent,
     cacheTag,
+    placeholderPreservation,
   }: {
     requestId: string;
     remainingTexts: Map<string, number[]>;
@@ -266,11 +337,13 @@ export class TextBatchTranslationService {
     aiSettings: TranslatorAiSettings;
     promptPresetContent: string;
     cacheTag: string;
+    placeholderPreservation?: PlaceholderPreservationSettings;
   }): Promise<{
     batchTranslations: Map<string, TranslationResult>;
     response: AiChatResponse;
     shouldReduceBatchSize: boolean;
     hasPartialData: boolean;
+    validationMismatchTexts: Set<string>;
   }> {
     const {
       sourceLanguage,
@@ -283,13 +356,14 @@ export class TextBatchTranslationService {
       const next = apiKeyIterator.next();
       const apiKey = !next.done ? (next.value as string) : undefined;
       if (!apiKey) throw new Error('API key is required');
-      const messages = await this.promptConverterService.getChatBlock({
-        requestId,
-        content: Array.from(remainingTexts.keys()),
-        sourceLanguage,
-        targetLanguage,
-        promptPresetContent,
-      });
+      const { messages, idToOriginalText } =
+        await this.promptConverterService.getChatBlockWithSegmentMap({
+          requestId,
+          content: Array.from(remainingTexts.keys()),
+          sourceLanguage,
+          targetLanguage,
+          promptPresetContent,
+        });
 
       this.logger.debug('번역 요청 전 프롬프트:', {
         messages,
@@ -310,13 +384,22 @@ export class TextBatchTranslationService {
         },
       });
 
-      const { translations: batchTranslations, hasPartialData } =
-        await this.aiProxy.parseTranslationResponse(response, remainingTexts);
+      const {
+        translations: batchTranslations,
+        hasPartialData,
+        validationMismatchTexts,
+      } = await this.aiProxy.parseTranslationResponse(
+        response,
+        remainingTexts,
+        idToOriginalText,
+        placeholderPreservation
+      );
       return {
         batchTranslations,
         response,
         shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response) || hasPartialData,
         hasPartialData,
+        validationMismatchTexts,
       };
     } catch (error) {
       const translationsToCache = new Map<string, string>();
@@ -386,7 +469,8 @@ export class TextBatchTranslationService {
 
   private async applyTranslationCache(
     sourceTexts: string[],
-    cacheTag: string
+    cacheTag: string,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): Promise<{
     texts: string[];
     remainingTexts: Map<string, number[]>;
@@ -398,7 +482,8 @@ export class TextBatchTranslationService {
     sourceTexts.forEach((text, index) => {
       const { translatedText, isCacheHit } = this.getTranslationFromCachedResult(
         text,
-        cachedResults
+        cachedResults,
+        placeholderPreservation
       );
 
       if (isCacheHit) {
@@ -415,11 +500,35 @@ export class TextBatchTranslationService {
 
   private getTranslationFromCachedResult(
     originalText: string,
-    cachedResults: Map<string, string | null>
+    cachedResults: Map<string, string | null>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): { translatedText: string; isCacheHit: boolean } {
     if (originalText.trim() === '') return { translatedText: originalText, isCacheHit: true };
 
     const cachedTranslation = cachedResults.get(originalText);
+    if (!isNullish(cachedTranslation)) {
+      const normalizedOriginal = originalText.trim();
+      const normalizedTranslated = cachedTranslation.trim();
+      if (
+        placeholderPreservation?.enabled &&
+        Array.isArray(placeholderPreservation.rules) &&
+        placeholderPreservation.rules.length > 0
+      ) {
+        const mismatch = hasPlaceholderPreservationMismatch({
+          beforeText: normalizedOriginal,
+          afterText: normalizedTranslated,
+          placeholderPreservation,
+          warn: (message, meta) => this.logger.warn(message, meta),
+        });
+        if (mismatch) {
+          this.logger.warn('캐시 번역 플레이스홀더 보존 불일치로 재번역합니다.', {
+            originalLength: normalizedOriginal.length,
+            translatedLength: normalizedTranslated.length,
+          });
+          return { translatedText: originalText, isCacheHit: false };
+        }
+      }
+    }
     const translatedText = isNullish(cachedTranslation) ? originalText : cachedTranslation;
     const isCacheHit = !isNullish(cachedTranslation);
 

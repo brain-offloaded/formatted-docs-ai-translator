@@ -6,6 +6,7 @@ import {
   Menu as MenuIcon,
   BugReport as BugReportIcon,
   Settings as SettingsIcon,
+  AutoFixHigh as AutoFixHighIcon,
   // ListAlt as ListAltIcon, // 제거
   Style as StyleIcon, // 새로운 아이콘 추가
   Image as ImageIcon,
@@ -53,6 +54,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChang
     { id: 'translation', label: t('menu.translation'), icon: <TranslateIcon /> },
     { id: 'presets', label: t('menu.presets'), icon: <StyleIcon /> },
     { id: 'model-settings', label: t('menu.modelSettings'), icon: <SettingsIcon /> },
+    { id: 'prepost-settings', label: t('menu.prepostSettings'), icon: <AutoFixHighIcon /> },
     { id: 'image-viewer', label: t('menu.imageViewer'), icon: <ImageIcon /> },
     { id: 'cache', label: t('menu.cache'), icon: <StorageIcon /> },
     { id: 'cache-tags', label: t('menu.cacheTags'), icon: <LabelIcon /> },

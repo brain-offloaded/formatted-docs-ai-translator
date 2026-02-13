@@ -31,6 +31,11 @@ export interface ProviderSpecificConfig {
   activeSlotId?: string;
 }
 
+export interface PlaceholderPreservationRuleConfig {
+  pattern: string;
+  flags: string;
+}
+
 export interface AiTranslatorConfig {
   modelProvider: ModelProvider;
   sourceLanguage: SourceLanguage;
@@ -50,6 +55,8 @@ export interface AiTranslatorConfig {
   thinkingLevel: string; // "생각" 강도 설정 (현재 provider용)
   thinkingBudget: number; // "생각" 과정에 사용될 예산 (토큰 수) (현재 provider용)
   setThinkingBudget: boolean; // "생각" 예산 설정 여부 (현재 provider용)
+  placeholderPreservationEnabled: boolean;
+  placeholderPreservationRules: PlaceholderPreservationRuleConfig[];
   // Provider 별 분리 저장 영역
   providerSettings: Record<ModelProvider, ProviderSpecificConfig>;
 }

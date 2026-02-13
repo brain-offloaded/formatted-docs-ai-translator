@@ -1045,6 +1045,30 @@
         ]
       }
     },
+    "/translator/text/translate/stream": {
+      "post": {
+        "operationId": "TextTranslatorController_streamTranslateText",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateTextArrayRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "텍스트 배열을 번역하며 진행률을 NDJSON 스트림으로 전송합니다."
+          }
+        },
+        "tags": [
+          "text-translator"
+        ]
+      }
+    },
     "/temp-workspaces/{workspaceId}": {
       "delete": {
         "operationId": "TempWorkspaceController_deleteTempWorkspace",
@@ -2795,6 +2819,44 @@
           "path"
         ]
       },
+      "PlaceholderPreservationRuleDto": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "플레이스홀더 정규식 패턴 (슬래시 `/.../` 없이 패턴만)",
+            "example": "\\\\n"
+          },
+          "flags": {
+            "type": "string",
+            "description": "정규식 플래그 문자열 (예: i, imsu). g는 내부적으로 적용됩니다.",
+            "example": "imsu"
+          }
+        },
+        "required": [
+          "pattern"
+        ]
+      },
+      "PlaceholderPreservationSettingsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "플레이스홀더 보존 검사 활성화 여부",
+            "example": true
+          },
+          "rules": {
+            "description": "플레이스홀더 보존 검사 규칙 목록",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlaceholderPreservationRuleDto"
+            }
+          }
+        },
+        "required": [
+          "enabled"
+        ]
+      },
       "TranslateTextArrayRequestDto": {
         "type": "object",
         "properties": {
@@ -2832,6 +2894,14 @@
             "type": "string",
             "description": "번역 결과를 저장할 캐시 태그",
             "example": "default"
+          },
+          "placeholderPreservation": {
+            "description": "플레이스홀더 보존 검사 설정(텍스트/파일 번역에만 적용)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlaceholderPreservationSettingsDto"
+              }
+            ]
           }
         },
         "required": [
