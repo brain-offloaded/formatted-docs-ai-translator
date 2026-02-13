@@ -26,7 +26,7 @@ git pull origin main
 git checkout -b chore/release-v1.2.3
 
 # 버전 갱신 (예: 1.2.3)
-yarn version --new-version 1.2.3
+yarn version:set 1.2.3
 
 # CHANGELOG.md 갱신 후 커밋
 git add package.json CHANGELOG.md
