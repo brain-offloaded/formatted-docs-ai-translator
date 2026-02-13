@@ -18,7 +18,7 @@ import { AiChatResponse, AiMessage, AiProxyError } from '../dto/common-ai.dto';
 import type { PlaceholderPreservationSettings, TextTranslateParam } from './translator.types';
 import { AiRateLimiterService } from './ai-rate-limiter.service';
 import { TranslationParsingError } from './translation-response-parser.service';
-import { errorToString } from '@/nest/utils/error-stringify';
+import { hasPlaceholderPreservationMismatch } from './placeholder-preservation-validator';
 
 @Injectable()
 export class TextBatchTranslationService {
@@ -514,10 +514,11 @@ export class TextBatchTranslationService {
         Array.isArray(placeholderPreservation.rules) &&
         placeholderPreservation.rules.length > 0
       ) {
-        const mismatch = this.hasPlaceholderPreservationMismatch({
+        const mismatch = hasPlaceholderPreservationMismatch({
           beforeText: normalizedOriginal,
           afterText: normalizedTranslated,
           placeholderPreservation,
+          warn: (message, meta) => this.logger.warn(message, meta),
         });
         if (mismatch) {
           this.logger.warn('캐시 번역 플레이스홀더 보존 불일치로 재번역합니다.', {
@@ -532,96 +533,6 @@ export class TextBatchTranslationService {
     const isCacheHit = !isNullish(cachedTranslation);
 
     return { translatedText, isCacheHit };
-  }
-
-  private hasPlaceholderPreservationMismatch({
-    beforeText,
-    afterText,
-    placeholderPreservation,
-  }: {
-    beforeText: string;
-    afterText: string;
-    placeholderPreservation: PlaceholderPreservationSettings;
-  }): boolean {
-    for (const rule of placeholderPreservation.rules) {
-      if (!rule || typeof rule.pattern !== 'string') continue;
-      const pattern = rule.pattern;
-      if (!pattern.trim()) continue;
-      const flags = typeof rule.flags === 'string' ? rule.flags : '';
-      const compiled = this.safeCompileRule(pattern, flags);
-      if (!compiled) continue;
-      const before = this.safeBuildMatchMultiset(beforeText, compiled);
-      const after = this.safeBuildMatchMultiset(afterText, compiled);
-      if (before.kind !== 'ok' || after.kind !== 'ok') {
-        return true;
-      }
-      if (!this.isSameMatchMultiset(before.multiset, after.multiset)) return true;
-    }
-    return false;
-  }
-
-  private safeCompileRule(pattern: string, flags: string): RegExp | null {
-    try {
-      const normalizedFlags = this.normalizeFlagsForCounting(flags);
-      return new RegExp(pattern, normalizedFlags);
-    } catch (error) {
-      this.logger.warn('플레이스홀더 정규식 컴파일 실패로 규칙을 무시합니다.', {
-        pattern,
-        flags,
-        error: errorToString(error),
-      });
-      return null;
-    }
-  }
-
-  private normalizeFlagsForCounting(flags: string): string {
-    const raw = typeof flags === 'string' ? flags : '';
-    const filtered = raw.replace(/[^dgimsuvy]/g, '');
-    const unique = Array.from(new Set(filtered.split(''))).join('');
-    return unique.includes('g') ? unique : `${unique}g`;
-  }
-
-  private isSameMatchMultiset(a: Map<string, number>, b: Map<string, number>): boolean {
-    if (a.size !== b.size) return false;
-    for (const [value, count] of a) {
-      if (b.get(value) !== count) return false;
-    }
-    return true;
-  }
-
-  private safeBuildMatchMultiset(
-    text: string,
-    regex: RegExp
-  ): { kind: 'ok'; multiset: Map<string, number> } | { kind: 'too_many' } | { kind: 'error' } {
-    try {
-      const maxMatches = 10000;
-      let count = 0;
-      const multiset = new Map<string, number>();
-      regex.lastIndex = 0;
-      while (true) {
-        const match = regex.exec(text);
-        if (!match) break;
-        const value = match[0];
-        multiset.set(value, (multiset.get(value) || 0) + 1);
-        count++;
-        if (count >= maxMatches) {
-          this.logger.warn('플레이스홀더 매칭이 너무 많아 검증에 실패합니다.', {
-            maxMatches,
-          });
-          return { kind: 'too_many' };
-        }
-        if (value === '') {
-          regex.lastIndex++;
-          if (regex.lastIndex > text.length) break;
-        }
-      }
-      return { kind: 'ok', multiset };
-    } catch (error) {
-      this.logger.warn('플레이스홀더 매칭 카운트 실패로 검증에 실패합니다.', {
-        error: errorToString(error),
-      });
-      return { kind: 'error' };
-    }
   }
 
   private async updateTranslationsAndCache({
