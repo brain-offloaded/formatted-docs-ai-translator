@@ -13,7 +13,11 @@ import type { TranslationResultState, UIState } from '@/react/contexts/Translati
 import { TranslationType } from '@/react/contexts/TranslationContext';
 import type { TranslationJobManager } from '@/react/services/job-manager/TranslationJobManager';
 import type { TFunction } from 'i18next';
-import { batchTranslateParsedResults, BatchParseResult } from './batch-translation';
+import {
+  batchTranslateParsedResults,
+  BatchParseResult,
+  BatchTranslationCancelledError,
+} from './batch-translation';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   input: string | File[];
@@ -105,11 +109,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
     if (!isCacheTagValid) return;
 
     const translationStartTime = Date.now();
-    const shouldBatchAcrossFiles =
-      currentIsFileInput &&
-      Array.isArray(input) &&
-      input.length > 1 &&
-      translationType !== TranslationType.Image;
+    const shouldUseSegmentBasedProgress = translationType !== TranslationType.Image;
 
     try {
       if (!validateInput(input)) {
@@ -139,11 +139,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       setIsTranslating(true);
       const manager = getJobManager();
 
-      // 배치 모드에서는 파일 Job 완료가 파싱 완료를 의미함
-      // 파싱 중: 0% (파싱중...), 번역 중: 0~100%, 적용 중: 100% (적용중...)
+      // 세그먼트 진행률 모드에서는 Job 완료를 "파싱 완료"로 취급한다.
+      // 파싱 중: 0% 유지, 번역 중: TranslationUnit 기준으로 0~100% 갱신
       manager.on('onProgress', ({ total, completed, failed, cancelled }) => {
-        if (!shouldBatchAcrossFiles) {
-          // 일반 모드: 파일 Job 완료가 곧 전체 번역 완료
+        if (!shouldUseSegmentBasedProgress) {
+          // 이미지 모드: 파일 Job 완료 기준 진행률
           const finished = completed + failed + cancelled;
           const progress = total > 0 ? (finished / total) * 100 : 0;
           setUIState((prev) => ({
@@ -156,8 +156,8 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             cancelled,
           }));
         } else {
-          // 배치 모드: 파싱 중에는 0% 유지, "파싱 중..." 메시지 표시
-          // completed는 번역 단위 기준으로 batchTranslateParsedResults에서 업데이트되므로 여기서는 0 유지
+          // 세그먼트 진행률 모드: 파싱 중에는 0% 유지
+          // completed/totalJobs는 batchTranslateParsedResults onProgress에서 TranslationUnit 기준으로 업데이트
           setUIState((prev) => ({
             ...prev,
             translationProgress: 0,
@@ -194,7 +194,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             parsedResults,
             config,
             promptPresetContent,
+            isCancellationRequested: () => manager.isCancellationRequested(),
             onProgress: (completedUnits, totalUnits) => {
+              if (manager.isCancellationRequested()) {
+                return;
+              }
               // 순수 번역 진행률: 0% ~ 100% (TranslationUnit 기준)
               const translationProgress = totalUnits > 0 ? (completedUnits / totalUnits) * 100 : 0;
               const isApplyingPhase = completedUnits === totalUnits && totalUnits > 0;
@@ -212,6 +216,12 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           });
           outputs.push(...appliedOutputs);
         } catch (error) {
+          if (
+            error instanceof BatchTranslationCancelledError ||
+            manager.isCancellationRequested()
+          ) {
+            throw error;
+          }
           const message = (error as Error)?.message || t('translationRunner.unknownError');
           parsedResults.forEach((parsedResult) => {
             const jobData = parsedResult.translationInput.content;
@@ -236,6 +246,25 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
 
       manager.on('onAllComplete', async (results: Job<File | string>[]) => {
         const cancelledCount = results.filter((job) => job.status === JobStatus.CANCELLED).length;
+        const applyCancelledState = () => {
+          setUIState((prev) => ({
+            ...prev,
+            translationProgress: 0,
+            progressMessage: t('translationRunner.cancelled'),
+            completed: 0,
+            totalJobs: results.length,
+            failed: 0,
+            cancelled: Math.max(cancelledCount, 1),
+          }));
+          setIsTranslating(false);
+        };
+        const shouldAbortPostProcessing = () => {
+          if (!manager.isCancellationRequested()) {
+            return false;
+          }
+          applyCancelledState();
+          return true;
+        };
 
         if (cancelledCount > 0 && cancelledCount === results.length && results.length > 0) {
           setUIState((prev) => ({
@@ -252,14 +281,34 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           return;
         }
 
-        const outputs: TranslationOutputType[] = shouldBatchAcrossFiles
-          ? await buildBatchOutputs(results)
-          : [
-              ...results
-                .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
-                .map((job) => job.result as TranslationOutputType),
-              ...buildFailureOutputs(results, t),
-            ];
+        if (shouldAbortPostProcessing()) {
+          return;
+        }
+
+        let outputs: TranslationOutputType[] = [];
+        try {
+          outputs = shouldUseSegmentBasedProgress
+            ? await buildBatchOutputs(results)
+            : [
+                ...results
+                  .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
+                  .map((job) => job.result as TranslationOutputType),
+                ...buildFailureOutputs(results, t),
+              ];
+        } catch (error) {
+          if (
+            error instanceof BatchTranslationCancelledError ||
+            manager.isCancellationRequested()
+          ) {
+            applyCancelledState();
+            return;
+          }
+          throw error;
+        }
+
+        if (shouldAbortPostProcessing()) {
+          return;
+        }
 
         setUIState((prev) => ({
           ...prev,
@@ -267,13 +316,31 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           progressMessage: t('translationRunner.aggregating'),
         }));
 
+        if (shouldAbortPostProcessing()) {
+          return;
+        }
+
         const finalOutput = TranslationOutput.merge(outputs);
         const { results: aggregated, total, success, fail } = finalOutput.getAggregatedReport();
         const hasFailure = fail > 0;
 
         if (currentIsFileInput) {
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const zipBlob = await finalOutput.toZip();
+
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const singleFile = await finalOutput.getSingleFile();
+
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const totalSize = Array.isArray(input)
             ? input.reduce((acc, file) => acc + file.size, 0)
             : 0;
@@ -324,6 +391,10 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             })
           );
         } else {
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const result = finalOutput.getResult();
           const resultText =
             result instanceof Blob
@@ -331,20 +402,42 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
               : Array.isArray(result)
                 ? result.join('\n')
                 : (result as string);
-          const errorMessages = results
-            .filter((job) => job.status === JobStatus.FAILED || job.status === JobStatus.CANCELLED)
-            .map((job) => {
-              const jobData = job.data;
-              const name = typeof jobData === 'string' ? t('translationRunner.text') : jobData.name;
-              if (job.status === JobStatus.CANCELLED) {
-                return `${name}: ${t('translationRunner.userCancelled')}`;
-              }
-              const error = job.error as Error | undefined;
-              return `${name}: ${error?.message ?? t('translationRunner.unknownError')}`;
-            })
-            .join('\n');
-          const fallbackErrorText = errorMessages
-            ? `${t('translationRunner.someFailures')}\n${errorMessages}`
+
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
+          const errorMessages = new Set(
+            results
+              .filter(
+                (job) => job.status === JobStatus.FAILED || job.status === JobStatus.CANCELLED
+              )
+              .map((job) => {
+                const jobData = job.data;
+                const name =
+                  typeof jobData === 'string' ? t('translationRunner.text') : jobData.name;
+                if (job.status === JobStatus.CANCELLED) {
+                  return `${name}: ${t('translationRunner.userCancelled')}`;
+                }
+                const error = job.error as Error | undefined;
+                return `${name}: ${error?.message ?? t('translationRunner.unknownError')}`;
+              })
+          );
+
+          if (shouldUseSegmentBasedProgress) {
+            finalOutput
+              .getResults()
+              .filter((item) => !item.success)
+              .forEach((item) => {
+                const name = item.originalFileName ?? item.name;
+                const message = item.message?.trim() || t('translationRunner.unknownError');
+                errorMessages.add(`${name}: ${message}`);
+              });
+          }
+
+          const combinedErrorMessages = Array.from(errorMessages).join('\n');
+          const fallbackErrorText = combinedErrorMessages
+            ? `${t('translationRunner.someFailures')}\n${combinedErrorMessages}`
             : t('translationRunner.someFailures');
           setResultState({
             translationResult: {
@@ -362,6 +455,10 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           );
         }
 
+        if (shouldAbortPostProcessing()) {
+          return;
+        }
+
         setUIState((prev) => ({
           ...prev,
           translationProgress: 100,
@@ -373,8 +470,8 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
       const itemsToTranslate = Array.isArray(input) ? input : [input];
       manager.add(itemsToTranslate);
 
-      // 배치 모드일 때 strategy를 한 번만 생성하여 재사용
-      const batchStrategy = shouldBatchAcrossFiles
+      // 세그먼트 진행률 모드에서는 strategy를 한 번만 생성해 parse/applier를 재사용한다.
+      const batchStrategy = shouldUseSegmentBasedProgress
         ? translationStrategyFactory.create(translationType)
         : null;
 
@@ -386,7 +483,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           config,
           promptPresetContent
         );
-        if (shouldBatchAcrossFiles && batchStrategy) {
+        if (shouldUseSegmentBasedProgress && batchStrategy) {
           const parsed = await batchStrategy.parser.parse(translationInput);
           return {
             translationInput,

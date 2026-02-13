@@ -13,6 +13,7 @@ export class TranslationJobManager<T> {
   private options: JobManagerOptions;
   private eventHandlers: Partial<JobManagerEvents<T>> = {};
   private worker: Worker<T> | null = null;
+  private cancellationRequested = false;
 
   constructor(options: Partial<JobManagerOptions> = {}) {
     this.options = {
@@ -45,6 +46,10 @@ export class TranslationJobManager<T> {
   }
 
   add(data: T[]): Job<T>[] {
+    if (data.length > 0) {
+      this.cancellationRequested = false;
+    }
+
     const newJobs = data.map((item) => {
       const job: Job<T> = {
         id: uuidv4(),
@@ -64,6 +69,7 @@ export class TranslationJobManager<T> {
       console.warn('Job manager is already running.');
       return;
     }
+    this.cancellationRequested = false;
     this.worker = worker;
     this.runNextJobInQueue();
   }
@@ -71,6 +77,7 @@ export class TranslationJobManager<T> {
   cancel(options: { silent?: boolean } = {}): void {
     const { silent = false } = options;
 
+    this.cancellationRequested = true;
     this.queue = [];
 
     let hasStateChange = false;
@@ -107,6 +114,7 @@ export class TranslationJobManager<T> {
     this.queue = [];
     this.runningWorkers = 0;
     this.worker = null;
+    this.cancellationRequested = false;
   }
 
   private runNextJobInQueue(): void {
@@ -211,6 +219,10 @@ export class TranslationJobManager<T> {
     return Array.from(this.jobs.values()).some((job) =>
       [JobStatus.PENDING, JobStatus.RUNNING, JobStatus.RETRYING].includes(job.status)
     );
+  }
+
+  isCancellationRequested(): boolean {
+    return this.cancellationRequested;
   }
 
   private isJobCancelled(job: Job<T>): boolean {
