@@ -13,7 +13,11 @@ import type { TranslationResultState, UIState } from '@/react/contexts/Translati
 import { TranslationType } from '@/react/contexts/TranslationContext';
 import type { TranslationJobManager } from '@/react/services/job-manager/TranslationJobManager';
 import type { TFunction } from 'i18next';
-import { batchTranslateParsedResults, BatchParseResult } from './batch-translation';
+import {
+  batchTranslateParsedResults,
+  BatchParseResult,
+  BatchTranslationCancelledError,
+} from './batch-translation';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   input: string | File[];
@@ -190,7 +194,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             parsedResults,
             config,
             promptPresetContent,
+            isCancellationRequested: () => manager.isCancellationRequested(),
             onProgress: (completedUnits, totalUnits) => {
+              if (manager.isCancellationRequested()) {
+                return;
+              }
               // 순수 번역 진행률: 0% ~ 100% (TranslationUnit 기준)
               const translationProgress = totalUnits > 0 ? (completedUnits / totalUnits) * 100 : 0;
               const isApplyingPhase = completedUnits === totalUnits && totalUnits > 0;
@@ -208,6 +216,12 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           });
           outputs.push(...appliedOutputs);
         } catch (error) {
+          if (
+            error instanceof BatchTranslationCancelledError ||
+            manager.isCancellationRequested()
+          ) {
+            throw error;
+          }
           const message = (error as Error)?.message || t('translationRunner.unknownError');
           parsedResults.forEach((parsedResult) => {
             const jobData = parsedResult.translationInput.content;
@@ -232,6 +246,25 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
 
       manager.on('onAllComplete', async (results: Job<File | string>[]) => {
         const cancelledCount = results.filter((job) => job.status === JobStatus.CANCELLED).length;
+        const applyCancelledState = () => {
+          setUIState((prev) => ({
+            ...prev,
+            translationProgress: 0,
+            progressMessage: t('translationRunner.cancelled'),
+            completed: 0,
+            totalJobs: results.length,
+            failed: 0,
+            cancelled: Math.max(cancelledCount, 1),
+          }));
+          setIsTranslating(false);
+        };
+        const shouldAbortPostProcessing = () => {
+          if (!manager.isCancellationRequested()) {
+            return false;
+          }
+          applyCancelledState();
+          return true;
+        };
 
         if (cancelledCount > 0 && cancelledCount === results.length && results.length > 0) {
           setUIState((prev) => ({
@@ -248,14 +281,34 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           return;
         }
 
-        const outputs: TranslationOutputType[] = shouldUseSegmentBasedProgress
-          ? await buildBatchOutputs(results)
-          : [
-              ...results
-                .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
-                .map((job) => job.result as TranslationOutputType),
-              ...buildFailureOutputs(results, t),
-            ];
+        if (shouldAbortPostProcessing()) {
+          return;
+        }
+
+        let outputs: TranslationOutputType[] = [];
+        try {
+          outputs = shouldUseSegmentBasedProgress
+            ? await buildBatchOutputs(results)
+            : [
+                ...results
+                  .filter((job) => job.status === JobStatus.SUCCEEDED && job.result)
+                  .map((job) => job.result as TranslationOutputType),
+                ...buildFailureOutputs(results, t),
+              ];
+        } catch (error) {
+          if (
+            error instanceof BatchTranslationCancelledError ||
+            manager.isCancellationRequested()
+          ) {
+            applyCancelledState();
+            return;
+          }
+          throw error;
+        }
+
+        if (shouldAbortPostProcessing()) {
+          return;
+        }
 
         setUIState((prev) => ({
           ...prev,
@@ -263,13 +316,31 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           progressMessage: t('translationRunner.aggregating'),
         }));
 
+        if (shouldAbortPostProcessing()) {
+          return;
+        }
+
         const finalOutput = TranslationOutput.merge(outputs);
         const { results: aggregated, total, success, fail } = finalOutput.getAggregatedReport();
         const hasFailure = fail > 0;
 
         if (currentIsFileInput) {
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const zipBlob = await finalOutput.toZip();
+
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const singleFile = await finalOutput.getSingleFile();
+
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const totalSize = Array.isArray(input)
             ? input.reduce((acc, file) => acc + file.size, 0)
             : 0;
@@ -320,6 +391,10 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             })
           );
         } else {
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const result = finalOutput.getResult();
           const resultText =
             result instanceof Blob
@@ -327,6 +402,11 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
               : Array.isArray(result)
                 ? result.join('\n')
                 : (result as string);
+
+          if (shouldAbortPostProcessing()) {
+            return;
+          }
+
           const errorMessages = new Set(
             results
               .filter(
@@ -373,6 +453,10 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           showSnackbar(
             hasFailure ? t('translationRunner.someFailures') : t('translationRunner.allCompleted')
           );
+        }
+
+        if (shouldAbortPostProcessing()) {
+          return;
         }
 
         setUIState((prev) => ({

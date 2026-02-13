@@ -23,7 +23,21 @@ interface BatchTranslateOptions<
   config: AiTranslatorConfig;
   promptPresetContent?: string | null;
   onProgress?: (completed: number, total: number) => void;
+  isCancellationRequested?: () => boolean;
 }
+
+export class BatchTranslationCancelledError extends Error {
+  constructor() {
+    super('Batch translation cancelled');
+    this.name = 'BatchTranslationCancelledError';
+  }
+}
+
+const throwIfCancelled = (isCancellationRequested?: () => boolean) => {
+  if (isCancellationRequested?.()) {
+    throw new BatchTranslationCancelledError();
+  }
+};
 
 export const batchTranslateParsedResults = async <
   TInput extends TranslationInput,
@@ -34,7 +48,10 @@ export const batchTranslateParsedResults = async <
   config,
   promptPresetContent,
   onProgress,
+  isCancellationRequested,
 }: BatchTranslateOptions<TInput, TOutput>): Promise<TOutput[]> => {
+  throwIfCancelled(isCancellationRequested);
+
   const combinedIndexMap: Array<{ fileIndex: number; unitIndex: number }> = [];
   const combinedUnits: TranslationUnit[] = [];
 
@@ -45,15 +62,24 @@ export const batchTranslateParsedResults = async <
     });
   });
 
+  throwIfCancelled(isCancellationRequested);
+
   const translatedCombined: TranslationUnit[] = combinedUnits.length
     ? await translatorEngine.translateUnits(
         combinedUnits,
         config,
         promptPresetContent ?? undefined,
         undefined, // sourceFilePath
-        onProgress // 백엔드 스트리밍에서 진행률을 보고받음
+        (completed, total) => {
+          if (isCancellationRequested?.()) {
+            return;
+          }
+          onProgress?.(completed, total);
+        } // 백엔드 스트리밍에서 진행률을 보고받음
       )
     : [];
+
+  throwIfCancelled(isCancellationRequested);
 
   // 번역이 없는 경우에도 완료 보고
   if (combinedUnits.length === 0) {
@@ -78,11 +104,15 @@ export const batchTranslateParsedResults = async <
     };
   });
 
+  throwIfCancelled(isCancellationRequested);
+
   const appliedOutputs = await Promise.all(
     parsedResults.map((parsedResult, index) =>
       parsedResult.applier.apply(parsedResult.translationInput, translatedByFile[index])
     )
   );
+
+  throwIfCancelled(isCancellationRequested);
 
   return appliedOutputs;
 };
