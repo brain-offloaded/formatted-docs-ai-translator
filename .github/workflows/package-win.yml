@@ -2,112 +2,54 @@ name: Package (Windows ZIP)
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '릴리스 태그 (예: v1.2.3)'
+        required: true
+        type: string
 
 jobs:
-  prepare-release-tag:
-    name: Prepare release tag
-    if: startsWith(github.ref_name, 'release/v')
+  build-zip:
+    name: Package (Windows ZIP)
     runs-on: windows-latest
     permissions:
       contents: write
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    outputs:
-      release-version: ${{ steps.release.outputs.release-version }}
-      tag-exists: ${{ steps.release.outputs.tag-exists }}
+      YARN_ENABLE_IMMUTABLE_INSTALLS: 'true'
+      npm_config_loglevel: notice
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
 
-      - name: Prepare release tag
+      - name: Validate release tag
         id: release
         shell: bash
         env:
-          REF_NAME: ${{ github.ref_name }}
+          TAG_INPUT: ${{ github.event.inputs.release_tag }}
         run: |
           set -euo pipefail
-          if [[ "$REF_NAME" =~ ^release/(v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            VERSION="${BASH_REMATCH[1]}"
-          else
-            echo "::error::release/vx.y.z 브랜치에서만 실행할 수 있습니다. 현재 ref: $REF_NAME"
+          TAG="$(echo "$TAG_INPUT" | tr -d '[:space:]')"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::유효한 태그 형식이 아닙니다. 예: v1.2.3 (입력값: $TAG_INPUT)"
             exit 1
           fi
-          TAG_EXISTS=false
-          CREATE_RELEASE=false
-          if git ls-remote --exit-code --tags origin "$VERSION" >/dev/null; then
-            TAG_EXISTS=true
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git tag -a "$VERSION" -m "Release $VERSION"
-            git push origin "$VERSION"
-            CREATE_RELEASE=true
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::원격 저장소에 태그 $TAG 가 없습니다. 먼저 태그를 발행하세요."
+            exit 1
           fi
-          if [ "$CREATE_RELEASE" = "true" ]; then
-            if gh release view "$VERSION" >/dev/null 2>&1; then
-              gh release delete "$VERSION" --yes
-            fi
-            gh release create "$VERSION" --draft --title "$VERSION" --notes "자동 생성된 드래프트 릴리스"
-          fi
-          echo "release-version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag-exists=$TAG_EXISTS" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag-ref=refs/tags/$TAG" >> "$GITHUB_OUTPUT"
 
-  delete-release-tag:
-    name: Recreate release tag (approval required)
-    needs: prepare-release-tag
-    if: startsWith(github.ref_name, 'release/v') && needs.prepare-release-tag.outputs.tag-exists == 'true'
-    runs-on: windows-latest
-    permissions:
-      contents: write
-    environment: release-tag-approval
-    env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    steps:
-      - name: Checkout
+      - name: Checkout tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
-
-      - name: Recreate release tag
-        shell: bash
-        env:
-          VERSION: ${{ needs.prepare-release-tag.outputs.release-version }}
-        run: |
-          set -euo pipefail
-          if gh release view "$VERSION" >/dev/null 2>&1; then
-            gh release delete "$VERSION" --yes
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag --delete "$VERSION" >/dev/null 2>&1 || true
-          git push origin --delete "$VERSION" >/dev/null 2>&1 || true
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin "$VERSION"
-          gh release create "$VERSION" --draft --title "$VERSION" --notes "자동 생성된 드래프트 릴리스"
-
-  build-zip:
-    name: Package (Windows ZIP)
-    needs: prepare-release-tag
-    if: startsWith(github.ref_name, 'release/v') && needs.prepare-release-tag.outputs.tag-exists == 'false'
-    runs-on: windows-latest
-    permissions:
-      contents: write
-    env:
-      YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
-      npm_config_loglevel: notice
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    steps: &package-steps
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref }}
+          ref: ${{ steps.release.outputs.tag-ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'package.json'
+          node-version-file: package.json
 
       - name: Enable Corepack
         run: corepack enable
@@ -145,15 +87,17 @@ jobs:
       - name: Allow long paths (Windows)
         run: git config --system core.longpaths true
 
-      - name: Normalize artifact ref
-        id: artifact-ref
+      - name: Ensure draft release exists
         shell: bash
         env:
-          REF: ${{ needs.prepare-release-tag.outputs.release-version || github.ref_name }}
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
-          REF=${REF:-manual}
-          REF=${REF//\//-}
-          echo "artifact-ref=$REF" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists. Reusing current release."
+          else
+            gh release create "$TAG" --draft --title "$TAG" --notes "자동 생성된 드래프트 릴리스"
+          fi
 
       - name: Install deps
         run: yarn install --immutable
@@ -167,45 +111,22 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: formatted-docs-ai-translator-win-${{ steps.artifact-ref.outputs.artifact-ref }}
+          name: formatted-docs-ai-translator-win-${{ steps.release.outputs.tag }}
           path: |
             release/**/*.zip
             release/**/builder-*.yml
             release/**/builder-*.yaml
           if-no-files-found: warn
 
-      - name: Upload assets to draft release
+      - name: Upload assets to release
         shell: bash
         env:
-          VERSION: ${{ needs.prepare-release-tag.outputs.release-version }}
+          TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
-          if [ -z "$VERSION" ]; then
-            echo "::error::릴리스 버전을 확인할 수 없습니다."
-            exit 1
-          fi
           mapfile -d '' -t FILES < <(find release -type f \( -name '*.zip' -o -name 'builder-*.yml' -o -name 'builder-*.yaml' \) -print0 | sort -z)
           if [ "${#FILES[@]}" -eq 0 ]; then
             echo "::error::릴리스에 업로드할 파일을 찾을 수 없습니다."
             exit 1
           fi
-          if ! gh release view "$VERSION" >/dev/null 2>&1; then
-            echo "::error::$VERSION 태그의 드래프트 릴리스를 찾을 수 없습니다."
-            exit 1
-          fi
-          gh release upload "$VERSION" "${FILES[@]}" --clobber
-
-  build-zip-after-approval:
-    name: Package (Windows ZIP)
-    needs:
-      - prepare-release-tag
-      - delete-release-tag
-    if: startsWith(github.ref_name, 'release/v') && needs.prepare-release-tag.outputs.tag-exists == 'true'
-    runs-on: windows-latest
-    permissions:
-      contents: write
-    env:
-      YARN_ENABLE_IMMUTABLE_INSTALLS: "true"
-      npm_config_loglevel: notice
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    steps: *package-steps
+          gh release upload "$TAG" "${FILES[@]}" --clobber

@@ -3,9 +3,7 @@ name: pr-build-lint-codegen
 on:
   pull_request:
     branches:
-      - develop
       - main
-      - release/*
 
 jobs:
   build-lint-codegen:
