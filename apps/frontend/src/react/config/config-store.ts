@@ -5,6 +5,7 @@ import {
   AiTranslatorConfig,
   ProviderSpecificConfig,
   ProviderSlotConfig,
+  PlaceholderPreservationRuleConfig,
   TranslatorConfigUpdate,
 } from '@/react/types/config';
 import { TranslatorAiSettingsDto } from '@/react/api/generated/models/TranslatorAiSettingsDto';
@@ -236,8 +237,34 @@ const getDefaultConfig = (): AiTranslatorConfig => {
     thinkingLevel: providerSettings[initialProvider].thinkingLevel,
     thinkingBudget: providerSettings[initialProvider].thinkingBudget,
     setThinkingBudget: providerSettings[initialProvider].setThinkingBudget,
+    placeholderPreservationEnabled: true,
+    placeholderPreservationRules: [
+      { pattern: '\\r', flags: '' },
+      { pattern: '\\n', flags: '' },
+    ],
     providerSettings,
   };
+};
+
+const normalizePlaceholderPreservationRules = (
+  rules: unknown,
+  defaults: PlaceholderPreservationRuleConfig[]
+): PlaceholderPreservationRuleConfig[] => {
+  if (!Array.isArray(rules)) {
+    return defaults;
+  }
+
+  const normalized = rules
+    .map((rule) => {
+      const candidate = rule as Partial<PlaceholderPreservationRuleConfig> | undefined;
+      const pattern = typeof candidate?.pattern === 'string' ? candidate.pattern : '';
+      const flags = typeof candidate?.flags === 'string' ? candidate.flags : '';
+      if (!pattern.trim()) return null;
+      return { pattern, flags };
+    })
+    .filter((v): v is PlaceholderPreservationRuleConfig => !!v);
+
+  return normalized.length > 0 ? normalized : defaults;
 };
 
 const normalizeProviderSettings = (config: unknown): ProviderSpecificConfig => {
@@ -296,6 +323,14 @@ const normalizeRehydratedConfig = (persistedState: unknown): AiTranslatorConfig 
     thinkingLevel: activeProviderSettings.thinkingLevel,
     thinkingBudget: activeProviderSettings.thinkingBudget,
     setThinkingBudget: activeProviderSettings.setThinkingBudget,
+    placeholderPreservationEnabled:
+      typeof persisted.placeholderPreservationEnabled === 'boolean'
+        ? persisted.placeholderPreservationEnabled
+        : defaults.placeholderPreservationEnabled,
+    placeholderPreservationRules: normalizePlaceholderPreservationRules(
+      persisted.placeholderPreservationRules,
+      defaults.placeholderPreservationRules
+    ),
   };
 };
 

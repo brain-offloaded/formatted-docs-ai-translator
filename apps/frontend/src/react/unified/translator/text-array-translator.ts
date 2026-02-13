@@ -66,6 +66,20 @@ export class TextArrayTranslator implements ITranslator {
       return units;
     }
 
+    const placeholderRules = config.placeholderPreservationRules
+      .filter(({ pattern }) => pattern.trim().length > 0)
+      .map(({ pattern, flags }) => ({
+        pattern,
+        flags: flags.trim() ? flags.trim() : undefined,
+      }));
+    const placeholderPreservation =
+      config.placeholderPreservationEnabled && placeholderRules.length > 0
+        ? {
+            enabled: true,
+            rules: placeholderRules,
+          }
+        : undefined;
+
     const payload: TranslateTextArrayRequestDto = {
       requestId,
       aiSettings: buildTranslatorAiSettings(config),
@@ -73,6 +87,7 @@ export class TextArrayTranslator implements ITranslator {
       sourceFilePath: sourceFilePath ?? '',
       textPaths: translatable.map(({ unit: { source, key } }) => ({ text: source, path: key })),
       cacheTag: config.cacheTag?.trim() ? config.cacheTag.trim() : DEFAULT_CACHE_TAG,
+      placeholderPreservation,
     };
 
     // 스트리밍 엔드포인트 호출

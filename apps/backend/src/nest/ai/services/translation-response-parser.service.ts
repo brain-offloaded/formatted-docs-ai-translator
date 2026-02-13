@@ -3,6 +3,8 @@ import { AiChatResponse, toTextFromMessageContent } from '../dto/common-ai.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { LoggerService } from '@/nest/logger/logger.service';
 import { errorToString } from '@/nest/utils/error-stringify';
+import type { PlaceholderPreservationSettings } from './translator.types';
+import { hasPlaceholderPreservationMismatch } from './placeholder-preservation-validator';
 
 export class TranslationParsingError extends Error {
   public readonly shouldReduceBatchSize: boolean;
@@ -55,11 +57,12 @@ export class TranslationResponseParser {
   public parseTranslationResponse(
     response: AiChatResponse,
     remainingTexts: Map<string, number[]>,
-    expectedIdToText?: Map<number, string>
+    expectedIdToText?: Map<number, string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): {
     translations: Map<string, TranslationResult>;
     hasPartialData: boolean;
-    lineBreakMismatchTexts: Set<string>;
+    validationMismatchTexts: Set<string>;
   } {
     const responseText = this.getResponseText(response);
     const { matches, hasPartialData } = this.parseSegmentMatches(responseText);
@@ -69,7 +72,7 @@ export class TranslationResponseParser {
     let offset: number | null;
     let expectedIds: number[] = [];
     let unexpectedIdCount: number | undefined;
-    const lineBreakMismatchTexts = new Set<string>();
+    const validationMismatchTexts = new Set<string>();
 
     if (useStrictIdMatching && expectedIdToText) {
       expectedIds = Array.from(expectedIdToText.keys());
@@ -78,7 +81,8 @@ export class TranslationResponseParser {
         expectedIds,
         expectedIdToText,
         remainingTexts,
-        lineBreakMismatchTexts
+        validationMismatchTexts,
+        placeholderPreservation
       );
       translations = strictResult.translations;
       excludeFrom = strictResult.excludeFrom;
@@ -90,7 +94,8 @@ export class TranslationResponseParser {
         matches,
         remainingTextArray,
         remainingTexts,
-        lineBreakMismatchTexts
+        validationMismatchTexts,
+        placeholderPreservation
       );
       translations = fallbackResult.translations;
       excludeFrom = fallbackResult.excludeFrom;
@@ -112,7 +117,7 @@ export class TranslationResponseParser {
       unexpectedIdCount,
     });
 
-    return { translations, hasPartialData, lineBreakMismatchTexts };
+    return { translations, hasPartialData, validationMismatchTexts };
   }
 
   private getResponseText(response: AiChatResponse): string {
@@ -353,7 +358,8 @@ export class TranslationResponseParser {
     matches: Array<{ id: number; translatedText: string }>,
     remainingTextArray: string[],
     remainingTexts: Map<string, number[]>,
-    lineBreakMismatchTexts: Set<string>
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): { translations: Map<string, TranslationResult>; excludeFrom: number; offset: number } {
     const offset = this.calculateOffset(matches);
     const { successfulIds, duplicateIds } = this.determineSuccessAndDuplicates(matches);
@@ -370,7 +376,8 @@ export class TranslationResponseParser {
       excludeFrom,
       remainingTextArray,
       remainingTexts,
-      lineBreakMismatchTexts
+      validationMismatchTexts,
+      placeholderPreservation
     );
     return { translations, excludeFrom, offset };
   }
@@ -380,7 +387,8 @@ export class TranslationResponseParser {
     expectedIds: number[],
     expectedIdToText: Map<number, string>,
     remainingTexts: Map<string, number[]>,
-    lineBreakMismatchTexts: Set<string>
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): {
     translations: Map<string, TranslationResult>;
     excludeFrom: number;
@@ -410,18 +418,26 @@ export class TranslationResponseParser {
       if (!originalText) continue;
       const normalizedOriginal = originalText.trim();
       const normalizedTranslated = translatedText.trim();
-      const originalStats = this.getLineBreakStats(normalizedOriginal);
-      const translatedStats = this.getLineBreakStats(normalizedTranslated);
-      if (originalStats.lf !== translatedStats.lf || originalStats.cr !== translatedStats.cr) {
-        lineBreakMismatchTexts.add(originalText);
-        this.logger.warn('라인 브레이크 개수 불일치로 번역 제외', {
-          id,
-          originalLineBreaks: originalStats,
-          translatedLineBreaks: translatedStats,
-          originalLength: normalizedOriginal.length,
-          translatedLength: normalizedTranslated.length,
+      if (
+        placeholderPreservation?.enabled &&
+        Array.isArray(placeholderPreservation.rules) &&
+        placeholderPreservation.rules.length > 0
+      ) {
+        const mismatch = hasPlaceholderPreservationMismatch({
+          beforeText: normalizedOriginal,
+          afterText: normalizedTranslated,
+          placeholderPreservation,
+          warn: (message, meta) => this.logger.warn(message, meta),
         });
-        continue;
+        if (mismatch) {
+          validationMismatchTexts.add(originalText);
+          this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
+            id,
+            originalLength: normalizedOriginal.length,
+            translatedLength: normalizedTranslated.length,
+          });
+          continue;
+        }
       }
       const indices = remainingTexts.get(originalText) || [];
       if (normalizedTranslated) {
@@ -446,7 +462,8 @@ export class TranslationResponseParser {
     excludeFrom: number,
     remainingTextArray: string[],
     remainingTexts: Map<string, number[]>,
-    lineBreakMismatchTexts: Set<string>
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): Map<string, TranslationResult> {
     const translations = new Map<string, TranslationResult>();
     for (const { id, translatedText } of matches) {
@@ -457,19 +474,27 @@ export class TranslationResponseParser {
       const originalText = remainingTextArray[normalizedId - 1];
       const normalizedOriginal = originalText.trim();
       const normalizedTranslated = translatedText.trim();
-      const originalStats = this.getLineBreakStats(normalizedOriginal);
-      const translatedStats = this.getLineBreakStats(normalizedTranslated);
-      if (originalStats.lf !== translatedStats.lf || originalStats.cr !== translatedStats.cr) {
-        lineBreakMismatchTexts.add(originalText);
-        this.logger.warn('라인 브레이크 개수 불일치로 번역 제외', {
-          id,
-          normalizedId,
-          originalLineBreaks: originalStats,
-          translatedLineBreaks: translatedStats,
-          originalLength: normalizedOriginal.length,
-          translatedLength: normalizedTranslated.length,
+      if (
+        placeholderPreservation?.enabled &&
+        Array.isArray(placeholderPreservation.rules) &&
+        placeholderPreservation.rules.length > 0
+      ) {
+        const mismatch = hasPlaceholderPreservationMismatch({
+          beforeText: normalizedOriginal,
+          afterText: normalizedTranslated,
+          placeholderPreservation,
+          warn: (message, meta) => this.logger.warn(message, meta),
         });
-        continue;
+        if (mismatch) {
+          validationMismatchTexts.add(originalText);
+          this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
+            id,
+            normalizedId,
+            originalLength: normalizedOriginal.length,
+            translatedLength: normalizedTranslated.length,
+          });
+          continue;
+        }
       }
       const indices = remainingTexts.get(originalText) || [];
       if (normalizedTranslated) {
@@ -480,19 +505,5 @@ export class TranslationResponseParser {
       }
     }
     return translations;
-  }
-
-  private getLineBreakStats(text: string): { lf: number; cr: number } {
-    let lf = 0;
-    let cr = 0;
-    for (let i = 0; i < text.length; i++) {
-      const code = text.charCodeAt(i);
-      if (code === 10) {
-        lf++;
-      } else if (code === 13) {
-        cr++;
-      }
-    }
-    return { lf, cr };
   }
 }

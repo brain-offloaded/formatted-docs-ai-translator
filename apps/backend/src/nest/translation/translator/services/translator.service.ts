@@ -54,6 +54,7 @@ export class TranslatorService {
       textPaths,
       promptPresetContent,
       cacheTag,
+      placeholderPreservation,
     }: TranslateTextArrayRequestDto,
     onProgress?: (event: TranslationProgressEvent) => void
   ): Promise<TranslatedTextPathDto[]> {
@@ -67,6 +68,7 @@ export class TranslatorService {
       promptPresetContent: promptPresetContent ?? '',
       aiSettings,
       cacheTag,
+      placeholderPreservation,
       onProgress,
     });
 

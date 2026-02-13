@@ -25,6 +25,7 @@
     "presets": "预设管理",
     "appSettings": "应用设置",
     "modelSettings": "模型设置",
+    "prepostSettings": "预处理/后处理",
     "log": "查看日志",
     "cache": "缓存管理",
     "cacheTags": "缓存标签列表",
@@ -86,7 +87,34 @@
     "maxConcurrentRequestsLabel": "最大并发请求数:",
     "apiKeyInfo": "API 密钥可以从 <1>Google AI Studio</1> 获取。",
     "openAiCompatibleInfo": "请输入 OpenAI 兼容服务器的 Base URL 和 API Key。",
-    "apiKeyRoundRobinHint": "使用空格分隔多个 API 密钥时，会自动以轮询方式依次使用。"
+    "apiKeyRoundRobinHint": "使用空格分隔多个 API 密钥时，会自动以轮询方式依次使用。",
+    "translationValidation": "翻译校验",
+    "placeholderPreservation": {
+      "title": "占位符保留检查",
+      "description": "对每个模式，翻译前后匹配到的字符串必须一致。（顺序不重要）",
+      "enabled": "启用占位符保留检查",
+      "patternLabel": "正则模式",
+      "patternHelper": "仅输入模式（不需要 /.../）",
+      "flagsLabel": "标志位",
+      "flagsHelper": "例如：i、m、s、u、y（g 会在内部应用）",
+      "addRule": "添加模式",
+      "resetDefaults": "恢复默认值",
+      "previewTitle": "匹配测试",
+      "previewPass": "通过",
+      "previewFail": "不一致",
+      "previewValueMismatch": "匹配内容不同",
+      "previewSourceLabel": "原文（示例）",
+      "previewSourcePlaceholder": "请输入原文",
+      "previewTargetLabel": "译文（示例）",
+      "previewTargetPlaceholder": "请输入译文",
+      "previewRun": "查看匹配结果",
+      "warning": {
+        "emptyMatch": "该模式可能匹配空字符串，存在过度匹配风险。"
+      },
+      "error": {
+        "invalidRegex": "正则表达式无效。"
+      }
+    }
   },
   "tooltips": {
     "aria": {

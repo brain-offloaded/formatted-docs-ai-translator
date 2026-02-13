@@ -88,8 +88,8 @@ const createService = () => {
   };
 };
 
-describe('TextBatchTranslationService 줄바꿈 재시도', () => {
-  it('줄바꿈 불일치가 반복되면 원문을 유지한다', async () => {
+describe('TextBatchTranslationService 검증 불일치 재시도', () => {
+  it('검증 불일치가 반복되면 원문을 유지한다', async () => {
     const sourceText = '첫 줄\n둘째 줄';
     const { service, cacheManagerService, tokenService, exampleManagerService } = createService();
 
@@ -101,7 +101,7 @@ describe('TextBatchTranslationService 줄바꿈 재시도', () => {
       response: buildResponse(),
       shouldReduceBatchSize: false,
       hasPartialData: false,
-      lineBreakMismatchTexts: new Set([sourceText]),
+      validationMismatchTexts: new Set([sourceText]),
     });
     (
       service as unknown as {
@@ -123,7 +123,7 @@ describe('TextBatchTranslationService 줄바꿈 재시도', () => {
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
   });
 
-  it('줄바꿈 불일치 후 정상 번역되면 번역 결과를 반환한다', async () => {
+  it('검증 불일치 후 정상 번역되면 번역 결과를 반환한다', async () => {
     const sourceText = 'hello\nworld';
     const translatedText = '안녕하세요\n세계';
     const { service, cacheManagerService, tokenService, exampleManagerService } = createService();
@@ -138,7 +138,7 @@ describe('TextBatchTranslationService 줄바꿈 재시도', () => {
         response: buildResponse(),
         shouldReduceBatchSize: false,
         hasPartialData: false,
-        lineBreakMismatchTexts: new Set([sourceText]),
+        validationMismatchTexts: new Set([sourceText]),
       })
       .mockResolvedValueOnce({
         batchTranslations: new Map<string, TranslationResult>([
@@ -147,7 +147,7 @@ describe('TextBatchTranslationService 줄바꿈 재시도', () => {
         response: buildResponse(),
         shouldReduceBatchSize: false,
         hasPartialData: false,
-        lineBreakMismatchTexts: new Set<string>(),
+        validationMismatchTexts: new Set<string>(),
       });
     (
       service as unknown as {
@@ -169,7 +169,7 @@ describe('TextBatchTranslationService 줄바꿈 재시도', () => {
     expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledTimes(1);
   });
 
-  it('캐시 줄바꿈 불일치가 있으면 재번역한다', async () => {
+  it('캐시 검증 불일치가 있으면 재번역한다', async () => {
     const sourceText = 'A\nB';
     const cachedTranslation = 'A\r\nB';
     const translatedText = 'A\nB-tr';
@@ -187,7 +187,7 @@ describe('TextBatchTranslationService 줄바꿈 재시도', () => {
       response: buildResponse(),
       shouldReduceBatchSize: false,
       hasPartialData: false,
-      lineBreakMismatchTexts: new Set<string>(),
+      validationMismatchTexts: new Set<string>(),
     });
     (
       service as unknown as {
@@ -201,9 +201,131 @@ describe('TextBatchTranslationService 줄바꿈 재시도', () => {
       promptPresetContent: '',
       aiSettings: buildAiSettings(),
       cacheTag: 'default',
+      placeholderPreservation: {
+        enabled: true,
+        rules: [
+          { pattern: '\\r', flags: '' },
+          { pattern: '\\n', flags: '' },
+        ],
+      },
     });
 
     expect(translateUncachedTexts).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([translatedText]);
+  });
+
+  it('캐시 플레이스홀더 보존 불일치가 있으면 재번역한다', async () => {
+    const sourceText = 'Hello {1}\nWorld';
+    const cachedTranslation = '안녕\n세계'; // {1} 누락
+    const translatedText = '안녕 {1}\n세계';
+    const { service, cacheManagerService, tokenService } = createService();
+
+    cacheManagerService.getTranslations.mockResolvedValue(
+      new Map<string, string | null>([[sourceText, cachedTranslation]])
+    );
+    tokenService.getBatchGroups.mockResolvedValue([[sourceText]]);
+
+    const translateUncachedTexts = jest.fn().mockResolvedValue({
+      batchTranslations: new Map<string, TranslationResult>([
+        [sourceText, { text: translatedText, indices: [0] }],
+      ]),
+      response: buildResponse(),
+      shouldReduceBatchSize: false,
+      hasPartialData: false,
+      validationMismatchTexts: new Set<string>(),
+    });
+    (
+      service as unknown as {
+        translateUncachedTexts: typeof translateUncachedTexts;
+      }
+    ).translateUncachedTexts = translateUncachedTexts;
+
+    const result = await service.translateText({
+      requestId: 'req-cache-placeholder-mismatch',
+      sourceTexts: [sourceText],
+      promptPresetContent: '',
+      aiSettings: buildAiSettings(),
+      cacheTag: 'default',
+      placeholderPreservation: {
+        enabled: true,
+        rules: [{ pattern: '\\{\\d+\\}', flags: '' }],
+      },
+    });
+
+    const cacheCheck = (
+      service as unknown as {
+        getTranslationFromCachedResult: (
+          originalText: string,
+          cachedResults: Map<string, string | null>,
+          placeholderPreservation?: {
+            enabled: boolean;
+            rules: Array<{ pattern: string; flags?: string }>;
+          }
+        ) => { translatedText: string; isCacheHit: boolean };
+      }
+    ).getTranslationFromCachedResult(sourceText, new Map([[sourceText, cachedTranslation]]), {
+      enabled: true,
+      rules: [{ pattern: '\\{\\d+\\}', flags: '' }],
+    });
+    expect(cacheCheck.isCacheHit).toBe(false);
+    expect(result).toEqual([translatedText]);
+  });
+
+  it('캐시 플레이스홀더 매칭 문자열이 바뀌면 재번역한다', async () => {
+    const sourceText = 'Hello {A} love {B}';
+    const cachedTranslation = '{A} love {C}'; // {B} -> {C}
+    const translatedText = '{A} love {B}';
+    const { service, cacheManagerService, tokenService } = createService();
+
+    cacheManagerService.getTranslations.mockResolvedValue(
+      new Map<string, string | null>([[sourceText, cachedTranslation]])
+    );
+    tokenService.getBatchGroups.mockResolvedValue([[sourceText]]);
+
+    const translateUncachedTexts = jest.fn().mockResolvedValue({
+      batchTranslations: new Map<string, TranslationResult>([
+        [sourceText, { text: translatedText, indices: [0] }],
+      ]),
+      response: buildResponse(),
+      shouldReduceBatchSize: false,
+      hasPartialData: false,
+      validationMismatchTexts: new Set<string>(),
+    });
+    (
+      service as unknown as {
+        translateUncachedTexts: typeof translateUncachedTexts;
+      }
+    ).translateUncachedTexts = translateUncachedTexts;
+
+    const result = await service.translateText({
+      requestId: 'req-cache-placeholder-value-mismatch',
+      sourceTexts: [sourceText],
+      promptPresetContent: '',
+      aiSettings: buildAiSettings(),
+      cacheTag: 'default',
+      placeholderPreservation: {
+        enabled: true,
+        rules: [{ pattern: '\\{.+?\\}', flags: '' }],
+      },
+    });
+
+    const cacheCheck = (
+      service as unknown as {
+        getTranslationFromCachedResult: (
+          originalText: string,
+          cachedResults: Map<string, string | null>,
+          placeholderPreservation?: {
+            enabled: boolean;
+            rules: Array<{ pattern: string; flags?: string }>;
+          }
+        ) => { translatedText: string; isCacheHit: boolean };
+      }
+    ).getTranslationFromCachedResult(sourceText, new Map([[sourceText, cachedTranslation]]), {
+      enabled: true,
+      rules: [{ pattern: '\\{.+?\\}', flags: '' }],
+    });
+
+    expect(cacheCheck.isCacheHit).toBe(false);
     expect(result).toEqual([translatedText]);
   });
 });

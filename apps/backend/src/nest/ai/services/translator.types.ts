@@ -5,12 +5,23 @@ export interface TranslationProgressEvent {
   total: number;
 }
 
+export interface PlaceholderPreservationRule {
+  pattern: string;
+  flags?: string;
+}
+
+export interface PlaceholderPreservationSettings {
+  enabled: boolean;
+  rules: PlaceholderPreservationRule[];
+}
+
 export interface TextTranslateParam {
   requestId: string;
   sourceTexts: string[];
   promptPresetContent: string;
   aiSettings: TranslatorAiSettings;
   cacheTag: string;
+  placeholderPreservation?: PlaceholderPreservationSettings;
   onProgress?: (event: TranslationProgressEvent) => void;
 }
 
