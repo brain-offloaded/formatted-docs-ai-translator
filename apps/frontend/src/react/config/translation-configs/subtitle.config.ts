@@ -15,6 +15,7 @@ export const subtitleConfig: TranslationConfigDefinition<SubtitleParserOptionsDt
   parser: {
     options: {
       label: '자막 파싱 옵션',
+      optionItems: [],
     },
     dto: SubtitleParserOptionsDto,
   },

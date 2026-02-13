@@ -4,6 +4,7 @@ import { IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-
 
 import { TranslatorAiSettingsDto } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationTextPathDto } from '@/nest/translator/common/dto/translation-text-path.dto';
+import { PlaceholderPreservationSettingsDto } from './placeholder-preservation.dto';
 
 export class TranslateTextArrayRequestDto {
   @ApiProperty({
@@ -54,4 +55,14 @@ export class TranslateTextArrayRequestDto {
   @IsString()
   @IsNotEmpty()
   cacheTag: string;
+
+  @ApiProperty({
+    description: '플레이스홀더 보존 검사 설정(텍스트/파일 번역에만 적용)',
+    type: () => PlaceholderPreservationSettingsDto,
+    required: false,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PlaceholderPreservationSettingsDto)
+  placeholderPreservation?: PlaceholderPreservationSettingsDto;
 }
