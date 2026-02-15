@@ -25,6 +25,7 @@
     "presets": "Manage Presets",
     "appSettings": "App Settings",
     "modelSettings": "Model Settings",
+    "prepostSettings": "Pre/Post Processing",
     "log": "View Logs",
     "cache": "Manage Cache",
     "cacheTags": "Cache Tag List",
@@ -86,7 +87,34 @@
     "maxConcurrentRequestsLabel": "Max Concurrent Requests:",
     "apiKeyInfo": "API keys can be obtained from <1>Google AI Studio</1>.",
     "openAiCompatibleInfo": "Enter the Base URL and API key for your OpenAI-compatible server.",
-    "apiKeyRoundRobinHint": "Separate multiple API keys with spaces to rotate them automatically in a round-robin order."
+    "apiKeyRoundRobinHint": "Separate multiple API keys with spaces to rotate them automatically in a round-robin order.",
+    "translationValidation": "Translation validation",
+    "placeholderPreservation": {
+      "title": "Placeholder preservation check",
+      "description": "For each pattern, the matched strings must be the same before and after translation. (Order doesn't matter)",
+      "enabled": "Enable placeholder preservation check",
+      "patternLabel": "Regex pattern",
+      "patternHelper": "Enter the pattern only (without /.../)",
+      "flagsLabel": "Flags",
+      "flagsHelper": "e.g., i, m, s, u, y (g is applied internally)",
+      "addRule": "Add pattern",
+      "resetDefaults": "Reset to defaults",
+      "previewTitle": "Match preview",
+      "previewPass": "Passed",
+      "previewFail": "Mismatch",
+      "previewValueMismatch": "Different matches",
+      "previewSourceLabel": "Source text (sample)",
+      "previewSourcePlaceholder": "Type the source text",
+      "previewTargetLabel": "Translated text (sample)",
+      "previewTargetPlaceholder": "Type the translated text",
+      "previewRun": "Show match results",
+      "warning": {
+        "emptyMatch": "This pattern can match empty strings and may overmatch."
+      },
+      "error": {
+        "invalidRegex": "Invalid regular expression."
+      }
+    }
   },
   "tooltips": {
     "aria": {
@@ -616,10 +644,12 @@
     "filesCompleted": "{{success}} out of {{total}} files translated{{failureMessage}}",
     "inProgress": "Translation in progress...",
     "invalidInput": "Invalid input.",
+    "parsing": "Analyzing files...",
     "preparing": "Preparing for translation...",
     "someFailures": "Some items failed to translate.",
     "successLine": "✅ Success: {{count}} files\n",
     "text": "Text",
+    "translating": "Translating...",
     "unknownError": "Unknown error",
     "userCancelled": "Translation cancelled by user."
   }

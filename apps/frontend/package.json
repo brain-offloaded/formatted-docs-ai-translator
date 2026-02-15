@@ -1,6 +1,6 @@
 {
   "name": "@apps/frontend",
-  "version": "1.0.3",
+  "version": "1.0.7",
   "private": true,
   "description": "Electron renderer for Formatted Docs AI Translator",
   "scripts": {
@@ -27,7 +27,7 @@
     "fitty": "^2.4.2",
     "i18next": "^25.6.0",
     "jszip": "^3.10.1",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "papaparse": "^5.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

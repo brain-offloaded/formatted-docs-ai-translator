@@ -52,6 +52,8 @@ export type { LoadExamplePresetResponseDto } from './models/LoadExamplePresetRes
 export type { LogDetailDto } from './models/LogDetailDto';
 export type { LogListItemDto } from './models/LogListItemDto';
 export type { LogSearchParamsDto } from './models/LogSearchParamsDto';
+export type { PlaceholderPreservationRuleDto } from './models/PlaceholderPreservationRuleDto';
+export type { PlaceholderPreservationSettingsDto } from './models/PlaceholderPreservationSettingsDto';
 export { PromptPresetDetailDto } from './models/PromptPresetDetailDto';
 export { PromptPresetDto } from './models/PromptPresetDto';
 export type { TranslatedTextPathDto } from './models/TranslatedTextPathDto';

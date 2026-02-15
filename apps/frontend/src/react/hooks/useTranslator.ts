@@ -44,6 +44,12 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
   const providerSettings = useConfigStore((state) => state.providerSettings);
   const cacheTag = useConfigStore((state) => state.cacheTag);
   const beginnerModeEnabled = useConfigStore((state) => state.beginnerModeEnabled);
+  const placeholderPreservationEnabled = useConfigStore(
+    (state) => state.placeholderPreservationEnabled
+  );
+  const placeholderPreservationRules = useConfigStore(
+    (state) => state.placeholderPreservationRules
+  );
 
   const config: AiTranslatorConfig = useMemo(
     () => ({
@@ -62,6 +68,8 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       thinkingBudget,
       setThinkingBudget,
       providerSettings,
+      placeholderPreservationEnabled,
+      placeholderPreservationRules,
     }),
     [
       modelProvider,
@@ -79,6 +87,8 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       providerSettings,
       cacheTag,
       beginnerModeEnabled,
+      placeholderPreservationEnabled,
+      placeholderPreservationRules,
     ]
   );
 
@@ -143,6 +153,7 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
   const handleTranslate = useTranslationRunner({
     input,
     config,
+    translationType,
     validateInput,
     translatorEngine,
     parserOptions,

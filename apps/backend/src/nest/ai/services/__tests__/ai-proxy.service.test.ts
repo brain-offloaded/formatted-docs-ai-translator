@@ -12,7 +12,7 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
     jest.clearAllMocks();
   });
 
-  it('태그 사이에 실제 개행이 포함된 번역 결과도 파싱한다', async () => {
+  it('플레이스홀더 보존 불일치가 있는 번역 결과는 제외한다', async () => {
     const response: AiChatResponse = {
       choices: [
         {
@@ -33,12 +33,57 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['첫 번째 원문', [0]],
       ['두 번째 원문', [1]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [1, '첫 번째 원문'],
+      [2, '두 번째 원문'],
+    ]);
 
-    const { translations } = await service.parseTranslationResponse(response, remainingTexts);
+    const { translations, validationMismatchTexts } = await service.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText,
+      {
+        enabled: true,
+        rules: [{ pattern: '\\n', flags: '' }],
+      }
+    );
 
-    expect(translations.get('첫 번째 원문')?.text).toBe('첫 줄\n둘째 줄');
+    expect(translations.has('첫 번째 원문')).toBe(false);
+    expect(validationMismatchTexts.has('첫 번째 원문')).toBe(true);
     expect(translations.get('두 번째 원문')?.text).toBe('다음 문장');
-    expect(logger.debug).toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('플레이스홀더 매칭 문자열이 바뀌면 불일치로 처리한다', async () => {
+    const response: AiChatResponse = {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: JSON.stringify({
+              segments: [{ id: 1, translated_text: '{A} love {C}' }],
+            }),
+          },
+        },
+      ],
+    };
+
+    const remainingTexts = new Map<string, number[]>([['{A} love {B}', [0]]]);
+    const expectedIdToText = new Map<number, string>([[1, '{A} love {B}']]);
+
+    const { translations, validationMismatchTexts } = await service.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText,
+      {
+        enabled: true,
+        rules: [{ pattern: '\\{.+?\\}', flags: '' }],
+      }
+    );
+
+    expect(translations.has('{A} love {B}')).toBe(false);
+    expect(validationMismatchTexts.has('{A} love {B}')).toBe(true);
+    expect(logger.warn).toHaveBeenCalled();
   });
 
   it('예제 태그 오프셋이 있는 번역 결과도 파싱한다', async () => {
@@ -62,8 +107,16 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['첫 번째 문장', [0]],
       ['두 번째 문장', [1]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [5, '첫 번째 문장'],
+      [6, '두 번째 문장'],
+    ]);
 
-    const { translations } = await service.parseTranslationResponse(response, remainingTexts);
+    const { translations } = await service.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText
+    );
 
     expect(translations.get('첫 번째 문장')?.text).toBe('첫 번째 번역');
     expect(translations.get('두 번째 문장')?.text).toBe('두 번째 번역');
@@ -87,10 +140,16 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['두 번째 문장', [1]],
       ['세 번째 문장', [2]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [1, '첫 번째 문장'],
+      [2, '두 번째 문장'],
+      [3, '세 번째 문장'],
+    ]);
 
     const { translations, hasPartialData } = await service.parseTranslationResponse(
       response,
-      remainingTexts
+      remainingTexts,
+      expectedIdToText
     );
 
     expect(hasPartialData).toBe(true);
@@ -115,10 +174,15 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
       ['첫 번째 문장', [0]],
       ['두 번째 문장', [1]],
     ]);
+    const expectedIdToText = new Map<number, string>([
+      [1, '첫 번째 문장'],
+      [2, '두 번째 문장'],
+    ]);
 
     const { translations, hasPartialData } = await service.parseTranslationResponse(
       response,
-      remainingTexts
+      remainingTexts,
+      expectedIdToText
     );
 
     expect(hasPartialData).toBe(true);
@@ -143,9 +207,10 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
     };
 
     const remainingTexts = new Map<string, number[]>([['첫 번째 문장', [0]]]);
+    const expectedIdToText = new Map<number, string>([[1, '첫 번째 문장']]);
 
-    expect(() => service.parseTranslationResponse(response, remainingTexts)).toThrow(
-      TranslationParsingError
-    );
+    expect(() =>
+      service.parseTranslationResponse(response, remainingTexts, expectedIdToText)
+    ).toThrow(TranslationParsingError);
   });
 });
