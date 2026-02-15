@@ -52,6 +52,25 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
     expect(validationMismatchTexts.has('첫 번째 원문')).toBe(true);
     expect(translations.get('두 번째 원문')?.text).toBe('다음 문장');
     expect(logger.warn).toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      '플레이스홀더 보존 불일치로 번역 제외',
+      expect.objectContaining({
+        id: 1,
+        originalText: '첫 번째 원문',
+        translatedText: '첫 줄\n둘째 줄',
+        placeholderMismatch: expect.objectContaining({
+          reason: 'multiset_mismatch',
+          rule: expect.objectContaining({ pattern: '\\n' }),
+          unexpectedPlaceholders: expect.arrayContaining([
+            expect.objectContaining({
+              value: '\n',
+              expectedCount: 0,
+              actualCount: 1,
+            }),
+          ]),
+        }),
+      })
+    );
   });
 
   it('플레이스홀더 매칭 문자열이 바뀌면 불일치로 처리한다', async () => {

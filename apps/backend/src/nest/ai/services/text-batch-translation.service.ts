@@ -18,7 +18,7 @@ import { AiChatResponse, AiMessage, AiProxyError } from '../dto/common-ai.dto';
 import type { PlaceholderPreservationSettings, TextTranslateParam } from './translator.types';
 import { AiRateLimiterService } from './ai-rate-limiter.service';
 import { TranslationParsingError } from './translation-response-parser.service';
-import { hasPlaceholderPreservationMismatch } from './placeholder-preservation-validator';
+import { getPlaceholderPreservationMismatchDetail } from './placeholder-preservation-validator';
 import { containsLegacyTranslatedTextKey } from '@/nest/translation/prompt/utils/legacy-translated-text';
 
 @Injectable()
@@ -523,16 +523,19 @@ export class TextBatchTranslationService {
         Array.isArray(placeholderPreservation.rules) &&
         placeholderPreservation.rules.length > 0
       ) {
-        const mismatch = hasPlaceholderPreservationMismatch({
+        const mismatchDetail = getPlaceholderPreservationMismatchDetail({
           beforeText: normalizedOriginal,
           afterText: normalizedTranslated,
           placeholderPreservation,
           warn: (message, meta) => this.logger.warn(message, meta),
         });
-        if (mismatch) {
+        if (mismatchDetail) {
           this.logger.warn('캐시 번역 플레이스홀더 보존 불일치로 재번역합니다.', {
+            originalText,
+            cachedTranslation,
             originalLength: normalizedOriginal.length,
             translatedLength: normalizedTranslated.length,
+            placeholderMismatch: mismatchDetail,
           });
           return { translatedText: originalText, isCacheHit: false };
         }
