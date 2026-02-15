@@ -2462,12 +2462,18 @@
               "image"
             ],
             "example": "text"
+          },
+          "containsLegacyTranslatedText": {
+            "type": "boolean",
+            "description": "프롬프트에 legacy translated_text 키가 포함되어 있는지 여부",
+            "example": false
           }
         },
         "required": [
           "id",
           "name",
-          "type"
+          "type",
+          "containsLegacyTranslatedText"
         ]
       },
       "GetPromptPresetsResponseDto": {
@@ -2522,13 +2528,19 @@
               "image"
             ],
             "example": "text"
+          },
+          "containsLegacyTranslatedText": {
+            "type": "boolean",
+            "description": "프롬프트에 legacy translated_text 키가 포함되어 있는지 여부",
+            "example": false
           }
         },
         "required": [
           "id",
           "name",
           "prompt",
-          "type"
+          "type",
+          "containsLegacyTranslatedText"
         ]
       },
       "GetPromptPresetDetailResponseDto": {

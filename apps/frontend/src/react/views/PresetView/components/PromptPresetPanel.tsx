@@ -18,7 +18,7 @@ import {
   FormLabel,
   Snackbar,
 } from '@mui/material';
-import { Edit, Delete, Add, Article, Image } from '@mui/icons-material';
+import { Edit, Delete, Add, Article, Image, WarningAmber } from '@mui/icons-material';
 
 import { PromptPresetDto } from '@/react/api/generated/models/PromptPresetDto';
 import { PromptPresetDetailDto } from '@/react/api/generated/models/PromptPresetDetailDto';
@@ -28,11 +28,16 @@ import { useConfirmModal } from '@/react/components/common/ConfirmModal';
 import { PromptPresetsService } from '@/react/api/generated/services/PromptPresetsService';
 import { InfoTooltip } from '@/react/components/common/InfoTooltip';
 import { getWikiUrl } from '@/react/utils/wiki';
+import {
+  containsLegacyTranslatedTextKey,
+  LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE,
+} from '@/react/utils/legacy-prompt-warning';
 
 const PromptPresetPanel: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [presets, setPresets] = useState<PromptPresetDto[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<PromptPresetDetailDto | null>(null);
+  const [pendingLegacyWarning, setPendingLegacyWarning] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [prompt, setPrompt] = useState('');
   const [type, setType] = useState<PromptPresetDto.type>(PromptPresetDto.type.TEXT);
@@ -49,6 +54,12 @@ const PromptPresetPanel: React.FC = () => {
     const result = await PromptPresetsService.promptPresetControllerGetPromptPresets({});
     if (result.success) {
       setPresets(result.presets);
+      if (
+        containsLegacyTranslatedTextKey(result.message) ||
+        result.presets.some((preset) => preset.containsLegacyTranslatedText)
+      ) {
+        setPendingLegacyWarning(result.message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE);
+      }
       return result.presets;
     } else {
       console.error('Failed to fetch prompt presets:', result.message);
@@ -59,6 +70,12 @@ const PromptPresetPanel: React.FC = () => {
   useEffect(() => {
     fetchPresets().catch(console.error);
   }, [fetchPresets]);
+
+  useEffect(() => {
+    if (!pendingLegacyWarning) return;
+    showSnackbar(pendingLegacyWarning);
+    setPendingLegacyWarning(null);
+  }, [pendingLegacyWarning, showSnackbar]);
 
   const handleSelectPreset = async (preset: PromptPresetDto) => {
     const result = await PromptPresetsService.promptPresetControllerGetPromptPresetDetail({
@@ -71,6 +88,12 @@ const PromptPresetPanel: React.FC = () => {
       setPrompt(result.preset.prompt);
       setType(result.preset.type);
       setIsEditing(true);
+      if (
+        result.preset.containsLegacyTranslatedText ||
+        containsLegacyTranslatedTextKey(result.preset.prompt)
+      ) {
+        showSnackbar(result.message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE);
+      }
     } else {
       console.error('Failed to fetch prompt preset detail:', result.message);
     }
@@ -89,6 +112,9 @@ const PromptPresetPanel: React.FC = () => {
       alert(t('preset.nameAndContentRequired'));
       return;
     }
+    if (type === PromptPresetDto.type.TEXT && containsLegacyTranslatedTextKey(prompt)) {
+      showSnackbar(LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE);
+    }
 
     let savedPresetId: number | null = null;
 
@@ -106,7 +132,7 @@ const PromptPresetPanel: React.FC = () => {
         return;
       }
       savedPresetId = selectedPreset.id;
-      showSnackbar(t('preset.saveSuccess'));
+      showSnackbar(response.message ?? t('preset.saveSuccess'));
     } else {
       const response = await PromptPresetsService.promptPresetControllerCreatePromptPreset({
         requestBody: { name, prompt, type: type },
@@ -116,7 +142,7 @@ const PromptPresetPanel: React.FC = () => {
         return;
       }
       savedPresetId = response.preset.id;
-      showSnackbar(t('preset.saveSuccess'));
+      showSnackbar(response.message ?? t('preset.saveSuccess'));
     }
 
     const updatedPresets = await fetchPresets();
@@ -180,42 +206,59 @@ const PromptPresetPanel: React.FC = () => {
           </Button>
         </Box>
         <List>
-          {presets.map((preset) => (
-            <ListItem
-              key={preset.id}
-              disablePadding
-              secondaryAction={
-                <>
-                  <IconButton
-                    edge="end"
-                    aria-label="edit"
-                    onClick={() => handleSelectPreset(preset)}
-                  >
-                    <Edit />
-                  </IconButton>
-                  <IconButton
-                    edge="end"
-                    aria-label="delete"
-                    onClick={() => handleDelete(preset.id)}
-                  >
-                    <Delete />
-                  </IconButton>
-                </>
-              }
-            >
-              <ListItemButton
-                onClick={() => handleSelectPreset(preset)}
-                selected={selectedPreset?.id === preset.id}
+          {presets.map((preset) => {
+            const hasLegacy = preset.containsLegacyTranslatedText;
+            return (
+              <ListItem
+                key={preset.id}
+                disablePadding
+                secondaryAction={
+                  <>
+                    <IconButton
+                      edge="end"
+                      aria-label="edit"
+                      onClick={() => handleSelectPreset(preset)}
+                    >
+                      <Edit />
+                    </IconButton>
+                    <IconButton
+                      edge="end"
+                      aria-label="delete"
+                      onClick={() => handleDelete(preset.id)}
+                    >
+                      <Delete />
+                    </IconButton>
+                  </>
+                }
               >
-                {preset.type === PromptPresetDto.type.IMAGE ? (
-                  <Image sx={{ mr: 1 }} />
-                ) : (
-                  <Article sx={{ mr: 1 }} />
-                )}
-                <ListItemText primary={preset.name} secondary={preset.type} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+                <ListItemButton
+                  onClick={() => handleSelectPreset(preset)}
+                  selected={selectedPreset?.id === preset.id}
+                >
+                  {preset.type === PromptPresetDto.type.IMAGE ? (
+                    <Image sx={{ mr: 1 }} />
+                  ) : (
+                    <Article sx={{ mr: 1 }} />
+                  )}
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box component="span">{preset.name}</Box>
+                        {hasLegacy ? (
+                          <WarningAmber
+                            fontSize="small"
+                            color="warning"
+                            titleAccess={LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE}
+                          />
+                        ) : null}
+                      </Box>
+                    }
+                    secondary={hasLegacy ? `${preset.type} · legacy translated_text` : preset.type}
+                  />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
         </List>
       </Paper>
       <Divider orientation="vertical" flexItem />

@@ -20,8 +20,8 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
             role: 'assistant',
             content: JSON.stringify({
               segments: [
-                { id: 1, translated_text: '첫 줄\n둘째 줄' },
-                { id: 2, translated_text: '다음 문장' },
+                { id: 1, text: '첫 줄\n둘째 줄' },
+                { id: 2, text: '다음 문장' },
               ],
             }),
           },
@@ -61,7 +61,7 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
           message: {
             role: 'assistant',
             content: JSON.stringify({
-              segments: [{ id: 1, translated_text: '{A} love {C}' }],
+              segments: [{ id: 1, text: '{A} love {C}' }],
             }),
           },
         },
@@ -94,8 +94,8 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
             role: 'assistant',
             content: JSON.stringify({
               segments: [
-                { id: 5, translated_text: '첫 번째 번역' },
-                { id: 6, translated_text: '두 번째 번역' },
+                { id: 5, text: '첫 번째 번역' },
+                { id: 6, text: '두 번째 번역' },
               ],
             }),
           },
@@ -128,8 +128,7 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
         {
           message: {
             role: 'assistant',
-            content:
-              '{"segments":[{"id":1,"translated_text":"A"},{"id":2,"translated_text":"B"},{"id":3,"translated_text":"C"}',
+            content: '{"segments":[{"id":1,"text":"A"},{"id":2,"text":"B"},{"id":3,"text":"C"}',
           },
         },
       ],

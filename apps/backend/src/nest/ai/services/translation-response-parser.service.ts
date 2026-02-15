@@ -24,7 +24,7 @@ export class TranslationParsingError extends Error {
   }
 }
 
-type TranslationSegment = { id: number; translated_text: string };
+type TranslationSegment = { id: number; text: string };
 
 interface ParsedSegmentResult {
   segments: TranslationSegment[];
@@ -145,8 +145,7 @@ export class TranslationResponseParser {
       const parsedId =
         typeof segment.id === 'number' ? segment.id : Number.parseInt(String(segment.id ?? ''), 10);
       if (!Number.isFinite(parsedId)) continue;
-      const translatedText =
-        typeof segment.translated_text === 'string' ? segment.translated_text : '';
+      const translatedText = typeof segment.text === 'string' ? segment.text : '';
       matches.push({
         id: parsedId,
         translatedText,

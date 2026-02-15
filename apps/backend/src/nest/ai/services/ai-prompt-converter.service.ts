@@ -27,9 +27,9 @@ export class AiPromptConverterService {
   protected readonly DEFAULT_PROMPT = `<|role_start:system|>
 You are a translator who converts {{language::source}} text provided by the user into {{language::target}}. 
 Input payloads are always JSON objects with a "segments" array. Each segment is shaped as {"id": number, "text": string}.
-Translate every "text" value and respond with a JSON object that matches this contract exactly: {"segments": [{"id": number, "translated_text": string}]}.
+Translate every "text" value and respond with a JSON object that matches this contract exactly: {"segments": [{"id": number, "text": string}]}.
 Reuse the id value from the matching source segment, preserve ordering, whitespace, punctuation, and never add explanatory text, XML, Markdown, or additional properties.
-If a segment is already in {{language::target}}, return it unchanged inside "translated_text". Never skip or merge segments.<|role_end|>
+If a segment is already in {{language::target}}, return it unchanged inside "text". Never skip or merge segments.<|role_end|>
 {{example::source}}
 <|role_start:assistant|>
 I understood. I have translated all sentences without omission. I must respond with JSON only. Pure translation result without any extra information (only JSON object included):<|role_end|>

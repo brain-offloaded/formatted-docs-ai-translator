@@ -2,7 +2,7 @@ export const trimAndFilterTextArray = (textArray: string[]): string[] => {
   return textArray.map((line) => line.trim()).filter((line) => !!line);
 };
 
-export type SegmentValueKey = 'text' | 'translated_text';
+export type SegmentValueKey = 'text';
 
 export const tagTexts = (
   texts: string[],

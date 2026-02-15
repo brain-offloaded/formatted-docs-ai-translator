@@ -19,6 +19,7 @@ import type { PlaceholderPreservationSettings, TextTranslateParam } from './tran
 import { AiRateLimiterService } from './ai-rate-limiter.service';
 import { TranslationParsingError } from './translation-response-parser.service';
 import { hasPlaceholderPreservationMismatch } from './placeholder-preservation-validator';
+import { containsLegacyTranslatedTextKey } from '@/nest/translation/prompt/utils/legacy-translated-text';
 
 @Injectable()
 export class TextBatchTranslationService {
@@ -46,6 +47,14 @@ export class TextBatchTranslationService {
       placeholderPreservation,
     } = param;
     const { sourceLanguage, targetLanguage, apiKey, customModelConfig, useThinking } = aiSettings;
+    if (containsLegacyTranslatedTextKey(promptPresetContent)) {
+      this.logger.warn(
+        'legacy 키 translated_text가 포함된 promptPresetContent가 감지되었습니다. 현재 스키마는 text를 사용합니다.',
+        {
+          requestId: param.requestId,
+        }
+      );
+    }
     const thinkingLevel = aiSettings.thinkingLevel?.trim();
     const effectiveUseThinking = !!thinkingLevel || useThinking;
     const normalizedCacheTag = buildLanguageScopedCacheTag(

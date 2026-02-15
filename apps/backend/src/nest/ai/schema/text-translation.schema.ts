@@ -11,13 +11,13 @@ export const textTranslationJsonSchema: ResponseFormatJSONSchema.JSONSchema = {
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['id', 'translated_text'],
+        required: ['id', 'text'],
         properties: {
           id: {
             type: 'integer',
             description: 'The identifier provided with the source segment. Must remain unchanged.',
           },
-          translated_text: {
+          text: {
             type: 'string',
             description: 'The translated text corresponding to the source segment.',
           },

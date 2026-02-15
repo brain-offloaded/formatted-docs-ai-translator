@@ -1,9 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { IsEnum, IsNumber, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsString } from 'class-validator';
 
 import { PromptPreset as PromptPresetEntity } from '@prisma/client';
 import { PromptPresetType } from '@/nest/translation/prompt/types/prompt-preset';
+import { containsLegacyTranslatedTextKey } from '@/nest/translation/prompt/utils/legacy-translated-text';
 
 export { PromptPresetType };
 
@@ -27,11 +28,20 @@ export class PromptPresetDto {
   @Expose()
   type: PromptPresetType;
 
+  @ApiProperty({
+    description: '프롬프트에 legacy translated_text 키가 포함되어 있는지 여부',
+    example: false,
+  })
+  @IsBoolean()
+  @Expose()
+  containsLegacyTranslatedText: boolean;
+
   static fromEntity(entity: PromptPresetEntity): PromptPresetDto {
     const dto = new PromptPresetDto();
     dto.id = entity.id;
     dto.name = entity.name;
     dto.type = entity.type;
+    dto.containsLegacyTranslatedText = containsLegacyTranslatedTextKey(entity.prompt);
     return dto;
   }
 }
