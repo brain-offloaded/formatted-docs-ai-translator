@@ -223,7 +223,7 @@ __metadata:
     "@typescript-eslint/parser": "npm:^8.18.2"
     concurrently: "npm:^8.2.2"
     css-loader: "npm:^7.1.2"
-    electron: "npm:35.2.2"
+    electron: "npm:35.7.5"
     eslint: "npm:^9.14.0"
     eslint-config-prettier: "npm:^9.1.0"
     eslint-plugin-import: "npm:^2.31.0"
@@ -5726,6 +5726,19 @@ __metadata:
   bin:
     electron: cli.js
   checksum: 10c0/54f9dac6b7fe6ed3da6aeb72249ec7e2164ae05170cf1e97f5b196d966dc4eb18de012dfec28d18157f6406db33ba446c11b3a9d158d8b20148698241ae7a2da
+  languageName: node
+  linkType: hard
+
+"electron@npm:35.7.5":
+  version: 35.7.5
+  resolution: "electron@npm:35.7.5"
+  dependencies:
+    "@electron/get": "npm:^2.0.0"
+    "@types/node": "npm:^22.7.7"
+    extract-zip: "npm:^2.0.1"
+  bin:
+    electron: cli.js
+  checksum: 10c0/2c331e438b655b25a8b49ce038878cdc61a42481fcdf464ecb5648585a2c83f1edc5d8e0a8de582713f8e3dc8a3b35aaa136735ad68f8009ee2369f3b2e79c15
   languageName: node
   linkType: hard
 
