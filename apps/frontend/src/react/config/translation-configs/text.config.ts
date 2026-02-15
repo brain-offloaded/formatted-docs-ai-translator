@@ -14,6 +14,7 @@ export const textConfig: TranslationConfigDefinition<PlainTextParserOptionsDto> 
   parser: {
     options: {
       label: '텍스트 파싱 옵션',
+      optionItems: [],
     },
     dto: PlainTextParserOptionsDto,
   },

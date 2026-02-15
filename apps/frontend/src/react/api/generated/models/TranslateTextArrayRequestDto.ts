@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { PlaceholderPreservationSettingsDto } from './PlaceholderPreservationSettingsDto';
 import type { TranslationTextPathDto } from './TranslationTextPathDto';
 import type { TranslatorAiSettingsDto } from './TranslatorAiSettingsDto';
 export type TranslateTextArrayRequestDto = {
@@ -29,5 +30,9 @@ export type TranslateTextArrayRequestDto = {
      * 번역 결과를 저장할 캐시 태그
      */
     cacheTag: string;
+    /**
+     * 플레이스홀더 보존 검사 설정(텍스트/파일 번역에만 적용)
+     */
+    placeholderPreservation?: PlaceholderPreservationSettingsDto;
 };
 

@@ -3,6 +3,8 @@ import { AiChatResponse, toTextFromMessageContent } from '../dto/common-ai.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { LoggerService } from '@/nest/logger/logger.service';
 import { errorToString } from '@/nest/utils/error-stringify';
+import type { PlaceholderPreservationSettings } from './translator.types';
+import { hasPlaceholderPreservationMismatch } from './placeholder-preservation-validator';
 
 export class TranslationParsingError extends Error {
   public readonly shouldReduceBatchSize: boolean;
@@ -54,28 +56,52 @@ export class TranslationResponseParser {
 
   public parseTranslationResponse(
     response: AiChatResponse,
-    remainingTexts: Map<string, number[]>
-  ): { translations: Map<string, TranslationResult>; hasPartialData: boolean } {
+    remainingTexts: Map<string, number[]>,
+    expectedIdToText?: Map<number, string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
+  ): {
+    translations: Map<string, TranslationResult>;
+    hasPartialData: boolean;
+    validationMismatchTexts: Set<string>;
+  } {
     const responseText = this.getResponseText(response);
-    const remainingTextArray = Array.from(remainingTexts.keys());
-
     const { matches, hasPartialData } = this.parseSegmentMatches(responseText);
-    const offset = this.calculateOffset(matches);
-    const { successfulIds, duplicateIds } = this.determineSuccessAndDuplicates(matches);
-    const firstFailure = this.findFirstFailureNormalized(
-      successfulIds,
-      duplicateIds,
-      offset,
-      remainingTextArray.length
-    );
-    const excludeFrom = this.calculateExcludeFrom(firstFailure);
-    const translations = this.buildTranslations(
-      matches,
-      offset,
-      excludeFrom,
-      remainingTextArray,
-      remainingTexts
-    );
+    const useStrictIdMatching = !!expectedIdToText && expectedIdToText.size > 0;
+    let translations: Map<string, TranslationResult>;
+    let excludeFrom: number;
+    let offset: number | null;
+    let expectedIds: number[] = [];
+    let unexpectedIdCount: number | undefined;
+    const validationMismatchTexts = new Set<string>();
+
+    if (useStrictIdMatching && expectedIdToText) {
+      expectedIds = Array.from(expectedIdToText.keys());
+      const strictResult = this.buildTranslationsByExpectedIds(
+        matches,
+        expectedIds,
+        expectedIdToText,
+        remainingTexts,
+        validationMismatchTexts,
+        placeholderPreservation
+      );
+      translations = strictResult.translations;
+      excludeFrom = strictResult.excludeFrom;
+      offset = strictResult.offset;
+      unexpectedIdCount = strictResult.unexpectedIdCount;
+    } else {
+      const remainingTextArray = Array.from(remainingTexts.keys());
+      const fallbackResult = this.buildTranslationsWithOffset(
+        matches,
+        remainingTextArray,
+        remainingTexts,
+        validationMismatchTexts,
+        placeholderPreservation
+      );
+      translations = fallbackResult.translations;
+      excludeFrom = fallbackResult.excludeFrom;
+      offset = fallbackResult.offset;
+      unexpectedIdCount = undefined;
+    }
 
     const finishReason = this.getFinishReason(response);
     const loggingString = Array.from(translations.keys())
@@ -86,9 +112,12 @@ export class TranslationResponseParser {
       responseText,
       finishReason,
       offset,
+      excludeFrom,
+      expectedCount: expectedIds.length,
+      unexpectedIdCount,
     });
 
-    return { translations, hasPartialData };
+    return { translations, hasPartialData, validationMismatchTexts };
   }
 
   private getResponseText(response: AiChatResponse): string {
@@ -268,6 +297,27 @@ export class TranslationResponseParser {
     return { successfulIds, duplicateIds };
   }
 
+  private determineSuccessAndDuplicatesForExpected(
+    matches: Array<{ id: number }>,
+    expectedIdSet: Set<number>
+  ): { successfulIds: Set<number>; duplicateIds: Set<number>; unexpectedIds: Set<number> } {
+    const successfulIds = new Set<number>();
+    const duplicateIds = new Set<number>();
+    const unexpectedIds = new Set<number>();
+    for (const { id } of matches) {
+      if (!expectedIdSet.has(id)) {
+        unexpectedIds.add(id);
+        continue;
+      }
+      if (successfulIds.has(id)) {
+        duplicateIds.add(id);
+      } else {
+        successfulIds.add(id);
+      }
+    }
+    return { successfulIds, duplicateIds, unexpectedIds };
+  }
+
   private findFirstFailureNormalized(
     successfulIds: Set<number>,
     duplicateIds: Set<number>,
@@ -283,6 +333,20 @@ export class TranslationResponseParser {
     return Infinity;
   }
 
+  private findFirstFailureByExpectedIds(
+    expectedIds: number[],
+    successfulIds: Set<number>,
+    duplicateIds: Set<number>
+  ): number {
+    for (let i = 0; i < expectedIds.length; i++) {
+      const expectedId = expectedIds[i];
+      if (!successfulIds.has(expectedId) || duplicateIds.has(expectedId)) {
+        return i + 1;
+      }
+    }
+    return Infinity;
+  }
+
   private calculateExcludeFrom(firstFailure: number): number {
     if (!Number.isFinite(firstFailure)) {
       return Infinity;
@@ -290,12 +354,116 @@ export class TranslationResponseParser {
     return Math.max(1, firstFailure);
   }
 
+  private buildTranslationsWithOffset(
+    matches: Array<{ id: number; translatedText: string }>,
+    remainingTextArray: string[],
+    remainingTexts: Map<string, number[]>,
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
+  ): { translations: Map<string, TranslationResult>; excludeFrom: number; offset: number } {
+    const offset = this.calculateOffset(matches);
+    const { successfulIds, duplicateIds } = this.determineSuccessAndDuplicates(matches);
+    const firstFailure = this.findFirstFailureNormalized(
+      successfulIds,
+      duplicateIds,
+      offset,
+      remainingTextArray.length
+    );
+    const excludeFrom = this.calculateExcludeFrom(firstFailure);
+    const translations = this.buildTranslations(
+      matches,
+      offset,
+      excludeFrom,
+      remainingTextArray,
+      remainingTexts,
+      validationMismatchTexts,
+      placeholderPreservation
+    );
+    return { translations, excludeFrom, offset };
+  }
+
+  private buildTranslationsByExpectedIds(
+    matches: Array<{ id: number; translatedText: string }>,
+    expectedIds: number[],
+    expectedIdToText: Map<number, string>,
+    remainingTexts: Map<string, number[]>,
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
+  ): {
+    translations: Map<string, TranslationResult>;
+    excludeFrom: number;
+    offset: number | null;
+    unexpectedIdCount: number;
+  } {
+    const expectedIdSet = new Set(expectedIds);
+    const { successfulIds, duplicateIds, unexpectedIds } =
+      this.determineSuccessAndDuplicatesForExpected(matches, expectedIdSet);
+    const firstFailure = this.findFirstFailureByExpectedIds(
+      expectedIds,
+      successfulIds,
+      duplicateIds
+    );
+    const excludeFrom = this.calculateExcludeFrom(firstFailure);
+    const expectedIndexById = new Map<number, number>();
+    expectedIds.forEach((id, index) => {
+      expectedIndexById.set(id, index + 1);
+    });
+
+    const translations = new Map<string, TranslationResult>();
+    for (const { id, translatedText } of matches) {
+      const expectedIndex = expectedIndexById.get(id);
+      if (!expectedIndex) continue;
+      if (expectedIndex >= excludeFrom) continue;
+      const originalText = expectedIdToText.get(id);
+      if (!originalText) continue;
+      const normalizedOriginal = originalText.trim();
+      const normalizedTranslated = translatedText.trim();
+      if (
+        placeholderPreservation?.enabled &&
+        Array.isArray(placeholderPreservation.rules) &&
+        placeholderPreservation.rules.length > 0
+      ) {
+        const mismatch = hasPlaceholderPreservationMismatch({
+          beforeText: normalizedOriginal,
+          afterText: normalizedTranslated,
+          placeholderPreservation,
+          warn: (message, meta) => this.logger.warn(message, meta),
+        });
+        if (mismatch) {
+          validationMismatchTexts.add(originalText);
+          this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
+            id,
+            originalLength: normalizedOriginal.length,
+            translatedLength: normalizedTranslated.length,
+          });
+          continue;
+        }
+      }
+      const indices = remainingTexts.get(originalText) || [];
+      if (normalizedTranslated) {
+        translations.set(originalText, {
+          text: normalizedTranslated,
+          indices,
+        });
+      }
+    }
+
+    return {
+      translations,
+      excludeFrom,
+      offset: null,
+      unexpectedIdCount: unexpectedIds.size,
+    };
+  }
+
   private buildTranslations(
     matches: Array<{ id: number; translatedText: string }>,
     offset: number,
     excludeFrom: number,
     remainingTextArray: string[],
-    remainingTexts: Map<string, number[]>
+    remainingTexts: Map<string, number[]>,
+    validationMismatchTexts: Set<string>,
+    placeholderPreservation?: PlaceholderPreservationSettings
   ): Map<string, TranslationResult> {
     const translations = new Map<string, TranslationResult>();
     for (const { id, translatedText } of matches) {
@@ -304,10 +472,34 @@ export class TranslationResponseParser {
       if (normalizedId >= excludeFrom) continue;
 
       const originalText = remainingTextArray[normalizedId - 1];
+      const normalizedOriginal = originalText.trim();
+      const normalizedTranslated = translatedText.trim();
+      if (
+        placeholderPreservation?.enabled &&
+        Array.isArray(placeholderPreservation.rules) &&
+        placeholderPreservation.rules.length > 0
+      ) {
+        const mismatch = hasPlaceholderPreservationMismatch({
+          beforeText: normalizedOriginal,
+          afterText: normalizedTranslated,
+          placeholderPreservation,
+          warn: (message, meta) => this.logger.warn(message, meta),
+        });
+        if (mismatch) {
+          validationMismatchTexts.add(originalText);
+          this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
+            id,
+            normalizedId,
+            originalLength: normalizedOriginal.length,
+            translatedLength: normalizedTranslated.length,
+          });
+          continue;
+        }
+      }
       const indices = remainingTexts.get(originalText) || [];
-      if (translatedText.trim()) {
+      if (normalizedTranslated) {
         translations.set(originalText, {
-          text: translatedText.trim(),
+          text: normalizedTranslated,
           indices,
         });
       }

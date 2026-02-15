@@ -24,4 +24,20 @@ export class TextTranslatorService {
             mediaType: 'application/json',
         });
     }
+    /**
+     * @returns any 텍스트 배열을 번역하며 진행률을 NDJSON 스트림으로 전송합니다.
+     * @throws ApiError
+     */
+    public static textTranslatorControllerStreamTranslateText({
+        requestBody,
+    }: {
+        requestBody: TranslateTextArrayRequestDto,
+    }): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/translator/text/translate/stream',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
 }
