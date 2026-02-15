@@ -4,7 +4,7 @@ import { TranslationResult } from '@/nest/ai/types/translation-result.interface'
 import { LoggerService } from '@/nest/logger/logger.service';
 import { errorToString } from '@/nest/utils/error-stringify';
 import type { PlaceholderPreservationSettings } from './translator.types';
-import { hasPlaceholderPreservationMismatch } from './placeholder-preservation-validator';
+import { getPlaceholderPreservationMismatchDetail } from './placeholder-preservation-validator';
 
 export class TranslationParsingError extends Error {
   public readonly shouldReduceBatchSize: boolean;
@@ -422,18 +422,21 @@ export class TranslationResponseParser {
         Array.isArray(placeholderPreservation.rules) &&
         placeholderPreservation.rules.length > 0
       ) {
-        const mismatch = hasPlaceholderPreservationMismatch({
+        const mismatchDetail = getPlaceholderPreservationMismatchDetail({
           beforeText: normalizedOriginal,
           afterText: normalizedTranslated,
           placeholderPreservation,
           warn: (message, meta) => this.logger.warn(message, meta),
         });
-        if (mismatch) {
+        if (mismatchDetail) {
           validationMismatchTexts.add(originalText);
           this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
             id,
+            originalText,
+            translatedText,
             originalLength: normalizedOriginal.length,
             translatedLength: normalizedTranslated.length,
+            placeholderMismatch: mismatchDetail,
           });
           continue;
         }
@@ -478,19 +481,22 @@ export class TranslationResponseParser {
         Array.isArray(placeholderPreservation.rules) &&
         placeholderPreservation.rules.length > 0
       ) {
-        const mismatch = hasPlaceholderPreservationMismatch({
+        const mismatchDetail = getPlaceholderPreservationMismatchDetail({
           beforeText: normalizedOriginal,
           afterText: normalizedTranslated,
           placeholderPreservation,
           warn: (message, meta) => this.logger.warn(message, meta),
         });
-        if (mismatch) {
+        if (mismatchDetail) {
           validationMismatchTexts.add(originalText);
           this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
             id,
             normalizedId,
+            originalText,
+            translatedText,
             originalLength: normalizedOriginal.length,
             translatedLength: normalizedTranslated.length,
+            placeholderMismatch: mismatchDetail,
           });
           continue;
         }

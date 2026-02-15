@@ -85,6 +85,7 @@ const createService = () => {
     cacheManagerService,
     tokenService,
     exampleManagerService,
+    logger,
   };
 };
 
@@ -218,7 +219,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
     const sourceText = 'Hello {1}\nWorld';
     const cachedTranslation = '안녕\n세계'; // {1} 누락
     const translatedText = '안녕 {1}\n세계';
-    const { service, cacheManagerService, tokenService } = createService();
+    const { service, cacheManagerService, tokenService, logger } = createService();
 
     cacheManagerService.getTranslations.mockResolvedValue(
       new Map<string, string | null>([[sourceText, cachedTranslation]])
@@ -268,6 +269,23 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       rules: [{ pattern: '\\{\\d+\\}', flags: '' }],
     });
     expect(cacheCheck.isCacheHit).toBe(false);
+    expect(logger.warn).toHaveBeenCalledWith(
+      '캐시 번역 플레이스홀더 보존 불일치로 재번역합니다.',
+      expect.objectContaining({
+        originalText: sourceText,
+        cachedTranslation,
+        placeholderMismatch: expect.objectContaining({
+          reason: 'multiset_mismatch',
+          missingPlaceholders: expect.arrayContaining([
+            expect.objectContaining({
+              value: '{1}',
+              expectedCount: 1,
+              actualCount: 0,
+            }),
+          ]),
+        }),
+      })
+    );
     expect(result).toEqual([translatedText]);
   });
 
