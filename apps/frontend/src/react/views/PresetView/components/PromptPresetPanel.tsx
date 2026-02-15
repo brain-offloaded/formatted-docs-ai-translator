@@ -37,6 +37,7 @@ const PromptPresetPanel: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [presets, setPresets] = useState<PromptPresetDto[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<PromptPresetDetailDto | null>(null);
+  const [pendingLegacyWarning, setPendingLegacyWarning] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [prompt, setPrompt] = useState('');
   const [type, setType] = useState<PromptPresetDto.type>(PromptPresetDto.type.TEXT);
@@ -57,18 +58,24 @@ const PromptPresetPanel: React.FC = () => {
         containsLegacyTranslatedTextKey(result.message) ||
         result.presets.some((preset) => preset.containsLegacyTranslatedText)
       ) {
-        showSnackbar(result.message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE);
+        setPendingLegacyWarning(result.message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE);
       }
       return result.presets;
     } else {
       console.error('Failed to fetch prompt presets:', result.message);
       return [];
     }
-  }, [showSnackbar]);
+  }, []);
 
   useEffect(() => {
     fetchPresets().catch(console.error);
   }, [fetchPresets]);
+
+  useEffect(() => {
+    if (!pendingLegacyWarning) return;
+    showSnackbar(pendingLegacyWarning);
+    setPendingLegacyWarning(null);
+  }, [pendingLegacyWarning, showSnackbar]);
 
   const handleSelectPreset = async (preset: PromptPresetDto) => {
     const result = await PromptPresetsService.promptPresetControllerGetPromptPresetDetail({
