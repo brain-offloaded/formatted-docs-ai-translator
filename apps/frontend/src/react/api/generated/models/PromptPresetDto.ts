@@ -15,6 +15,10 @@ export type PromptPresetDto = {
      * 프롬프트 프리셋 타입
      */
     type: PromptPresetDto.type;
+    /**
+     * 프롬프트에 legacy translated_text 키가 포함되어 있는지 여부
+     */
+    containsLegacyTranslatedText: boolean;
 };
 export namespace PromptPresetDto {
     /**

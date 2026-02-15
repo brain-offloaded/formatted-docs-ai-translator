@@ -485,7 +485,7 @@ export class ExampleManagerService {
     const { taggedTexts: result, lastIndex: resultLastIndex } = tagTexts(
       combinedResultLines,
       1,
-      'translated_text'
+      'text'
     );
     if (sourceLastIndex !== resultLastIndex) {
       throw new Error(

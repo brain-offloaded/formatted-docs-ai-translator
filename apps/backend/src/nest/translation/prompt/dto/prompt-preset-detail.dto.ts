@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { IsEnum, IsNumber, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsString } from 'class-validator';
 
 import { PromptPresetType } from '@/nest/translation/prompt/types/prompt-preset';
 
@@ -28,4 +28,12 @@ export class PromptPresetDetailDto {
   @IsEnum(PromptPresetType)
   @Expose()
   type: PromptPresetType;
+
+  @ApiProperty({
+    description: '프롬프트에 legacy translated_text 키가 포함되어 있는지 여부',
+    example: false,
+  })
+  @IsBoolean()
+  @Expose()
+  containsLegacyTranslatedText: boolean;
 }

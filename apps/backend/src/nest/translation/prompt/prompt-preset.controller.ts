@@ -26,6 +26,11 @@ import { UpdatePromptPresetResponseDto } from './dto/response/update-prompt-pres
 import { DeletePromptPresetResponseDto } from './dto/response/delete-prompt-preset.response.dto';
 import { PromptPresetDto } from './dto/prompt-preset.dto';
 import { PromptPresetDetailDto } from './dto/prompt-preset-detail.dto';
+import { PromptPresetType } from './types/prompt-preset';
+import {
+  appendLegacyWarningMessage,
+  containsLegacyTranslatedTextKey,
+} from './utils/legacy-translated-text';
 
 @ApiTags('prompt-presets')
 @Controller('prompt-presets')
@@ -34,6 +39,21 @@ export class PromptPresetController {
     private readonly promptPresetManagerService: PromptPresetManagerService,
     private readonly logger: LoggerService
   ) {}
+
+  private withLegacyWarningMessage({
+    baseMessage,
+    type,
+    prompt,
+  }: {
+    baseMessage: string;
+    type: PromptPresetType;
+    prompt: string;
+  }): string {
+    if (type !== PromptPresetType.TEXT || !containsLegacyTranslatedTextKey(prompt)) {
+      return baseMessage;
+    }
+    return appendLegacyWarningMessage(baseMessage);
+  }
 
   @Get()
   @ApiOkResponse({
@@ -49,11 +69,16 @@ export class PromptPresetController {
       const presetDtos: PromptPresetDto[] = presets.map((preset) =>
         PromptPresetDto.fromEntity(preset)
       );
+      const hasLegacyTextPrompt = presetDtos.some(
+        (preset) => preset.type === PromptPresetType.TEXT && preset.containsLegacyTranslatedText
+      );
 
       return {
         success: true,
         presets: presetDtos,
-        message: '프롬프트 프리셋 목록을 성공적으로 가져왔습니다.',
+        message: hasLegacyTextPrompt
+          ? appendLegacyWarningMessage('프롬프트 프리셋 목록을 성공적으로 가져왔습니다.')
+          : '프롬프트 프리셋 목록을 성공적으로 가져왔습니다.',
       };
     } catch (error) {
       this.logger.error('프롬프트 프리셋 목록 가져오기 중 오류 발생:', {
@@ -84,12 +109,17 @@ export class PromptPresetController {
         name: preset.name,
         prompt: preset.prompt,
         type: preset.type,
+        containsLegacyTranslatedText: containsLegacyTranslatedTextKey(preset.prompt),
       };
 
       return {
         success: true,
         preset: presetDetailDto,
-        message: '프롬프트 프리셋 상세 정보를 성공적으로 가져왔습니다.',
+        message: this.withLegacyWarningMessage({
+          baseMessage: '프롬프트 프리셋 상세 정보를 성공적으로 가져왔습니다.',
+          type: preset.type,
+          prompt: preset.prompt,
+        }),
       };
     } catch (error) {
       this.logger.error('프롬프트 프리셋 상세 정보 가져오기 중 오류 발생:', {
@@ -121,7 +151,11 @@ export class PromptPresetController {
       return {
         success: true,
         preset: presetDto,
-        message: '프롬프트 프리셋이 성공적으로 생성되었습니다.',
+        message: this.withLegacyWarningMessage({
+          baseMessage: '프롬프트 프리셋이 성공적으로 생성되었습니다.',
+          type: newPreset.type,
+          prompt: newPreset.prompt,
+        }),
       };
     } catch (error) {
       this.logger.error('프롬프트 프리셋 생성 중 오류 발생:', {
@@ -153,7 +187,11 @@ export class PromptPresetController {
       return {
         success: true,
         preset: presetDto,
-        message: '프롬프트 프리셋이 성공적으로 업데이트되었습니다.',
+        message: this.withLegacyWarningMessage({
+          baseMessage: '프롬프트 프리셋이 성공적으로 업데이트되었습니다.',
+          type: updatedPreset.type,
+          prompt: updatedPreset.prompt,
+        }),
       };
     } catch (error) {
       this.logger.error('프롬프트 프리셋 업데이트 중 오류 발생:', {

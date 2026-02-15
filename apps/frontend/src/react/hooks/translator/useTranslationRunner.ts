@@ -18,6 +18,10 @@ import {
   BatchParseResult,
   BatchTranslationCancelledError,
 } from './batch-translation';
+import {
+  containsLegacyTranslatedTextKey,
+  LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE,
+} from '@/react/utils/legacy-prompt-warning';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   input: string | File[];
@@ -114,6 +118,13 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
     try {
       if (!validateInput(input)) {
         throw new Error(t('translationRunner.invalidInput'));
+      }
+
+      if (
+        translationType !== TranslationType.Image &&
+        containsLegacyTranslatedTextKey(promptPresetContent)
+      ) {
+        showSnackbar(LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE);
       }
 
       setUIState((prev) => ({
