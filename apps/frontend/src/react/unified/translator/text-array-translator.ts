@@ -67,10 +67,11 @@ export class TextArrayTranslator implements ITranslator {
     }
 
     const placeholderRules = config.placeholderPreservationRules
-      .filter(({ pattern }) => pattern.trim().length > 0)
-      .map(({ pattern, flags }) => ({
+      .filter(({ pattern, enabled }) => enabled && pattern.trim().length > 0)
+      .map(({ pattern, flags, enabled }) => ({
         pattern,
         flags: flags.trim() ? flags.trim() : undefined,
+        enabled,
       }));
     const placeholderPreservation =
       config.placeholderPreservationEnabled && placeholderRules.length > 0

@@ -11,5 +11,9 @@ export type PlaceholderPreservationRuleDto = {
      * 정규식 플래그 문자열 (예: i, imsu). g는 내부적으로 적용됩니다.
      */
     flags?: string;
+    /**
+     * 개별 규칙 활성화 여부 (누락되면 true로 처리)
+     */
+    enabled?: boolean;
 };
 

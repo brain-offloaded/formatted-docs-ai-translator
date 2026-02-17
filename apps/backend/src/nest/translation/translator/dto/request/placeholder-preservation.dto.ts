@@ -27,6 +27,15 @@ export class PlaceholderPreservationRuleDto {
   @IsString()
   @IsOptional()
   flags?: string;
+
+  @ApiProperty({
+    description: '개별 규칙 활성화 여부 (누락되면 true로 처리)',
+    example: true,
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  enabled?: boolean;
 }
 
 export class PlaceholderPreservationSettingsDto {

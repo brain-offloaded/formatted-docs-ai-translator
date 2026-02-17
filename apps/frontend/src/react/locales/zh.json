@@ -93,6 +93,7 @@
       "title": "占位符保留检查",
       "description": "对每个模式，翻译前后匹配到的字符串必须一致。（顺序不重要）",
       "enabled": "启用占位符保留检查",
+      "ruleEnabled": "启用此规则",
       "patternLabel": "正则模式",
       "patternHelper": "仅输入模式（不需要 /.../）",
       "flagsLabel": "标志位",

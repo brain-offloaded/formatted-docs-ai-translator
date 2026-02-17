@@ -8,6 +8,7 @@ export interface TranslationProgressEvent {
 export interface PlaceholderPreservationRule {
   pattern: string;
   flags?: string;
+  enabled?: boolean;
 }
 
 export interface PlaceholderPreservationSettings {

@@ -93,6 +93,7 @@
       "title": "플레이스홀더 보존 검사",
       "description": "원문/번역문에서 각 패턴의 매칭 문자열이 동일해야 합니다. (순서 무관)",
       "enabled": "플레이스홀더 보존 검사 사용",
+      "ruleEnabled": "이 규칙 사용",
       "patternLabel": "정규식 패턴",
       "patternHelper": "슬래시(/.../) 없이 패턴만 입력",
       "flagsLabel": "플래그",
