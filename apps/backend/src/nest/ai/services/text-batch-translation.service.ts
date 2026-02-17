@@ -15,7 +15,12 @@ import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
 import { TranslatorAiSettings } from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { AiChatResponse, AiMessage, AiProxyError } from '../dto/common-ai.dto';
-import type { PlaceholderPreservationSettings, TextTranslateParam } from './translator.types';
+import type {
+  PlaceholderPreservationSettings,
+  StrictFailureReason,
+  TextTranslateParam,
+  TextTranslateResult,
+} from './translator.types';
 import { AiRateLimiterService } from './ai-rate-limiter.service';
 import { TranslationParsingError } from './translation-response-parser.service';
 import { getPlaceholderPreservationMismatchDetail } from './placeholder-preservation-validator';
@@ -37,7 +42,7 @@ export class TextBatchTranslationService {
     private readonly rateLimiterService: AiRateLimiterService
   ) {}
 
-  public async translateText(param: TextTranslateParam): Promise<string[]> {
+  public async translateText(param: TextTranslateParam): Promise<TextTranslateResult> {
     const {
       sourceTexts,
       promptPresetContent,
@@ -79,7 +84,10 @@ export class TextBatchTranslationService {
 
       if (remainingTexts.size === 0) {
         onProgress?.({ completed: totalTexts, total: totalTexts });
-        return texts;
+        return {
+          texts,
+          strictMetaByIndex: this.buildStrictMetaByIndex(sourceTexts, new Map()),
+        };
       }
 
       // 캐시 히트된 만큼 초기 진행률 보고
@@ -93,6 +101,7 @@ export class TextBatchTranslationService {
       let maxBatchTextCount: number | null = null;
       let stableBatchSuccessCount = 0;
       const validationMismatchCounts = new Map<string, number>();
+      const strictFailureReasonsByText = new Map<string, Set<StrictFailureReason>>();
 
       while (currentRemainingTexts.size > 0) {
         const remainingTextArray = Array.from(currentRemainingTexts.keys());
@@ -136,6 +145,7 @@ export class TextBatchTranslationService {
             const giveUpTexts = new Set<string>();
             if (hasValidationMismatch) {
               for (const text of validationMismatchTexts) {
+                this.markStrictFailure(strictFailureReasonsByText, text, 'placeholder_mismatch');
                 const nextCount = (validationMismatchCounts.get(text) ?? 0) + 1;
                 validationMismatchCounts.set(text, nextCount);
                 if (nextCount >= this.MAX_ATTEMPT_COUNT) {
@@ -201,6 +211,7 @@ export class TextBatchTranslationService {
             for (const [originalText, result] of batchTranslations.entries()) {
               newTranslations.set(originalText, result);
               validationMismatchCounts.delete(originalText);
+              this.clearStrictFailure(strictFailureReasonsByText, originalText);
             }
 
             if (madeProgress) {
@@ -304,6 +315,10 @@ export class TextBatchTranslationService {
       }
 
       for (const [originalText, indices] of currentRemainingTexts.entries()) {
+        this.markStrictFailure(strictFailureReasonsByText, originalText, 'unresolved_segment');
+        indices.forEach((index) => {
+          intermediateTexts[index] = originalText;
+        });
         newTranslations.set(originalText, { text: originalText, indices });
       }
 
@@ -312,7 +327,10 @@ export class TextBatchTranslationService {
         intermediateTexts,
       });
 
-      return intermediateTexts;
+      return {
+        texts: intermediateTexts,
+        strictMetaByIndex: this.buildStrictMetaByIndex(sourceTexts, strictFailureReasonsByText),
+      };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       throw new Error(`Translation failed: ${errorMessage}`);
@@ -329,6 +347,40 @@ export class TextBatchTranslationService {
       stack: error instanceof Error ? error.stack : undefined,
     });
     throw new Error(message);
+  }
+
+  private markStrictFailure(
+    strictFailureReasonsByText: Map<string, Set<StrictFailureReason>>,
+    text: string,
+    reason: StrictFailureReason
+  ): void {
+    const existing = strictFailureReasonsByText.get(text);
+    if (existing) {
+      existing.add(reason);
+      return;
+    }
+    strictFailureReasonsByText.set(text, new Set([reason]));
+  }
+
+  private clearStrictFailure(
+    strictFailureReasonsByText: Map<string, Set<StrictFailureReason>>,
+    text: string
+  ): void {
+    strictFailureReasonsByText.delete(text);
+  }
+
+  private buildStrictMetaByIndex(
+    sourceTexts: string[],
+    strictFailureReasonsByText: Map<string, Set<StrictFailureReason>>
+  ): TextTranslateResult['strictMetaByIndex'] {
+    return sourceTexts.map((text) => {
+      const reasons = Array.from(strictFailureReasonsByText.get(text) ?? []).sort();
+      return {
+        strictFailed: reasons.length > 0,
+        strictFailureReasons: reasons,
+        strictFailureCount: reasons.length,
+      };
+    });
   }
 
   private async translateUncachedTexts({

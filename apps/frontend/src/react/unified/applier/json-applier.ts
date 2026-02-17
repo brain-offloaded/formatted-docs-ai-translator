@@ -12,6 +12,7 @@ import {
   rewrapStringifiedJsonValues,
   unwrapStringifiedJsonValues,
 } from '@/react/unified/utils/recursive-json';
+import { getStrictFailureMessage } from './strict-failure';
 
 export class JsonApplier
   implements IApplier<TranslationInput<JsonParserOptionsDto>, TranslationUnit[], TranslationOutput>
@@ -21,6 +22,16 @@ export class JsonApplier
     translatedTexts: TranslationUnit[]
   ): Promise<TranslationOutput> {
     const fileName = deriveFileName(originalInput, 'translated.json');
+    const strictFailureMessage = getStrictFailureMessage(translatedTexts);
+    if (strictFailureMessage) {
+      return new TranslationOutput([
+        {
+          name: fileName,
+          success: false,
+          message: strictFailureMessage,
+        },
+      ]);
+    }
 
     const raw = await extractSingleText(originalInput);
     const content = normalizeLineEndings(raw); // 안정적 처리

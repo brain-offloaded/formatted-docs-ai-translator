@@ -7,6 +7,7 @@ import { SubtitleFormat } from '@/react/unified/domain/options/subtitle-format.e
 // removed unused imports (kept parser state fallback logic)
 import { SubtitleParser } from '../parser/subtitle-parser';
 import { deriveFileName } from '../parser/utils/derive-file-name';
+import { getStrictFailureMessage } from './strict-failure';
 
 interface SubtitleBlock {
   id: string;
@@ -26,6 +27,18 @@ export class SubtitleApplier
     originalInput: TranslationInput<SubtitleParserOptionsDto>,
     translatedTexts: TranslationUnit[]
   ): Promise<TranslationOutput> {
+    const fileName = deriveFileName(originalInput, 'translated.srt');
+    const strictFailureMessage = getStrictFailureMessage(translatedTexts);
+    if (strictFailureMessage) {
+      return new TranslationOutput([
+        {
+          name: fileName,
+          success: false,
+          message: strictFailureMessage,
+        },
+      ]);
+    }
+
     // 원본 블록 확보: 주입된 parser 에 상태가 없으면 재파싱 시도
     let originalBlocks: SubtitleBlock[] = [];
     if (this.parser) {
@@ -57,10 +70,10 @@ export class SubtitleApplier
     }
     const subtitleContent = this.formatSubtitleBlocks(translatedBlocks, format);
 
-    const fileName = deriveFileName(originalInput, `translated.${format}`);
+    const outputFileName = deriveFileName(originalInput, `translated.${format}`);
     return new TranslationOutput([
       {
-        name: fileName,
+        name: outputFileName,
         success: true,
         result: subtitleContent,
       },
