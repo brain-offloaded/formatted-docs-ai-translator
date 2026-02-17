@@ -16,6 +16,19 @@ export interface PlaceholderPreservationSettings {
   rules: PlaceholderPreservationRule[];
 }
 
+export type StrictFailureReason = 'placeholder_mismatch' | 'unresolved_segment';
+
+export interface TextSegmentStrictMeta {
+  strictFailed: boolean;
+  strictFailureReasons: StrictFailureReason[];
+  strictFailureCount: number;
+}
+
+export interface TextTranslateResult {
+  texts: string[];
+  strictMetaByIndex: TextSegmentStrictMeta[];
+}
+
 export interface TextTranslateParam {
   requestId: string;
   sourceTexts: string[];

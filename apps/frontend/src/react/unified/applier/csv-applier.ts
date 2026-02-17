@@ -8,6 +8,7 @@ import { normalizeLineEndings } from '../parser/utils/normalize-line-endings';
 import { deriveFileName } from '../parser/utils/derive-file-name';
 import { parseCsvContent, stringifyCsvContent } from '../parser/utils/csv-utils';
 import { resolveTargetColumns } from '../parser/utils/resolve-target-columns';
+import { getStrictFailureMessage } from './strict-failure';
 
 export class CsvApplier
   implements IApplier<TranslationInput<CsvParserOptionsDto>, TranslationUnit[], TranslationOutput>
@@ -17,6 +18,16 @@ export class CsvApplier
     translatedTexts: TranslationUnit[]
   ): Promise<TranslationOutput> {
     const fileName = deriveFileName(originalInput, 'result.csv');
+    const strictFailureMessage = getStrictFailureMessage(translatedTexts);
+    if (strictFailureMessage) {
+      return new TranslationOutput([
+        {
+          name: fileName,
+          success: false,
+          message: strictFailureMessage,
+        },
+      ]);
+    }
 
     const raw = await extractSingleText(originalInput);
     const content = normalizeLineEndings(raw);

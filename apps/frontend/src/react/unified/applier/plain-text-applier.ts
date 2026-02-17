@@ -6,6 +6,7 @@ import { IApplier } from './i-applier';
 import { extractSingleText } from '../parser/utils/extract-single-text';
 import { normalizeLineEndings } from '../parser/utils/normalize-line-endings';
 import { deriveFileName } from '../parser/utils/derive-file-name';
+import { getStrictFailureMessage } from './strict-failure';
 
 export class PlainTextApplier
   implements
@@ -20,6 +21,16 @@ export class PlainTextApplier
     if (content === '') return new TranslationOutput([]); // 빈 파일이면 기존 정책 유지
 
     const fileName = deriveFileName(originalInput, 'translated.txt');
+    const strictFailureMessage = getStrictFailureMessage(translatedTexts);
+    if (strictFailureMessage) {
+      return new TranslationOutput([
+        {
+          name: fileName,
+          success: false,
+          message: strictFailureMessage,
+        },
+      ]);
+    }
 
     // key 기반 매핑으로 누락된 번역 라인은 원문 유지
     const map = new Map(translatedTexts.map((u) => [u.key, u.target]));

@@ -77,4 +77,26 @@ describe('CSV 파이프라인', () => {
       ['c;x', 'd;x'],
     ]);
   });
+
+  it('세그먼트 strict 실패가 있으면 파일 전체를 실패 처리한다', async () => {
+    const csv = ['a,b', 'c,d'].join('\n');
+    const input = buildInput(csv, {
+      skipFirstLine: false,
+    });
+
+    const parsed = await parser.parse(input);
+    const translated = parsed.map((unit, index) => ({
+      ...unit,
+      target: `${unit.source}-tr`,
+      strictFailed: index === 0,
+      strictFailureReasons: index === 0 ? ['placeholder_mismatch'] : [],
+    }));
+
+    const applied = await applier.apply(input, translated);
+    const [result] = applied.getResults();
+
+    expect(result.success).toBe(false);
+    expect(result.result).toBeUndefined();
+    expect(result.message).toContain('세그먼트 번역 실패');
+  });
 });

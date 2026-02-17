@@ -28,7 +28,8 @@ export class UnifiedAiTranslatorService {
   public async translate(param: ImageTranslateParam): Promise<ImageOcrTranslationResultDto>;
   public async translate(param: TranslateParam): Promise<string[] | ImageOcrTranslationResultDto> {
     if ('sourceTexts' in param) {
-      return this.textBatchTranslationService.translateText(param);
+      const result = await this.textBatchTranslationService.translateText(param);
+      return result.texts;
     }
 
     const imageParam = param as ImageTranslateParam;

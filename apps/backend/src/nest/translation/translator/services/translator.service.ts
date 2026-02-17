@@ -72,7 +72,8 @@ export class TranslatorService {
       onProgress,
     });
 
-    const translatedTexts = translationResult;
+    const translatedTexts = translationResult.texts;
+    const strictMetaByIndex = translationResult.strictMetaByIndex;
 
     // 번역 결과 후처리 적용
     const postprocessedTexts = translatedTexts.map((text) =>
@@ -82,18 +83,30 @@ export class TranslatorService {
     // 원본과 번역문을 함께 반환하는 응답 구성
     return textPaths.map((item, index) => {
       const translatedText = postprocessedTexts[index];
+      const strictMeta = strictMetaByIndex[index] ?? {
+        strictFailed: false,
+        strictFailureReasons: [],
+        strictFailureCount: 0,
+      };
+      const mergedExtra = {
+        ...(item.extra ?? {}),
+        strictFailed: strictMeta.strictFailed,
+        strictFailureReasons: strictMeta.strictFailureReasons,
+        strictFailureCount: strictMeta.strictFailureCount,
+      };
       if (typeof translatedText !== 'string') {
         // TODO: Handle ImageOcrTranslationResultDto case
         return {
           ...item,
           translatedText: '',
+          extra: mergedExtra,
         };
       }
       return {
         text: item.text,
         translatedText,
         path: item.path,
-        extra: item.extra,
+        extra: mergedExtra,
       };
     });
   }

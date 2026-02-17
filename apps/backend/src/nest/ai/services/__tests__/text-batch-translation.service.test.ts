@@ -118,7 +118,14 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       cacheTag: 'default',
     });
 
-    expect(result).toEqual([sourceText]);
+    expect(result.texts).toEqual([sourceText]);
+    expect(result.strictMetaByIndex).toEqual([
+      {
+        strictFailed: true,
+        strictFailureReasons: ['placeholder_mismatch'],
+        strictFailureCount: 1,
+      },
+    ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
     expect(cacheManagerService.setTranslations).not.toHaveBeenCalled();
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
@@ -164,7 +171,14 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       cacheTag: 'default',
     });
 
-    expect(result).toEqual([translatedText]);
+    expect(result.texts).toEqual([translatedText]);
+    expect(result.strictMetaByIndex).toEqual([
+      {
+        strictFailed: false,
+        strictFailureReasons: [],
+        strictFailureCount: 0,
+      },
+    ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(2);
     expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(1);
     expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledTimes(1);
@@ -212,7 +226,14 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
     });
 
     expect(translateUncachedTexts).toHaveBeenCalledTimes(1);
-    expect(result).toEqual([translatedText]);
+    expect(result.texts).toEqual([translatedText]);
+    expect(result.strictMetaByIndex).toEqual([
+      {
+        strictFailed: false,
+        strictFailureReasons: [],
+        strictFailureCount: 0,
+      },
+    ]);
   });
 
   it('캐시 플레이스홀더 보존 불일치가 있으면 재번역한다', async () => {
@@ -286,7 +307,14 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
         }),
       })
     );
-    expect(result).toEqual([translatedText]);
+    expect(result.texts).toEqual([translatedText]);
+    expect(result.strictMetaByIndex).toEqual([
+      {
+        strictFailed: false,
+        strictFailureReasons: [],
+        strictFailureCount: 0,
+      },
+    ]);
   });
 
   it('캐시 플레이스홀더 규칙이 비활성화면 캐시를 재사용한다', async () => {
@@ -336,7 +364,14 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
 
     expect(cacheCheck.isCacheHit).toBe(true);
     expect(translateUncachedTexts).not.toHaveBeenCalled();
-    expect(result).toEqual([cachedTranslation]);
+    expect(result.texts).toEqual([cachedTranslation]);
+    expect(result.strictMetaByIndex).toEqual([
+      {
+        strictFailed: false,
+        strictFailureReasons: [],
+        strictFailureCount: 0,
+      },
+    ]);
   });
 
   it('캐시 플레이스홀더 매칭 문자열이 바뀌면 재번역한다', async () => {
@@ -394,6 +429,13 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
     });
 
     expect(cacheCheck.isCacheHit).toBe(false);
-    expect(result).toEqual([translatedText]);
+    expect(result.texts).toEqual([translatedText]);
+    expect(result.strictMetaByIndex).toEqual([
+      {
+        strictFailed: false,
+        strictFailureReasons: [],
+        strictFailureCount: 0,
+      },
+    ]);
   });
 });

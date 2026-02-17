@@ -19,7 +19,12 @@ interface StreamCompleteEvent {
   type: 'complete';
   success: boolean;
   message: string;
-  translatedTextPaths: Array<{ text: string; translatedText: string; path: string }>;
+  translatedTextPaths: Array<{
+    text: string;
+    translatedText: string;
+    path: string;
+    extra?: Record<string, unknown>;
+  }>;
 }
 
 interface StreamErrorEvent {
@@ -33,6 +38,17 @@ type StreamEvent = StreamProgressEvent | StreamCompleteEvent | StreamErrorEvent;
 export class TextArrayTranslator implements ITranslator {
   private normalizeText(text: string): string {
     return normalizeLineEndings(text);
+  }
+
+  private parseStrictMeta(extra: Record<string, unknown> | undefined): {
+    strictFailed: boolean;
+    strictFailureReasons: string[];
+  } {
+    const strictFailed = extra?.strictFailed === true;
+    const strictFailureReasons = Array.isArray(extra?.strictFailureReasons)
+      ? extra.strictFailureReasons.filter((reason): reason is string => typeof reason === 'string')
+      : [];
+    return { strictFailed, strictFailureReasons };
   }
 
   async translate(
@@ -164,9 +180,27 @@ export class TextArrayTranslator implements ITranslator {
 
     // 3) 응답을 원본 인덱스로 매핑
     const result: TranslationUnit[] = units.map((u) => ({ ...u }));
-    translatable.forEach(({ index }, i) => {
-      const translated = completeEvent!.translatedTextPaths[i]?.translatedText ?? '';
-      result[index] = { ...result[index], target: translated };
+    const translatedByPath = new Map(
+      completeEvent.translatedTextPaths.map((item) => [item.path, item] as const)
+    );
+    translatable.forEach(({ index, unit }) => {
+      const translatedPath = translatedByPath.get(unit.key);
+      if (!translatedPath) {
+        result[index] = {
+          ...result[index],
+          target: result[index].source,
+          strictFailed: true,
+          strictFailureReasons: ['missing_translated_path'],
+        };
+        return;
+      }
+      const strictMeta = this.parseStrictMeta(translatedPath.extra);
+      result[index] = {
+        ...result[index],
+        target: translatedPath.translatedText,
+        strictFailed: strictMeta.strictFailed,
+        strictFailureReasons: strictMeta.strictFailureReasons,
+      };
     });
 
     return result;

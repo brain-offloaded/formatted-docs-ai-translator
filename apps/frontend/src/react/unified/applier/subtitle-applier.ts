@@ -7,6 +7,7 @@ import { SubtitleFormat } from '@/react/unified/domain/options/subtitle-format.e
 // removed unused imports (kept parser state fallback logic)
 import { SubtitleParser } from '../parser/subtitle-parser';
 import { deriveFileName } from '../parser/utils/derive-file-name';
+import { getStrictFailureMessage } from './strict-failure';
 
 interface SubtitleBlock {
   id: string;
@@ -26,6 +27,22 @@ export class SubtitleApplier
     originalInput: TranslationInput<SubtitleParserOptionsDto>,
     translatedTexts: TranslationUnit[]
   ): Promise<TranslationOutput> {
+    const selectedFormat = this.resolveSelectedFormat(originalInput.options?.format);
+    const fileName = deriveFileName(
+      originalInput,
+      `translated.${selectedFormat ?? SubtitleFormat.SRT}`
+    );
+    const strictFailureMessage = getStrictFailureMessage(translatedTexts);
+    if (strictFailureMessage) {
+      return new TranslationOutput([
+        {
+          name: fileName,
+          success: false,
+          message: strictFailureMessage,
+        },
+      ]);
+    }
+
     // 원본 블록 확보: 주입된 parser 에 상태가 없으면 재파싱 시도
     let originalBlocks: SubtitleBlock[] = [];
     if (this.parser) {
@@ -51,20 +68,26 @@ export class SubtitleApplier
 
     let format = translatedBlocks[0]?.format || SubtitleFormat.SRT;
     // 사용자가 명시한 포맷이 있다면 그것을 우선 적용 (AUTO 제외)
-    const userFormat = originalInput.options?.format;
-    if (userFormat && userFormat !== SubtitleFormat.AUTO) {
-      format = userFormat === SubtitleFormat.VTT ? SubtitleFormat.VTT : SubtitleFormat.SRT;
+    if (selectedFormat) {
+      format = selectedFormat;
     }
     const subtitleContent = this.formatSubtitleBlocks(translatedBlocks, format);
 
-    const fileName = deriveFileName(originalInput, `translated.${format}`);
+    const outputFileName = deriveFileName(originalInput, `translated.${format}`);
     return new TranslationOutput([
       {
-        name: fileName,
+        name: outputFileName,
         success: true,
         result: subtitleContent,
       },
     ]);
+  }
+
+  private resolveSelectedFormat(format?: SubtitleFormat): SubtitleFormat | undefined {
+    if (format === SubtitleFormat.SRT || format === SubtitleFormat.VTT) {
+      return format;
+    }
+    return undefined;
   }
 
   private formatSubtitleBlocks(blocks: SubtitleBlock[], format: SubtitleFormat): string {
