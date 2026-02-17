@@ -28,31 +28,72 @@ async function ensureExists(targetPath, errorMessage) {
   }
 }
 
+function toRuntimeDependencies(packageJson) {
+  return Object.entries(packageJson?.dependencies ?? {})
+    .filter(([name]) => !name.startsWith('@apps/'))
+    .reduce((acc, [name, version]) => {
+      acc[name] = version;
+      return acc;
+    }, {});
+}
+
+function sortDependencyMap(dependencies) {
+  return Object.fromEntries(Object.entries(dependencies).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+async function collectWorkspaceRuntimeDependencies(dependencies) {
+  const workspaceDeps = Object.keys(dependencies ?? {}).filter((name) => name.startsWith('@apps/'));
+  if (workspaceDeps.length === 0) {
+    return {};
+  }
+
+  const runtimeDeps = {};
+  for (const workspaceDep of workspaceDeps) {
+    const workspaceName = workspaceDep.replace('@apps/', '');
+    const workspacePackagePath = path.join(repoRoot, 'apps', workspaceName, 'package.json');
+    try {
+      const workspacePackage = JSON.parse(await fs.readFile(workspacePackagePath, 'utf-8'));
+      Object.assign(runtimeDeps, toRuntimeDependencies(workspacePackage));
+    } catch (error) {
+      console.warn(`워크스페이스 의존성 수집 실패: ${workspaceDep} (${error.message ?? error})`);
+    }
+  }
+
+  return runtimeDeps;
+}
+
 /**
  * Automatically sync runtime dependencies from backend to root package.json
  * This eliminates manual dependency duplication
  */
 async function syncRootDependencies(backendPackage) {
   const rootPackage = JSON.parse(await fs.readFile(rootPackagePath, 'utf-8'));
-  const backendDeps = backendPackage.dependencies ?? {};
-  
-  // Filter out workspace dependencies
-  const runtimeDeps = Object.entries(backendDeps)
-    .filter(([name]) => !name.startsWith('@apps/'))
-    .reduce((acc, [name, version]) => {
-      acc[name] = version;
-      return acc;
-    }, {});
-  
+
+  const backendRuntimeDeps = toRuntimeDependencies(backendPackage);
+  const workspaceRuntimeDeps = await collectWorkspaceRuntimeDependencies(backendPackage.dependencies);
+  const runtimeDeps = sortDependencyMap({
+    ...workspaceRuntimeDeps,
+    ...backendRuntimeDeps,
+  });
+
+  const versionConflicts = Object.entries(workspaceRuntimeDeps).filter(
+    ([name, workspaceVersion]) =>
+      backendRuntimeDeps[name] && backendRuntimeDeps[name] !== workspaceVersion
+  );
+  if (versionConflicts.length > 0) {
+    const conflictNames = versionConflicts.map(([name]) => name).join(', ');
+    console.log(`백엔드 의존성 버전을 우선 적용합니다: ${conflictNames}`);
+  }
+
   // Check if root dependencies need update
-  const currentRootDeps = rootPackage.dependencies ?? {};
+  const currentRootDeps = sortDependencyMap(rootPackage.dependencies ?? {});
   const needsUpdate = JSON.stringify(currentRootDeps) !== JSON.stringify(runtimeDeps);
-  
+
   if (needsUpdate) {
     console.log('루트 package.json dependencies 자동 동기화 중...');
     rootPackage.dependencies = runtimeDeps;
     await fs.writeFile(rootPackagePath, JSON.stringify(rootPackage, null, 2) + '\n');
-    
+
     // Trigger yarn install to sync lockfile
     console.log('yarn install 실행 중...');
     try {
@@ -61,7 +102,7 @@ async function syncRootDependencies(backendPackage) {
       console.warn('yarn install 경고:', error.message);
     }
   }
-  
+
   return rootPackage;
 }
 
@@ -184,9 +225,19 @@ async function prepare() {
   const commonPackage = JSON.parse(
     await fs.readFile(path.join(repoRoot, 'apps', 'common', 'package.json'), 'utf-8')
   );
+  const commonRuntimeDeps = sortDependencyMap(toRuntimeDependencies(commonPackage));
   await fs.writeFile(
     path.join(commonInStaging, 'package.json'),
-    JSON.stringify({ name: commonPackage.name, version: commonPackage.version, main: 'dist/index.js' }, null, 2)
+    JSON.stringify(
+      {
+        name: commonPackage.name,
+        version: commonPackage.version,
+        main: 'dist/index.js',
+        dependencies: commonRuntimeDeps,
+      },
+      null,
+      2
+    )
   );
 
   // Fix Prisma location
