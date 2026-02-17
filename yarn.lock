@@ -6878,6 +6878,7 @@ __metadata:
     husky: "npm:^9.1.7"
     jszip: "npm:^3.10.1"
     limiter: "npm:^2.1.0"
+    lodash: "npm:^4.17.23"
     lru-cache: "npm:^11.0.2"
     nodemon: "npm:^3.1.0"
     openai: "npm:latest"
@@ -6896,6 +6897,7 @@ __metadata:
     typescript: "npm:^5.8.2"
     uuid: "npm:^11.1.0"
     winston: "npm:^3.17.0"
+    winston-transport: "npm:^4.9.0"
   languageName: unknown
   linkType: soft
 
