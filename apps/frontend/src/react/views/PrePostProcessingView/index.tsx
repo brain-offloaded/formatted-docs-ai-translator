@@ -50,8 +50,8 @@ const PrePostProcessingView: React.FC = () => {
 
   const defaultPlaceholderRules = useMemo(
     () => [
-      { pattern: '\\r', flags: '' },
-      { pattern: '\\n', flags: '' },
+      { pattern: '\\r', flags: '', enabled: true },
+      { pattern: '\\n', flags: '', enabled: true },
     ],
     []
   );
@@ -64,7 +64,7 @@ const PrePostProcessingView: React.FC = () => {
   };
 
   const updatePlaceholderRule = useCallback(
-    (index: number, next: { pattern?: string; flags?: string }) => {
+    (index: number, next: { pattern?: string; flags?: string; enabled?: boolean }) => {
       const nextRules = placeholderPreservationRules.map((rule, i) =>
         i === index ? { ...rule, ...next } : rule
       );
@@ -75,7 +75,10 @@ const PrePostProcessingView: React.FC = () => {
 
   const addPlaceholderRule = useCallback(() => {
     updateConfig({
-      placeholderPreservationRules: [...placeholderPreservationRules, { pattern: '', flags: '' }],
+      placeholderPreservationRules: [
+        ...placeholderPreservationRules,
+        { pattern: '', flags: '', enabled: true },
+      ],
     });
   }, [placeholderPreservationRules, updateConfig]);
 
@@ -166,7 +169,7 @@ const PrePostProcessingView: React.FC = () => {
 
   const runPreview = () => {
     const results = placeholderPreservationRules
-      .filter((rule) => rule.pattern.trim().length > 0)
+      .filter((rule) => rule.enabled && rule.pattern.trim().length > 0)
       .map((rule) => {
         const label = `${rule.pattern} /${rule.flags || ''}/`;
         const beforeSet = buildMatchMultiset(previewSourceText, rule.pattern, rule.flags);
@@ -222,11 +225,13 @@ const PrePostProcessingView: React.FC = () => {
 
               <Box sx={{ mt: 1 }}>
                 {placeholderPreservationRules.map((rule, index) => {
+                  const isEnabled = !!rule.enabled;
                   const regex = rule.pattern.trim()
                     ? tryCompileRegex(rule.pattern, rule.flags)
                     : null;
-                  const isInvalid = rule.pattern.trim().length > 0 && !regex;
+                  const isInvalid = isEnabled && rule.pattern.trim().length > 0 && !regex;
                   const shouldWarn =
+                    isEnabled &&
                     rule.pattern.trim().length > 0 &&
                     isPotentiallyOvermatching(rule.pattern, rule.flags);
 
@@ -236,9 +241,9 @@ const PrePostProcessingView: React.FC = () => {
                       spacing={1}
                       key={`placeholder-rule-${index}`}
                       alignItems="center"
-                      sx={{ mb: 1 }}
+                      sx={{ mb: 1, opacity: isEnabled ? 1 : 0.6 }}
                     >
-                      <Grid item xs={12} md={7}>
+                      <Grid item xs={12} md={6}>
                         <TextField
                           fullWidth
                           size="small"
@@ -257,7 +262,7 @@ const PrePostProcessingView: React.FC = () => {
                           InputLabelProps={{ shrink: true }}
                         />
                       </Grid>
-                      <Grid item xs={10} md={3}>
+                      <Grid item xs={8} md={2}>
                         <TextField
                           fullWidth
                           size="small"
@@ -269,7 +274,7 @@ const PrePostProcessingView: React.FC = () => {
                           InputLabelProps={{ shrink: true }}
                         />
                       </Grid>
-                      <Grid item xs={2} md={2}>
+                      <Grid item xs={4} md={4}>
                         <Box
                           sx={{
                             display: 'flex',
@@ -277,11 +282,24 @@ const PrePostProcessingView: React.FC = () => {
                             justifyContent: 'flex-end',
                           }}
                         >
+                          <FormControlLabel
+                            sx={{ mr: 1 }}
+                            control={
+                              <Switch
+                                size="small"
+                                checked={isEnabled}
+                                onChange={(_event, checked) =>
+                                  updatePlaceholderRule(index, { enabled: checked })
+                                }
+                              />
+                            }
+                            label={t('settings.placeholderPreservation.ruleEnabled')}
+                          />
                           {shouldWarn && (
                             <Tooltip
                               title={t('settings.placeholderPreservation.warning.emptyMatch')}
                             >
-                              <WarningAmberIcon fontSize="small" color="warning" sx={{ mr: 1 }} />
+                              <WarningAmberIcon fontSize="small" color="warning" sx={{ mr: 1.5 }} />
                             </Tooltip>
                           )}
                           <Tooltip title={t('common.delete')}>

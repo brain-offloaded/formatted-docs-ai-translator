@@ -105,6 +105,37 @@ describe('TranslationResponseParser.parseTranslationResponse', () => {
     expect(logger.warn).toHaveBeenCalled();
   });
 
+  it('비활성화된 플레이스홀더 규칙은 검사에서 제외한다', async () => {
+    const response: AiChatResponse = {
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: JSON.stringify({
+              segments: [{ id: 1, text: '첫 줄\n둘째 줄' }],
+            }),
+          },
+        },
+      ],
+    };
+
+    const remainingTexts = new Map<string, number[]>([['첫 번째 원문', [0]]]);
+    const expectedIdToText = new Map<number, string>([[1, '첫 번째 원문']]);
+
+    const { translations, validationMismatchTexts } = await service.parseTranslationResponse(
+      response,
+      remainingTexts,
+      expectedIdToText,
+      {
+        enabled: true,
+        rules: [{ pattern: '\\n', flags: '', enabled: false }],
+      }
+    );
+
+    expect(translations.get('첫 번째 원문')?.text).toBe('첫 줄\n둘째 줄');
+    expect(validationMismatchTexts.has('첫 번째 원문')).toBe(false);
+  });
+
   it('예제 태그 오프셋이 있는 번역 결과도 파싱한다', async () => {
     const response: AiChatResponse = {
       choices: [

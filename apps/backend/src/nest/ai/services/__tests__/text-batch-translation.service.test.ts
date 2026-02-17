@@ -260,7 +260,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
           cachedResults: Map<string, string | null>,
           placeholderPreservation?: {
             enabled: boolean;
-            rules: Array<{ pattern: string; flags?: string }>;
+            rules: Array<{ pattern: string; flags?: string; enabled?: boolean }>;
           }
         ) => { translatedText: string; isCacheHit: boolean };
       }
@@ -287,6 +287,56 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       })
     );
     expect(result).toEqual([translatedText]);
+  });
+
+  it('캐시 플레이스홀더 규칙이 비활성화면 캐시를 재사용한다', async () => {
+    const sourceText = 'Hello {1}\nWorld';
+    const cachedTranslation = '안녕\n세계'; // {1} 누락
+    const { service, cacheManagerService, tokenService } = createService();
+
+    cacheManagerService.getTranslations.mockResolvedValue(
+      new Map<string, string | null>([[sourceText, cachedTranslation]])
+    );
+    tokenService.getBatchGroups.mockResolvedValue([[sourceText]]);
+
+    const translateUncachedTexts = jest.fn();
+    (
+      service as unknown as {
+        translateUncachedTexts: typeof translateUncachedTexts;
+      }
+    ).translateUncachedTexts = translateUncachedTexts;
+
+    const result = await service.translateText({
+      requestId: 'req-cache-placeholder-disabled',
+      sourceTexts: [sourceText],
+      promptPresetContent: '',
+      aiSettings: buildAiSettings(),
+      cacheTag: 'default',
+      placeholderPreservation: {
+        enabled: true,
+        rules: [{ pattern: '\\{\\d+\\}', flags: '', enabled: false }],
+      },
+    });
+
+    const cacheCheck = (
+      service as unknown as {
+        getTranslationFromCachedResult: (
+          originalText: string,
+          cachedResults: Map<string, string | null>,
+          placeholderPreservation?: {
+            enabled: boolean;
+            rules: Array<{ pattern: string; flags?: string; enabled?: boolean }>;
+          }
+        ) => { translatedText: string; isCacheHit: boolean };
+      }
+    ).getTranslationFromCachedResult(sourceText, new Map([[sourceText, cachedTranslation]]), {
+      enabled: true,
+      rules: [{ pattern: '\\{\\d+\\}', flags: '', enabled: false }],
+    });
+
+    expect(cacheCheck.isCacheHit).toBe(true);
+    expect(translateUncachedTexts).not.toHaveBeenCalled();
+    expect(result).toEqual([cachedTranslation]);
   });
 
   it('캐시 플레이스홀더 매칭 문자열이 바뀌면 재번역한다', async () => {
@@ -334,7 +384,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
           cachedResults: Map<string, string | null>,
           placeholderPreservation?: {
             enabled: boolean;
-            rules: Array<{ pattern: string; flags?: string }>;
+            rules: Array<{ pattern: string; flags?: string; enabled?: boolean }>;
           }
         ) => { translatedText: string; isCacheHit: boolean };
       }

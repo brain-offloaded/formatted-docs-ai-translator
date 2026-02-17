@@ -93,6 +93,7 @@
       "title": "Placeholder preservation check",
       "description": "For each pattern, the matched strings must be the same before and after translation. (Order doesn't matter)",
       "enabled": "Enable placeholder preservation check",
+      "ruleEnabled": "Use this rule",
       "patternLabel": "Regex pattern",
       "patternHelper": "Enter the pattern only (without /.../)",
       "flagsLabel": "Flags",

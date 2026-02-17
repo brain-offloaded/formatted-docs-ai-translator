@@ -34,6 +34,7 @@ export interface ProviderSpecificConfig {
 export interface PlaceholderPreservationRuleConfig {
   pattern: string;
   flags: string;
+  enabled: boolean;
 }
 
 export interface AiTranslatorConfig {

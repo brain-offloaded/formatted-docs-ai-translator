@@ -162,6 +162,7 @@ export const getPlaceholderPreservationMismatchDetail = ({
 }): PlaceholderPreservationMismatchDetail | null => {
   for (const rule of placeholderPreservation.rules) {
     if (!rule || typeof rule.pattern !== 'string') continue;
+    if (rule.enabled === false) continue;
     const pattern = rule.pattern;
     if (!pattern.trim()) continue;
     const flags = typeof rule.flags === 'string' ? rule.flags : '';
