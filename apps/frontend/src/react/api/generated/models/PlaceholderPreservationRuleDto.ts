@@ -12,7 +12,8 @@ export type PlaceholderPreservationRuleDto = {
      */
     flags?: string;
     /**
-     * 개별 규칙 활성화 여부. 누락되면 true로 간주됩니다.
+     * 개별 규칙 활성화 여부 (누락되면 true로 처리)
      */
     enabled?: boolean;
 };
+
