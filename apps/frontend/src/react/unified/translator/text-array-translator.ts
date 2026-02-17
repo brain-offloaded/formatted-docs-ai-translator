@@ -188,7 +188,7 @@ export class TextArrayTranslator implements ITranslator {
       if (!translatedPath) {
         result[index] = {
           ...result[index],
-          target: unit.source,
+          target: result[index].source,
           strictFailed: true,
           strictFailureReasons: ['missing_translated_path'],
         };

@@ -4,6 +4,7 @@ const STRICT_FAILURE_REASON_LABELS: Record<string, string> = {
   placeholder_mismatch: '플레이스홀더 불일치',
   unresolved_segment: '미해결 세그먼트',
   missing_translated_path: '응답 매핑 누락',
+  unknown: '알 수 없음',
 };
 
 export const getStrictFailureMessage = (translatedTexts: TranslationUnit[]): string | null => {

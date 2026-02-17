@@ -27,7 +27,11 @@ export class SubtitleApplier
     originalInput: TranslationInput<SubtitleParserOptionsDto>,
     translatedTexts: TranslationUnit[]
   ): Promise<TranslationOutput> {
-    const fileName = deriveFileName(originalInput, 'translated.srt');
+    const selectedFormat = this.resolveSelectedFormat(originalInput.options?.format);
+    const fileName = deriveFileName(
+      originalInput,
+      `translated.${selectedFormat ?? SubtitleFormat.SRT}`
+    );
     const strictFailureMessage = getStrictFailureMessage(translatedTexts);
     if (strictFailureMessage) {
       return new TranslationOutput([
@@ -64,9 +68,8 @@ export class SubtitleApplier
 
     let format = translatedBlocks[0]?.format || SubtitleFormat.SRT;
     // 사용자가 명시한 포맷이 있다면 그것을 우선 적용 (AUTO 제외)
-    const userFormat = originalInput.options?.format;
-    if (userFormat && userFormat !== SubtitleFormat.AUTO) {
-      format = userFormat === SubtitleFormat.VTT ? SubtitleFormat.VTT : SubtitleFormat.SRT;
+    if (selectedFormat) {
+      format = selectedFormat;
     }
     const subtitleContent = this.formatSubtitleBlocks(translatedBlocks, format);
 
@@ -78,6 +81,13 @@ export class SubtitleApplier
         result: subtitleContent,
       },
     ]);
+  }
+
+  private resolveSelectedFormat(format?: SubtitleFormat): SubtitleFormat | undefined {
+    if (format === SubtitleFormat.SRT || format === SubtitleFormat.VTT) {
+      return format;
+    }
+    return undefined;
   }
 
   private formatSubtitleBlocks(blocks: SubtitleBlock[], format: SubtitleFormat): string {
