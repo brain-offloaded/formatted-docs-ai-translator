@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: '릴리스 태그 (예: v1.2.3)'
+        description: '릴리스 태그 (예: v1.2.3, v1.2.3-beta.1)'
         required: true
         type: string
 
@@ -30,16 +30,21 @@ jobs:
         run: |
           set -euo pipefail
           TAG="$(echo "$TAG_INPUT" | tr -d '[:space:]')"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::유효한 태그 형식이 아닙니다. 예: v1.2.3 (입력값: $TAG_INPUT)"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+            echo "::error::유효한 태그 형식이 아닙니다. 예: v1.2.3, v1.2.3-beta.1 (입력값: $TAG_INPUT)"
             exit 1
           fi
           if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
             echo "::error::원격 저장소에 태그 $TAG 가 없습니다. 먼저 태그를 발행하세요."
             exit 1
           fi
+          IS_PRERELEASE=false
+          if [[ "$TAG" == *-* ]]; then
+            IS_PRERELEASE=true
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "tag-ref=refs/tags/$TAG" >> "$GITHUB_OUTPUT"
+          echo "is-prerelease=$IS_PRERELEASE" >> "$GITHUB_OUTPUT"
 
       - name: Checkout tag
         uses: actions/checkout@v4
@@ -91,12 +96,24 @@ jobs:
         shell: bash
         env:
           TAG: ${{ steps.release.outputs.tag }}
+          IS_PRERELEASE: ${{ steps.release.outputs.is-prerelease }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG exists. Reusing current release."
+            echo "Release $TAG exists. Syncing prerelease flag."
+            RELEASE_ID="$(gh release view "$TAG" --json databaseId --jq '.databaseId')"
+            RELEASE_IS_PRERELEASE="$(gh release view "$TAG" --json isPrerelease --jq '.isPrerelease')"
+            if [[ "$RELEASE_IS_PRERELEASE" != "$IS_PRERELEASE" ]]; then
+              gh api -X PATCH "repos/$REPOSITORY/releases/$RELEASE_ID" -F prerelease="$IS_PRERELEASE"
+              echo "Updated release prerelease=$IS_PRERELEASE"
+            fi
           else
-            gh release create "$TAG" --draft --title "$TAG" --notes "자동 생성된 드래프트 릴리스"
+            if [[ "$IS_PRERELEASE" == "true" ]]; then
+              gh release create "$TAG" --draft --prerelease --title "$TAG" --notes "자동 생성된 드래프트 릴리스"
+            else
+              gh release create "$TAG" --draft --title "$TAG" --notes "자동 생성된 드래프트 릴리스"
+            fi
           fi
 
       - name: Install deps
