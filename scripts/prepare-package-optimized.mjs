@@ -72,9 +72,18 @@ async function syncRootDependencies(backendPackage) {
   const backendRuntimeDeps = toRuntimeDependencies(backendPackage);
   const workspaceRuntimeDeps = await collectWorkspaceRuntimeDependencies(backendPackage.dependencies);
   const runtimeDeps = sortDependencyMap({
-    ...backendRuntimeDeps,
     ...workspaceRuntimeDeps,
+    ...backendRuntimeDeps,
   });
+
+  const versionConflicts = Object.entries(workspaceRuntimeDeps).filter(
+    ([name, workspaceVersion]) =>
+      backendRuntimeDeps[name] && backendRuntimeDeps[name] !== workspaceVersion
+  );
+  if (versionConflicts.length > 0) {
+    const conflictNames = versionConflicts.map(([name]) => name).join(', ');
+    console.log(`백엔드 의존성 버전을 우선 적용합니다: ${conflictNames}`);
+  }
 
   // Check if root dependencies need update
   const currentRootDeps = sortDependencyMap(rootPackage.dependencies ?? {});
