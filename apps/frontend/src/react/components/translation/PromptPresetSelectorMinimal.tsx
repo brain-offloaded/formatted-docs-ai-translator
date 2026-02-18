@@ -16,6 +16,10 @@ import { useTranslation as useTranslationContext } from '../../contexts/Translat
 import { PromptPresetsService } from '@/react/api/generated/services/PromptPresetsService';
 import { InfoTooltip } from '@/react/components/common/InfoTooltip';
 import { getWikiUrl } from '@/react/utils/wiki';
+import {
+  containsLegacyTranslatedTextKey,
+  LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE,
+} from '@/react/utils/legacy-prompt-warning';
 
 interface PromptPresetSelectorMinimalProps {
   currentPresetName: string;
@@ -95,7 +99,20 @@ const PromptPresetSelectorMinimal: React.FC<PromptPresetSelectorMinimalProps> = 
 
         if (response?.success && response.preset) {
           onPresetChange(newPresetName, response.preset.prompt);
-          showSnackbar(t('promptPreset.loaded', { name: newPresetName }));
+          const hasLegacyInPreset =
+            response.preset.type === PromptPresetDto.type.TEXT &&
+            (response.preset.containsLegacyTranslatedText ||
+              containsLegacyTranslatedTextKey(response.preset.prompt));
+
+          if (hasLegacyInPreset) {
+            showSnackbar(
+              containsLegacyTranslatedTextKey(response.message)
+                ? response.message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE
+                : LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE
+            );
+          } else {
+            showSnackbar(t('promptPreset.loaded', { name: newPresetName }));
+          }
         } else {
           showSnackbar(response?.message || t('promptPreset.detailLoadFailed'));
         }
