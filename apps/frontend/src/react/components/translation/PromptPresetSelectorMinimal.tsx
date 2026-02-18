@@ -107,7 +107,7 @@ const PromptPresetSelectorMinimal: React.FC<PromptPresetSelectorMinimalProps> = 
           if (hasLegacyInPreset) {
             showSnackbar(
               containsLegacyTranslatedTextKey(response.message)
-                ? response.message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE
+                ? (response.message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE)
                 : LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE
             );
           } else {

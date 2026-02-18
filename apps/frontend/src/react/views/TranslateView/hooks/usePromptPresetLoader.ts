@@ -33,7 +33,7 @@ export const usePromptPresetLoader = ({
   const getLegacyWarningMessage = useCallback(
     (message?: string) =>
       containsLegacyTranslatedTextKey(message)
-        ? message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE
+        ? (message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE)
         : LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE,
     []
   );
