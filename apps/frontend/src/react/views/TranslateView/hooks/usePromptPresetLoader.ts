@@ -4,6 +4,10 @@ import { PromptPresetDto } from '@/react/api/generated/models/PromptPresetDto';
 import { TranslationType } from '@/react/contexts/TranslationContext';
 import { PromptPresetsService } from '@/react/api/generated/services/PromptPresetsService';
 import { useTranslation } from 'react-i18next';
+import {
+  containsLegacyTranslatedTextKey,
+  LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE,
+} from '@/react/utils/legacy-prompt-warning';
 
 interface Deps {
   translationType: TranslationType;
@@ -26,6 +30,13 @@ export const usePromptPresetLoader = ({
   const [promptPresetContent, setPromptPresetContent] = useState<string | undefined>(undefined);
   const [isPromptPresetLoading, setIsPromptPresetLoading] = useState(false);
   const { t } = useTranslation();
+  const getLegacyWarningMessage = useCallback(
+    (message?: string) =>
+      containsLegacyTranslatedTextKey(message)
+        ? (message ?? LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE)
+        : LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE,
+    []
+  );
 
   useEffect(() => {
     const loadInitialPromptPreset = async () => {
@@ -50,6 +61,9 @@ export const usePromptPresetLoader = ({
         });
 
         if (listResponse?.success && listResponse.presets) {
+          const hasLegacyTextPresetInList =
+            translationType !== TranslationType.Image &&
+            listResponse.presets.some((preset) => preset.containsLegacyTranslatedText);
           let foundPreset = listResponse.presets.find((p) => p.name === savedPresetName);
 
           if (!foundPreset && listResponse.presets.length > 0) {
@@ -73,14 +87,32 @@ export const usePromptPresetLoader = ({
               } else {
                 updateConfig({ lastTextPromptPresetName: detailResponse.preset.name });
               }
-              showSnackbar(t('promptPresetLoader.loaded', { name: detailResponse.preset.name }));
+              const hasLegacyInLoadedPreset =
+                detailResponse.preset.type === PromptPresetDto.type.TEXT &&
+                (detailResponse.preset.containsLegacyTranslatedText ||
+                  containsLegacyTranslatedTextKey(detailResponse.preset.prompt));
+
+              if (hasLegacyInLoadedPreset) {
+                showSnackbar(getLegacyWarningMessage(detailResponse.message));
+              } else {
+                showSnackbar(t('promptPresetLoader.loaded', { name: detailResponse.preset.name }));
+                if (hasLegacyTextPresetInList) {
+                  showSnackbar(getLegacyWarningMessage(listResponse.message));
+                }
+              }
             } else {
               console.warn(`초기 프롬프트 프리셋 상세 정보 로드 실패:`, detailResponse?.message);
+              if (hasLegacyTextPresetInList) {
+                showSnackbar(getLegacyWarningMessage(listResponse.message));
+              }
               setCurrentPromptPresetName('');
               setPromptPresetContent(undefined);
             }
           } else {
             console.warn(`'${type}' 유형에 대한 프롬프트 프리셋을 찾을 수 없습니다.`);
+            if (hasLegacyTextPresetInList) {
+              showSnackbar(getLegacyWarningMessage(listResponse.message));
+            }
             setCurrentPromptPresetName('');
             setPromptPresetContent(undefined);
           }
@@ -112,6 +144,7 @@ export const usePromptPresetLoader = ({
     lastImagePromptPresetName,
     translationType,
     t,
+    getLegacyWarningMessage,
   ]);
 
   const handlePromptPresetChange = useCallback(
