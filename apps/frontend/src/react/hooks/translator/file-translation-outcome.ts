@@ -20,27 +20,34 @@ export const deriveFileTranslationOutcome = ({
   aggregated,
   strictFailureAbortMessage,
 }: DeriveFileTranslationOutcomeParams) => {
-  const hasStrictFailure = aggregated.some((group) =>
-    group.items.some((item) => !item.success && isStrictFailureMessage(item.message))
-  );
+  const groupOutcomes = aggregated.map((group) => {
+    const hasGroupStrictFailure = group.items.some(
+      (item) => !item.success && isStrictFailureMessage(item.message)
+    );
+    return {
+      ...group,
+      hasGroupStrictFailure,
+    };
+  });
 
-  const total = aggregated.length;
-  const success = aggregated.filter((group) => group.success).length;
+  const hasStrictFailure = groupOutcomes.some((group) => group.hasGroupStrictFailure);
+  const total = groupOutcomes.length;
+  const success = groupOutcomes.filter((group) => group.success).length;
   const fail = total - success;
   const isFatalError = hasStrictFailure || (fail === total && total > 0);
 
-  const items = aggregated.map((group) => {
-    const errorMessage = group.items
+  const items = groupOutcomes.map((group) => {
+    const errorMessages = group.items
       .map((item) => item.message?.trim())
-      .filter((message): message is string => !!message && message.length > 0)
-      .join('\n');
+      .filter((message): message is string => !!message && message.length > 0);
+    const errorMessage =
+      errorMessages.join('\n') ||
+      (group.hasGroupStrictFailure ? strictFailureAbortMessage : undefined);
 
     return {
       name: group.name,
       success: group.success,
-      errorMessage: group.success
-        ? undefined
-        : errorMessage || (hasStrictFailure ? strictFailureAbortMessage : undefined),
+      errorMessage: group.success ? undefined : errorMessage,
     };
   });
 

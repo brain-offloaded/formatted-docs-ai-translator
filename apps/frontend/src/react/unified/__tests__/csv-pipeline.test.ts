@@ -98,5 +98,6 @@ describe('CSV 파이프라인', () => {
     expect(result.success).toBe(false);
     expect(result.result).toBeUndefined();
     expect(result.message).toContain('세그먼트 번역 실패');
+    expect(result.originalFileName).toBe('result.csv');
   });
 });

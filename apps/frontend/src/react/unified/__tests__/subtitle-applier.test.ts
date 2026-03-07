@@ -34,5 +34,6 @@ describe('SubtitleApplier', () => {
 
     expect(result.success).toBe(false);
     expect(result.name).toBe('translated.vtt');
+    expect(result.originalFileName).toBe('translated.vtt');
   });
 });

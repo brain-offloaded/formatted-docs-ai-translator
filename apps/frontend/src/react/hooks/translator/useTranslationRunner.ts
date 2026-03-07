@@ -346,13 +346,13 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             return;
           }
 
-          const zipBlob = hasStrictFailure ? null : await finalOutput.toZip();
+          const zipBlob = await finalOutput.toZip();
 
           if (shouldAbortPostProcessing()) {
             return;
           }
 
-          const singleFile = hasStrictFailure ? null : await finalOutput.getSingleFile();
+          const singleFile = await finalOutput.getSingleFile();
 
           if (shouldAbortPostProcessing()) {
             return;

@@ -39,6 +39,7 @@ export class SubtitleApplier
           name: fileName,
           success: false,
           message: strictFailureMessage,
+          originalFileName: fileName,
         },
       ]);
     }
