@@ -338,7 +338,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           aggregated,
           strictFailureAbortMessage: t('translationRunner.strictFailureAborted'),
         });
-        const { total, success, fail, isFatalError, items, hasStrictFailure } = fileOutcome;
+        const { total, success, fail, isFatalError, items } = fileOutcome;
         const hasFailure = fail > 0;
 
         if (currentIsFileInput) {
