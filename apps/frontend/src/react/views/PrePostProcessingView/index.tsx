@@ -50,8 +50,8 @@ const PrePostProcessingView: React.FC = () => {
 
   const defaultPlaceholderRules = useMemo(
     () => [
-      { pattern: '\\r', flags: '', enabled: true },
-      { pattern: '\\n', flags: '', enabled: true },
+      { pattern: '\\r', flags: '', enabled: true, description: '' },
+      { pattern: '\\n', flags: '', enabled: true, description: '' },
     ],
     []
   );
@@ -64,7 +64,10 @@ const PrePostProcessingView: React.FC = () => {
   };
 
   const updatePlaceholderRule = useCallback(
-    (index: number, next: { pattern?: string; flags?: string; enabled?: boolean }) => {
+    (
+      index: number,
+      next: { pattern?: string; flags?: string; enabled?: boolean; description?: string }
+    ) => {
       const nextRules = placeholderPreservationRules.map((rule, i) =>
         i === index ? { ...rule, ...next } : rule
       );
@@ -77,7 +80,7 @@ const PrePostProcessingView: React.FC = () => {
     updateConfig({
       placeholderPreservationRules: [
         ...placeholderPreservationRules,
-        { pattern: '', flags: '', enabled: true },
+        { pattern: '', flags: '', enabled: true, description: '' },
       ],
     });
   }, [placeholderPreservationRules, updateConfig]);
@@ -99,6 +102,20 @@ const PrePostProcessingView: React.FC = () => {
     const filtered = flags.replace(/[^dgimsuvy]/g, '');
     const unique = Array.from(new Set(filtered.split(''))).join('');
     return unique;
+  };
+
+  const getPlaceholderRuleDescriptionSuggestion = (
+    pattern: string,
+    flags: string
+  ): string | null => {
+    const normalizedFlags = normalizeFlagsForCompile(flags);
+    if (pattern === '\\r' && normalizedFlags.length === 0) {
+      return t('settings.placeholderPreservation.ruleDescriptions.carriageReturn');
+    }
+    if (pattern === '\\n' && normalizedFlags.length === 0) {
+      return t('settings.placeholderPreservation.ruleDescriptions.lineFeed');
+    }
+    return null;
   };
 
   const tryCompileRegex = (pattern: string, flags: string): RegExp | null => {
@@ -229,6 +246,10 @@ const PrePostProcessingView: React.FC = () => {
                   const regex = rule.pattern.trim()
                     ? tryCompileRegex(rule.pattern, rule.flags)
                     : null;
+                  const ruleDescriptionSuggestion = getPlaceholderRuleDescriptionSuggestion(
+                    rule.pattern,
+                    rule.flags
+                  );
                   const isInvalid = isEnabled && rule.pattern.trim().length > 0 && !regex;
                   const shouldWarn =
                     isEnabled &&
@@ -243,7 +264,7 @@ const PrePostProcessingView: React.FC = () => {
                       alignItems="center"
                       sx={{ mb: 1, opacity: isEnabled ? 1 : 0.6 }}
                     >
-                      <Grid item xs={12} md={6}>
+                      <Grid item xs={12} md={4}>
                         <TextField
                           fullWidth
                           size="small"
@@ -262,7 +283,7 @@ const PrePostProcessingView: React.FC = () => {
                           InputLabelProps={{ shrink: true }}
                         />
                       </Grid>
-                      <Grid item xs={8} md={2}>
+                      <Grid item xs={12} md={2}>
                         <TextField
                           fullWidth
                           size="small"
@@ -274,16 +295,36 @@ const PrePostProcessingView: React.FC = () => {
                           InputLabelProps={{ shrink: true }}
                         />
                       </Grid>
-                      <Grid item xs={4} md={4}>
+                      <Grid item xs={12} md={4}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={t('settings.placeholderPreservation.descriptionLabel')}
+                          value={rule.description}
+                          onChange={(e) =>
+                            updatePlaceholderRule(index, { description: e.target.value })
+                          }
+                          placeholder={t('settings.placeholderPreservation.descriptionPlaceholder')}
+                          helperText={
+                            rule.description.trim()
+                              ? t('settings.placeholderPreservation.descriptionHelper')
+                              : (ruleDescriptionSuggestion ??
+                                  t('settings.placeholderPreservation.descriptionHelper'))
+                          }
+                          InputLabelProps={{ shrink: true }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={2}>
                         <Box
                           sx={{
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'flex-end',
+                            justifyContent: { xs: 'space-between', md: 'flex-end' },
+                            minHeight: '40px',
                           }}
                         >
                           <FormControlLabel
-                            sx={{ mr: 1 }}
+                            sx={{ mr: { xs: 0, md: 1 } }}
                             control={
                               <Switch
                                 size="small"

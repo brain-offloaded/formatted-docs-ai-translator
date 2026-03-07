@@ -98,6 +98,9 @@
       "patternHelper": "Enter the pattern only (without /.../)",
       "flagsLabel": "Flags",
       "flagsHelper": "e.g., i, m, s, u, y (g is applied internally)",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe what this rule is protecting",
+      "descriptionHelper": "Add a note so you can recognize this rule later.",
       "addRule": "Add pattern",
       "resetDefaults": "Reset to defaults",
       "previewTitle": "Match preview",
@@ -109,6 +112,10 @@
       "previewTargetLabel": "Translated text (sample)",
       "previewTargetPlaceholder": "Type the translated text",
       "previewRun": "Show match results",
+      "ruleDescriptions": {
+        "carriageReturn": "Checks carriage return (CR). This is usually the first half of Windows line endings (CRLF).",
+        "lineFeed": "Checks line feed (LF). This is the newline character used in most text formats."
+      },
       "warning": {
         "emptyMatch": "This pattern can match empty strings and may overmatch."
       },

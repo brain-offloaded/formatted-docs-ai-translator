@@ -239,8 +239,8 @@ const getDefaultConfig = (): AiTranslatorConfig => {
     setThinkingBudget: providerSettings[initialProvider].setThinkingBudget,
     placeholderPreservationEnabled: true,
     placeholderPreservationRules: [
-      { pattern: '\\r', flags: '', enabled: true },
-      { pattern: '\\n', flags: '', enabled: true },
+      { pattern: '\\r', flags: '', enabled: true, description: '' },
+      { pattern: '\\n', flags: '', enabled: true, description: '' },
     ],
     providerSettings,
   };
@@ -260,8 +260,9 @@ const normalizePlaceholderPreservationRules = (
       const pattern = typeof candidate?.pattern === 'string' ? candidate.pattern : '';
       const flags = typeof candidate?.flags === 'string' ? candidate.flags : '';
       const enabled = typeof candidate?.enabled === 'boolean' ? candidate.enabled : true;
+      const description = typeof candidate?.description === 'string' ? candidate.description : '';
       if (!pattern.trim()) return null;
-      return { pattern, flags, enabled };
+      return { pattern, flags, enabled, description };
     })
     .filter((v): v is PlaceholderPreservationRuleConfig => !!v);
 
