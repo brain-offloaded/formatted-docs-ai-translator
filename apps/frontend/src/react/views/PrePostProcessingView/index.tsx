@@ -23,7 +23,10 @@ import {
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useConfigStore } from '@/react/config/config-store';
+import {
+  createDefaultPlaceholderPreservationRules,
+  useConfigStore,
+} from '@/react/config/config-store';
 
 const PrePostProcessingView: React.FC = () => {
   const { t } = useTranslation();
@@ -49,11 +52,8 @@ const PrePostProcessingView: React.FC = () => {
   >([]);
 
   const defaultPlaceholderRules = useMemo(
-    () => [
-      { pattern: '\\r', flags: '', enabled: true, description: '' },
-      { pattern: '\\n', flags: '', enabled: true, description: '' },
-    ],
-    []
+    () => createDefaultPlaceholderPreservationRules((key) => t(key)),
+    [t]
   );
 
   const togglePlaceholderPreservation = (
@@ -102,20 +102,6 @@ const PrePostProcessingView: React.FC = () => {
     const filtered = flags.replace(/[^dgimsuvy]/g, '');
     const unique = Array.from(new Set(filtered.split(''))).join('');
     return unique;
-  };
-
-  const getPlaceholderRuleDescriptionSuggestion = (
-    pattern: string,
-    flags: string
-  ): string | null => {
-    const normalizedFlags = normalizeFlagsForCompile(flags);
-    if (pattern === '\\r' && normalizedFlags.length === 0) {
-      return t('settings.placeholderPreservation.ruleDescriptions.carriageReturn');
-    }
-    if (pattern === '\\n' && normalizedFlags.length === 0) {
-      return t('settings.placeholderPreservation.ruleDescriptions.lineFeed');
-    }
-    return null;
   };
 
   const tryCompileRegex = (pattern: string, flags: string): RegExp | null => {
@@ -246,10 +232,6 @@ const PrePostProcessingView: React.FC = () => {
                   const regex = rule.pattern.trim()
                     ? tryCompileRegex(rule.pattern, rule.flags)
                     : null;
-                  const ruleDescriptionSuggestion = getPlaceholderRuleDescriptionSuggestion(
-                    rule.pattern,
-                    rule.flags
-                  );
                   const isInvalid = isEnabled && rule.pattern.trim().length > 0 && !regex;
                   const shouldWarn =
                     isEnabled &&
@@ -305,12 +287,7 @@ const PrePostProcessingView: React.FC = () => {
                             updatePlaceholderRule(index, { description: e.target.value })
                           }
                           placeholder={t('settings.placeholderPreservation.descriptionPlaceholder')}
-                          helperText={
-                            rule.description.trim()
-                              ? t('settings.placeholderPreservation.descriptionHelper')
-                              : (ruleDescriptionSuggestion ??
-                                t('settings.placeholderPreservation.descriptionHelper'))
-                          }
+                          helperText={t('settings.placeholderPreservation.descriptionHelper')}
                           InputLabelProps={{ shrink: true }}
                         />
                       </Grid>
