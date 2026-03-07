@@ -33,6 +33,8 @@ export class BatchTranslationCancelledError extends Error {
   }
 }
 
+const buildBatchScopedKey = (fileIndex: number, key: string) => `batch:${fileIndex}:${key}`;
+
 const throwIfCancelled = (isCancellationRequested?: () => boolean) => {
   if (isCancellationRequested?.()) {
     throw new BatchTranslationCancelledError();
@@ -57,7 +59,10 @@ export const batchTranslateParsedResults = async <
 
   parsedResults.forEach((parsedResult, fileIndex) => {
     parsedResult.parsed.forEach((unit, unitIndex) => {
-      combinedUnits.push(unit);
+      combinedUnits.push({
+        ...unit,
+        key: buildBatchScopedKey(fileIndex, unit.key),
+      });
       combinedIndexMap.push({ fileIndex, unitIndex });
     });
   });
