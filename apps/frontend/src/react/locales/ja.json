@@ -655,6 +655,7 @@
     "parsing": "ファイルを分析中...",
     "preparing": "翻訳準備中...",
     "someFailures": "翻訳に失敗した項目があります。",
+    "strictFailureAborted": "厳格な検証失敗が発生したため、ジョブ全体を失敗として処理しました。",
     "successLine": "✅ 成功: {{count}}個のファイル\n",
     "text": "テキスト",
     "translating": "翻訳中...",

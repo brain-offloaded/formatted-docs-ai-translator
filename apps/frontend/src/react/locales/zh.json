@@ -655,6 +655,7 @@
     "parsing": "正在分析文件...",
     "preparing": "正在准备翻译...",
     "someFailures": "有些项目翻译失败。",
+    "strictFailureAborted": "由于发生严格校验失败，整个任务已被标记为失败。",
     "successLine": "✅ 成功: {{count}} 个文件\n",
     "text": "文本",
     "translating": "翻译中...",

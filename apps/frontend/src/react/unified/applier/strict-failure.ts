@@ -1,5 +1,7 @@
 import { TranslationUnit } from '../domain/translation-unit';
 
+export const STRICT_FAILURE_MESSAGE_PREFIX = '세그먼트 번역 실패 ';
+
 const STRICT_FAILURE_REASON_LABELS: Record<string, string> = {
   placeholder_mismatch: '플레이스홀더 불일치',
   unresolved_segment: '미해결 세그먼트',
@@ -30,5 +32,8 @@ export const getStrictFailureMessage = (translatedTexts: TranslationUnit[]): str
     .map((reason) => STRICT_FAILURE_REASON_LABELS[reason] ?? reason)
     .sort((a, b) => a.localeCompare(b));
 
-  return `세그먼트 번역 실패 ${failedSegments.length}건 (${readableReasons.join(', ')})`;
+  return `${STRICT_FAILURE_MESSAGE_PREFIX}${failedSegments.length}건 (${readableReasons.join(', ')})`;
 };
+
+export const isStrictFailureMessage = (message?: string): boolean =>
+  typeof message === 'string' && message.startsWith(STRICT_FAILURE_MESSAGE_PREFIX);

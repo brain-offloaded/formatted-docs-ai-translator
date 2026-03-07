@@ -618,6 +618,7 @@
     "cancelled": "번역이 취소되었습니다.",
     "filesCompleted": "{{total}}개 파일 중 {{success}}개 번역 완료{{failureMessage}}",
     "someFailures": "번역에 실패한 항목이 있습니다.",
+    "strictFailureAborted": "엄격 검증 실패가 발생하여 전체 작업을 실패 처리했습니다.",
     "allCompleted": "번역이 완료되었습니다.",
     "preparing": "번역 준비 중...",
     "parsing": "파일 분석 중...",

@@ -29,6 +29,7 @@ export class JsonApplier
           name: fileName,
           success: false,
           message: strictFailureMessage,
+          originalFileName: fileName,
         },
       ]);
     }

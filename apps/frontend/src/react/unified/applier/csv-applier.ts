@@ -25,6 +25,7 @@ export class CsvApplier
           name: fileName,
           success: false,
           message: strictFailureMessage,
+          originalFileName: fileName,
         },
       ]);
     }
