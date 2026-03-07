@@ -85,4 +85,57 @@ describe('batchTranslateParsedResults', () => {
     expect(outputs[0].getResults()[0].result).toBe('hello-tr|world-tr');
     expect(outputs[1].getResults()[0].result).toBe('foo-tr');
   });
+
+  it('namespaces duplicate keys across files before translating and restores original keys on apply', async () => {
+    const translateUnitsMock = jest.fn<
+      Promise<TranslationUnit[]>,
+      [TranslationUnit[], AiTranslatorConfig, string | undefined]
+    >(async (units) =>
+      units.map((unit: TranslationUnit) => ({
+        ...unit,
+        target: `${unit.source}:${unit.key}`,
+      }))
+    );
+
+    const translatorEngine = {
+      translateUnits: translateUnitsMock,
+    } as unknown as TranslatorEngine<TranslationInput, TranslationUnit[], TranslationOutput>;
+
+    const firstApply = jest.fn(async (_input, translatedUnits) => {
+      const value = translatedUnits.map((unit: TranslationUnit) => unit.target ?? '').join('|');
+      return new TranslationOutput([{ name: 'first.txt', success: true, result: value }]);
+    });
+
+    const secondApply = jest.fn(async (_input, translatedUnits) => {
+      const value = translatedUnits.map((unit: TranslationUnit) => unit.target ?? '').join('|');
+      return new TranslationOutput([{ name: 'second.txt', success: true, result: value }]);
+    });
+
+    await batchTranslateParsedResults({
+      translatorEngine,
+      parsedResults: [
+        createParsedResult('first content', [{ key: 'line_0', source: 'hello' }], firstApply),
+        createParsedResult('second content', [{ key: 'line_0', source: 'foo' }], secondApply),
+      ],
+      config: dummyConfig,
+    });
+
+    expect(translateUnitsMock).toHaveBeenCalledWith(
+      [
+        { key: 'batch:0:line_0', source: 'hello' },
+        { key: 'batch:1:line_0', source: 'foo' },
+      ],
+      dummyConfig,
+      undefined,
+      undefined,
+      expect.any(Function)
+    );
+
+    expect(firstApply).toHaveBeenCalledWith(expect.any(TranslationInput), [
+      { key: 'line_0', source: 'hello', target: 'hello:batch:0:line_0' },
+    ]);
+    expect(secondApply).toHaveBeenCalledWith(expect.any(TranslationInput), [
+      { key: 'line_0', source: 'foo', target: 'foo:batch:1:line_0' },
+    ]);
+  });
 });
