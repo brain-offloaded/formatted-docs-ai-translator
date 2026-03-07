@@ -98,6 +98,9 @@
       "patternHelper": "仅输入模式（不需要 /.../）",
       "flagsLabel": "标志位",
       "flagsHelper": "例如：i、m、s、u、y（g 会在内部应用）",
+      "descriptionLabel": "说明",
+      "descriptionPlaceholder": "写下这条规则要保护什么",
+      "descriptionHelper": "可以补充用途说明，之后更容易分辨这条规则。",
       "addRule": "添加模式",
       "resetDefaults": "恢复默认值",
       "previewTitle": "匹配测试",
@@ -109,6 +112,10 @@
       "previewTargetLabel": "译文（示例）",
       "previewTargetPlaceholder": "请输入译文",
       "previewRun": "查看匹配结果",
+      "ruleDescriptions": {
+        "carriageReturn": "检查回车符（CR）。它通常是 Windows 换行符（CRLF）的前半部分。",
+        "lineFeed": "检查换行符（LF）。这是大多数文本格式使用的换行字符。"
+      },
       "warning": {
         "emptyMatch": "该模式可能匹配空字符串，存在过度匹配风险。"
       },

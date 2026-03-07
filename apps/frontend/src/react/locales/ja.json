@@ -98,6 +98,9 @@
       "patternHelper": "スラッシュ（/.../）なしでパターンのみ入力",
       "flagsLabel": "フラグ",
       "flagsHelper": "例: i, m, s, u, y（g は内部で適用）",
+      "descriptionLabel": "説明",
+      "descriptionPlaceholder": "このルールが何を守るかを書いてください",
+      "descriptionHelper": "後で見返したとき分かりやすいように用途をメモできます。",
       "addRule": "パターン追加",
       "resetDefaults": "デフォルトに戻す",
       "previewTitle": "一致テスト",
@@ -109,6 +112,10 @@
       "previewTargetLabel": "訳文（サンプル）",
       "previewTargetPlaceholder": "訳文を入力してください",
       "previewRun": "一致結果を表示",
+      "ruleDescriptions": {
+        "carriageReturn": "キャリッジリターン（CR）を検査します。通常は Windows の改行（CRLF）の前半です。",
+        "lineFeed": "ラインフィード（LF）を検査します。多くのテキスト形式で使われる改行文字です。"
+      },
       "warning": {
         "emptyMatch": "空文字列にも一致する可能性があり、過剰一致の恐れがあります。"
       },

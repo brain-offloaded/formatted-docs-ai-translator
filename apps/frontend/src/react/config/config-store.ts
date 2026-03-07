@@ -11,6 +11,7 @@ import {
 import { TranslatorAiSettingsDto } from '@/react/api/generated/models/TranslatorAiSettingsDto';
 import { DEFAULT_CACHE_TAG } from '@apps/common/dist/constants/cache';
 import { defaultSourceLanguage, defaultTargetLanguage } from '@apps/common/dist/language';
+import i18n from '@/react/config/i18n';
 
 const createStorage = (): Storage => {
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -215,6 +216,42 @@ const getDefaultProviderSettings = (): Record<ModelProvider, ProviderSpecificCon
   },
 });
 
+type PlaceholderRuleDescriptionKey =
+  | 'settings.placeholderPreservation.ruleDescriptions.carriageReturn'
+  | 'settings.placeholderPreservation.ruleDescriptions.lineFeed';
+
+const getDefaultPlaceholderRuleDescription = (
+  pattern: string,
+  flags: string,
+  translate: (key: PlaceholderRuleDescriptionKey) => string
+): string => {
+  const normalizedFlags = flags.replace(/[^dgimsuvy]/g, '');
+  if (pattern === '\\r' && normalizedFlags.length === 0) {
+    return translate('settings.placeholderPreservation.ruleDescriptions.carriageReturn');
+  }
+  if (pattern === '\\n' && normalizedFlags.length === 0) {
+    return translate('settings.placeholderPreservation.ruleDescriptions.lineFeed');
+  }
+  return '';
+};
+
+export const createDefaultPlaceholderPreservationRules = (
+  translate: (key: PlaceholderRuleDescriptionKey) => string = (key) => i18n.t(key)
+): PlaceholderPreservationRuleConfig[] => [
+  {
+    pattern: '\\r',
+    flags: '',
+    enabled: true,
+    description: getDefaultPlaceholderRuleDescription('\\r', '', translate),
+  },
+  {
+    pattern: '\\n',
+    flags: '',
+    enabled: true,
+    description: getDefaultPlaceholderRuleDescription('\\n', '', translate),
+  },
+];
+
 // 기본 설정 값 (현재 provider 값은 providerSettings에서 가져와 미러링)
 const getDefaultConfig = (): AiTranslatorConfig => {
   const providerSettings = getDefaultProviderSettings();
@@ -238,10 +275,7 @@ const getDefaultConfig = (): AiTranslatorConfig => {
     thinkingBudget: providerSettings[initialProvider].thinkingBudget,
     setThinkingBudget: providerSettings[initialProvider].setThinkingBudget,
     placeholderPreservationEnabled: true,
-    placeholderPreservationRules: [
-      { pattern: '\\r', flags: '', enabled: true },
-      { pattern: '\\n', flags: '', enabled: true },
-    ],
+    placeholderPreservationRules: createDefaultPlaceholderPreservationRules(),
     providerSettings,
   };
 };
@@ -260,8 +294,12 @@ const normalizePlaceholderPreservationRules = (
       const pattern = typeof candidate?.pattern === 'string' ? candidate.pattern : '';
       const flags = typeof candidate?.flags === 'string' ? candidate.flags : '';
       const enabled = typeof candidate?.enabled === 'boolean' ? candidate.enabled : true;
+      const description =
+        typeof candidate?.description === 'string'
+          ? candidate.description
+          : getDefaultPlaceholderRuleDescription(pattern, flags, (key) => i18n.t(key));
       if (!pattern.trim()) return null;
-      return { pattern, flags, enabled };
+      return { pattern, flags, enabled, description };
     })
     .filter((v): v is PlaceholderPreservationRuleConfig => !!v);
 

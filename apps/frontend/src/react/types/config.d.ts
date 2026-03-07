@@ -35,6 +35,7 @@ export interface PlaceholderPreservationRuleConfig {
   pattern: string;
   flags: string;
   enabled: boolean;
+  description: string;
 }
 
 export interface AiTranslatorConfig {
