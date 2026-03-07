@@ -309,7 +309,7 @@ const PrePostProcessingView: React.FC = () => {
                             rule.description.trim()
                               ? t('settings.placeholderPreservation.descriptionHelper')
                               : (ruleDescriptionSuggestion ??
-                                  t('settings.placeholderPreservation.descriptionHelper'))
+                                t('settings.placeholderPreservation.descriptionHelper'))
                           }
                           InputLabelProps={{ shrink: true }}
                         />
