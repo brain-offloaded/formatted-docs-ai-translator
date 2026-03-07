@@ -1,6 +1,6 @@
 {
   "name": "@apps/frontend",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "private": true,
   "description": "Electron renderer for Formatted Docs AI Translator",
   "scripts": {
