@@ -32,3 +32,6 @@ export const getStrictFailureMessage = (translatedTexts: TranslationUnit[]): str
 
   return `세그먼트 번역 실패 ${failedSegments.length}건 (${readableReasons.join(', ')})`;
 };
+
+export const isStrictFailureMessage = (message?: string): boolean =>
+  typeof message === 'string' && message.startsWith('세그먼트 번역 실패 ');

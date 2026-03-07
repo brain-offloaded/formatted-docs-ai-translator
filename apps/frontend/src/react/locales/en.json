@@ -655,6 +655,7 @@
     "parsing": "Analyzing files...",
     "preparing": "Preparing for translation...",
     "someFailures": "Some items failed to translate.",
+    "strictFailureAborted": "A strict validation failure caused the entire job to be marked as failed.",
     "successLine": "✅ Success: {{count}} files\n",
     "text": "Text",
     "translating": "Translating...",

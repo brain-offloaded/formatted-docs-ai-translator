@@ -22,6 +22,7 @@ import {
   containsLegacyTranslatedTextKey,
   LEGACY_TRANSLATED_TEXT_WARNING_MESSAGE,
 } from '@/react/utils/legacy-prompt-warning';
+import { deriveFileTranslationOutcome } from './file-translation-outcome';
 
 interface UseTranslationRunnerOptions<T extends BaseParseOptionsDto> {
   input: string | File[];
@@ -332,7 +333,12 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
         }
 
         const finalOutput = TranslationOutput.merge(outputs);
-        const { results: aggregated, total, success, fail } = finalOutput.getAggregatedReport();
+        const { results: aggregated } = finalOutput.getAggregatedReport();
+        const fileOutcome = deriveFileTranslationOutcome({
+          aggregated,
+          strictFailureAbortMessage: t('translationRunner.strictFailureAborted'),
+        });
+        const { total, success, fail, isFatalError, items, hasStrictFailure } = fileOutcome;
         const hasFailure = fail > 0;
 
         if (currentIsFileInput) {
@@ -340,13 +346,13 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             return;
           }
 
-          const zipBlob = await finalOutput.toZip();
+          const zipBlob = hasStrictFailure ? null : await finalOutput.toZip();
 
           if (shouldAbortPostProcessing()) {
             return;
           }
 
-          const singleFile = await finalOutput.getSingleFile();
+          const singleFile = hasStrictFailure ? null : await finalOutput.getSingleFile();
 
           if (shouldAbortPostProcessing()) {
             return;
@@ -364,8 +370,6 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             processingTime,
             t
           );
-          const isFatalError = fail === total && total > 0;
-
           setResultState({
             translationResult: { text: resultSummary, isError: isFatalError },
             report: {
@@ -375,17 +379,10 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
               successRate: total > 0 ? Math.round((success / total) * 100) : 0,
               totalSize,
               processingTime,
-              items: aggregated.map((r) => ({
-                name: r.name,
-                success: r.success,
-                errorMessage: r.success
-                  ? undefined
-                  : r.items
-                      .map((i) => i.message)
-                      .filter((m): m is string => !!m && m.trim().length > 0)
-                      .join('\n'),
+              items: items.map((item) => ({
+                ...item,
                 fileSize: Array.isArray(input)
-                  ? input.find((f) => f.name === r.name)?.size
+                  ? input.find((f) => f.name === item.name)?.size
                   : undefined,
               })),
             },
