@@ -361,6 +361,13 @@ export class TextBatchTranslationService {
         cursor: exampleCursor,
       });
 
+      await this.persistPlaceholderMismatchFailures({
+        sourceTexts,
+        strictFailureReasonsByText,
+        modelName,
+        cacheTag: normalizedCacheTag,
+      });
+
       if (strictFailureReasonsByText.size > 0) {
         this.logger.warn('엄격 검증 실패를 포함해 번역을 종료합니다.', {
           strictFailureTextCount: strictFailureReasonsByText.size,
@@ -426,6 +433,40 @@ export class TextBatchTranslationService {
         strictFailureCount: reasons.length,
       };
     });
+  }
+
+  private async persistPlaceholderMismatchFailures({
+    sourceTexts,
+    strictFailureReasonsByText,
+    modelName,
+    cacheTag,
+  }: {
+    sourceTexts: string[];
+    strictFailureReasonsByText: Map<string, Set<StrictFailureReason>>;
+    modelName: string;
+    cacheTag: string;
+  }): Promise<void> {
+    const failedTranslations = new Map<string, string>();
+
+    for (const text of sourceTexts) {
+      const reasons = strictFailureReasonsByText.get(text);
+      if (!reasons?.has('placeholder_mismatch')) {
+        continue;
+      }
+      failedTranslations.set(text, text);
+    }
+
+    if (failedTranslations.size === 0) {
+      return;
+    }
+
+    await this.cacheManagerService.setTranslations(
+      failedTranslations,
+      false,
+      modelName,
+      cacheTag,
+      'placeholder_mismatch'
+    );
   }
 
   private async translateUncachedTexts({

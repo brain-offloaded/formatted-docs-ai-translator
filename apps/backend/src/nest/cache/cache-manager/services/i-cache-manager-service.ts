@@ -19,14 +19,16 @@ export interface ICacheManagerService {
     translation: string,
     success?: boolean,
     modelName?: string,
-    cacheTag?: string
+    cacheTag?: string,
+    error?: string
   ): Promise<void>;
   getTranslations(texts: string[], cacheTag: string): Promise<Map<string, string | null>>;
   setTranslations(
     translations: Map<string, string>,
     success?: boolean,
     modelName?: string,
-    cacheTag?: string
+    cacheTag?: string,
+    error?: string
   ): Promise<void>;
   addTranslationHistory(history: TranslationHistory): Promise<void>;
   getTranslationHistory(source: string, cacheTag: string): Promise<TranslationHistory[]>;

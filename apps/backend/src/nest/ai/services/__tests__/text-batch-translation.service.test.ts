@@ -1,5 +1,6 @@
 import { TextBatchTranslationService } from '../text-batch-translation.service';
 import { SourceLanguage, TargetLanguage } from '@apps/common/dist/language';
+import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
 import {
   ModelProvider,
   TranslatorAiSettings,
@@ -127,7 +128,14 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslations).not.toHaveBeenCalled();
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(1);
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledWith(
+      new Map([[sourceText, sourceText]]),
+      false,
+      'test-model',
+      buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
+      'placeholder_mismatch'
+    );
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
   });
 

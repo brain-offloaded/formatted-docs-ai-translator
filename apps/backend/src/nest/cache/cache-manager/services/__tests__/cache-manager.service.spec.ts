@@ -12,10 +12,11 @@ describe('CacheManagerService - cache tag operations', () => {
       invalidate: jest.fn(),
       invalidateMany: jest.fn().mockResolvedValue(undefined),
       setTranslation: jest.fn(),
+      setTranslations: jest.fn(),
       getTranslation: jest.fn(),
     } satisfies Pick<
       IMemoryCacheManagerService,
-      'invalidate' | 'invalidateMany' | 'setTranslation' | 'getTranslation'
+      'invalidate' | 'invalidateMany' | 'setTranslation' | 'setTranslations' | 'getTranslation'
     >;
 
     const dbCacheManagerServiceMock = {
@@ -24,6 +25,8 @@ describe('CacheManagerService - cache tag operations', () => {
       findTranslationsByCondition: jest.fn(),
       updateTranslationCacheTag: jest.fn().mockResolvedValue(undefined),
       findTranslationsByIds: jest.fn(),
+      setTranslation: jest.fn().mockResolvedValue(undefined),
+      setTranslations: jest.fn().mockResolvedValue(undefined),
     } satisfies Pick<
       IDbCacheManagerService,
       | 'findCacheTagById'
@@ -31,6 +34,8 @@ describe('CacheManagerService - cache tag operations', () => {
       | 'findTranslationsByCondition'
       | 'updateTranslationCacheTag'
       | 'findTranslationsByIds'
+      | 'setTranslation'
+      | 'setTranslations'
     >;
 
     const commandBusMock = { execute: jest.fn() } satisfies Pick<CacheCommandBus, 'execute'>;
@@ -157,5 +162,60 @@ describe('CacheManagerService - cache tag operations', () => {
       buildMemoryCacheKey('sample', 'before-tag'),
       buildMemoryCacheKey('sample', 'after-tag'),
     ]);
+  });
+
+  it('실패한 번역 저장은 메모리 캐시를 무효화하고 DB에만 남긴다', async () => {
+    const { service, memoryCacheManagerService, dbCacheManagerService } = createService();
+
+    await service.setTranslation(
+      'source-text',
+      'source-text',
+      false,
+      'test-model',
+      'default_en-to-ko',
+      'placeholder_mismatch'
+    );
+
+    expect(memoryCacheManagerService.invalidate).toHaveBeenCalledWith(
+      buildMemoryCacheKey('source-text', 'default_en-to-ko')
+    );
+    expect(memoryCacheManagerService.setTranslation).not.toHaveBeenCalled();
+    expect(dbCacheManagerService.setTranslation).toHaveBeenCalledWith(
+      'source-text',
+      'source-text',
+      false,
+      'test-model',
+      'default_en-to-ko',
+      'placeholder_mismatch'
+    );
+  });
+
+  it('실패한 다중 번역 저장은 메모리 캐시를 일괄 무효화한다', async () => {
+    const { service, memoryCacheManagerService, dbCacheManagerService } = createService();
+    const failedTranslations = new Map([
+      ['first', 'first'],
+      ['second', 'second'],
+    ]);
+
+    await service.setTranslations(
+      failedTranslations,
+      false,
+      'test-model',
+      'default_en-to-ko',
+      'placeholder_mismatch'
+    );
+
+    expect(memoryCacheManagerService.invalidateMany).toHaveBeenCalledWith([
+      buildMemoryCacheKey('first', 'default_en-to-ko'),
+      buildMemoryCacheKey('second', 'default_en-to-ko'),
+    ]);
+    expect(memoryCacheManagerService.setTranslations).not.toHaveBeenCalled();
+    expect(dbCacheManagerService.setTranslations).toHaveBeenCalledWith(
+      failedTranslations,
+      false,
+      'test-model',
+      'default_en-to-ko',
+      'placeholder_mismatch'
+    );
   });
 });

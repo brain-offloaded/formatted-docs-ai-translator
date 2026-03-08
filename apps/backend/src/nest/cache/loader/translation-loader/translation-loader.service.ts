@@ -96,7 +96,7 @@ export class TranslationLoaderService {
       }
 
       const translations = await this.prisma.translation.findMany({
-        where: { OR: conditions },
+        where: { OR: conditions, success: true },
         include: { cacheTag: true },
       });
 
@@ -330,6 +330,7 @@ export class TranslationLoaderService {
     success: boolean = true,
     modelName: string = 'unknown',
     cacheTagName: string = DEFAULT_CACHE_TAG,
+    error: string | null = null,
     transactionClient?: Prisma.TransactionClient,
     transactionContext?: TransactionContext
   ): Promise<void> {
@@ -366,6 +367,7 @@ export class TranslationLoaderService {
               source,
               target,
               success,
+              error,
               model: modelName,
               cacheTagId: cacheTag.id,
             },
@@ -384,6 +386,7 @@ export class TranslationLoaderService {
     success: boolean = true,
     modelName: string = 'unknown',
     cacheTagName: string = DEFAULT_CACHE_TAG,
+    error: string | null = null,
     transactionClient?: Prisma.TransactionClient,
     transactionContext?: TransactionContext
   ): Promise<void> {
@@ -426,6 +429,7 @@ export class TranslationLoaderService {
                 source,
                 target,
                 success,
+                error,
                 model: modelName,
                 cacheTagId: cacheTag.id,
               },
@@ -469,6 +473,7 @@ export class TranslationLoaderService {
             where: { id },
             data: {
               target: newTarget,
+              success: true,
               lastAccessedAt: new Date(),
             },
             include: { cacheTag: true },
