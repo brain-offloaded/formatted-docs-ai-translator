@@ -338,7 +338,7 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
           aggregated,
           strictFailureAbortMessage: t('translationRunner.strictFailureAborted'),
         });
-        const { total, success, fail, isFatalError, items } = fileOutcome;
+        const { total, success, fail, isFatalError, items, errorMessage } = fileOutcome;
         const hasFailure = fail > 0;
 
         if (currentIsFileInput) {
@@ -370,13 +370,17 @@ export const useTranslationRunner = <T extends BaseParseOptionsDto>({
             processingTime,
             t
           );
+          const finalSummary =
+            isFatalError && errorMessage ? `${errorMessage}\n\n${resultSummary}` : resultSummary;
           setResultState({
-            translationResult: { text: resultSummary, isError: isFatalError },
+            translationResult: { text: finalSummary, isError: isFatalError },
             report: {
               total,
               success,
               fail,
               successRate: total > 0 ? Math.round((success / total) * 100) : 0,
+              isError: isFatalError,
+              errorMessage,
               totalSize,
               processingTime,
               items: items.map((item) => ({

@@ -322,10 +322,16 @@ export class TextBatchTranslationService {
         newTranslations.set(originalText, { text: originalText, indices });
       }
 
-      this.logger.debug('완전 번역 완료:', {
-        newTranslations,
-        intermediateTexts,
-      });
+      if (strictFailureReasonsByText.size > 0) {
+        this.logger.warn('엄격 검증 실패를 포함해 번역을 종료합니다.', {
+          strictFailureTextCount: strictFailureReasonsByText.size,
+        });
+      } else {
+        this.logger.debug('완전 번역 완료:', {
+          newTranslations,
+          intermediateTexts,
+        });
+      }
 
       return {
         texts: intermediateTexts,

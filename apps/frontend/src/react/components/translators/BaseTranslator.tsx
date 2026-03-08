@@ -161,12 +161,23 @@ export function BaseTranslator<T extends BaseParseOptionsDto = BaseParseOptionsD
   const renderDefaultResult = useMemo(() => {
     if (!resultState.translationResult) return null;
 
+    if (resultState.report) {
+      return (
+        <TranslationResult
+          result={resultState.translationResult.text}
+          report={resultState.report || null}
+          onDownload={shouldShowDownloadButton ? handleDownload : undefined}
+          downloadDisabled={!resultState.translationResult.text}
+          isError={resultState.translationResult.isError}
+        />
+      );
+    }
+
     return resultState.translationResult.isError ? (
       <TranslationError error={resultState.translationResult.text} />
     ) : (
       <TranslationResult
         result={resultState.translationResult.text}
-        report={resultState.report || null}
         onDownload={shouldShowDownloadButton ? handleDownload : undefined}
         downloadDisabled={!resultState.translationResult.text}
       />

@@ -20,6 +20,8 @@ export interface TranslationResultState {
     success: number;
     fail: number;
     successRate: number;
+    isError?: boolean;
+    errorMessage?: string;
     totalSize?: number;
     processingTime?: number;
     items: {
