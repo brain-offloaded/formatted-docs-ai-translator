@@ -115,7 +115,6 @@ export class TextBatchTranslationService {
       let stableBatchSuccessCount = 0;
       const validationMismatchCounts = new Map<string, number>();
       const strictFailureReasonsByText = new Map<string, Set<StrictFailureReason>>();
-      const persistedPlaceholderMismatchTexts = new Set<string>();
 
       while (currentRemainingTexts.size > 0) {
         const remainingTextArray = Array.from(currentRemainingTexts.keys());
@@ -145,6 +144,7 @@ export class TextBatchTranslationService {
               shouldReduceBatchSize,
               hasPartialData,
               validationMismatchTexts,
+              validationMismatchTranslations,
             } = await this.translateUncachedTexts({
               requestId: param.requestId,
               remainingTexts: batchRemainingTexts,
@@ -158,6 +158,11 @@ export class TextBatchTranslationService {
             const hasValidationMismatch = validationMismatchTexts.size > 0;
             const giveUpTexts = new Set<string>();
             if (hasValidationMismatch) {
+              await this.persistValidationMismatchTranslations({
+                mismatchTranslations: validationMismatchTranslations,
+                modelName,
+                cacheTag: normalizedCacheTag,
+              });
               for (const text of validationMismatchTexts) {
                 this.markStrictFailure(strictFailureReasonsByText, text, 'placeholder_mismatch');
                 const nextCount = (validationMismatchCounts.get(text) ?? 0) + 1;
@@ -179,12 +184,6 @@ export class TextBatchTranslationService {
                 }
                 this.logger.warn('검증 불일치가 반복되어 원문을 유지합니다.', {
                   count: giveUpTexts.size,
-                });
-                await this.persistPlaceholderMismatchFailureTexts({
-                  texts: Array.from(giveUpTexts),
-                  modelName,
-                  cacheTag: normalizedCacheTag,
-                  persistedTexts: persistedPlaceholderMismatchTexts,
                 });
               }
               stableBatchSuccessCount = 0;
@@ -368,14 +367,6 @@ export class TextBatchTranslationService {
         cursor: exampleCursor,
       });
 
-      await this.persistPlaceholderMismatchFailures({
-        sourceTexts,
-        strictFailureReasonsByText,
-        modelName,
-        cacheTag: normalizedCacheTag,
-        persistedTexts: persistedPlaceholderMismatchTexts,
-      });
-
       if (strictFailureReasonsByText.size > 0) {
         this.logger.warn('엄격 검증 실패를 포함해 번역을 종료합니다.', {
           strictFailureTextCount: strictFailureReasonsByText.size,
@@ -443,71 +434,32 @@ export class TextBatchTranslationService {
     });
   }
 
-  private async persistPlaceholderMismatchFailures({
-    sourceTexts,
-    strictFailureReasonsByText,
+  private async persistValidationMismatchTranslations({
+    mismatchTranslations,
     modelName,
     cacheTag,
-    persistedTexts,
   }: {
-    sourceTexts: string[];
-    strictFailureReasonsByText: Map<string, Set<StrictFailureReason>>;
+    mismatchTranslations: Map<string, string>;
     modelName: string;
     cacheTag: string;
-    persistedTexts: Set<string>;
   }): Promise<void> {
-    const textsToPersist: string[] = [];
-
-    for (const text of sourceTexts) {
-      if (persistedTexts.has(text)) {
-        continue;
-      }
-      const reasons = strictFailureReasonsByText.get(text);
-      if (!reasons?.has('placeholder_mismatch')) {
-        continue;
-      }
-      textsToPersist.push(text);
-    }
-
-    await this.persistPlaceholderMismatchFailureTexts({
-      texts: textsToPersist,
-      modelName,
-      cacheTag,
-      persistedTexts,
-    });
-  }
-
-  private async persistPlaceholderMismatchFailureTexts({
-    texts,
-    modelName,
-    cacheTag,
-    persistedTexts,
-  }: {
-    texts: string[];
-    modelName: string;
-    cacheTag: string;
-    persistedTexts: Set<string>;
-  }): Promise<void> {
-    const uniqueTexts = texts.filter((text) => !persistedTexts.has(text));
-
-    if (uniqueTexts.length === 0) {
+    if (mismatchTranslations.size === 0) {
       return;
     }
 
-    for (const text of uniqueTexts) {
+    for (const [sourceText, translatedText] of mismatchTranslations.entries()) {
       await this.cacheManagerService.setTranslation(
-        text,
-        text,
+        sourceText,
+        translatedText,
         false,
         modelName,
         cacheTag,
         'placeholder_mismatch'
       );
-      persistedTexts.add(text);
     }
 
     this.logger.debug('플레이스홀더 불일치 실패를 캐시에 기록했습니다.', {
-      count: uniqueTexts.length,
+      count: mismatchTranslations.size,
       cacheTag,
     });
   }
@@ -534,6 +486,7 @@ export class TextBatchTranslationService {
     shouldReduceBatchSize: boolean;
     hasPartialData: boolean;
     validationMismatchTexts: Set<string>;
+    validationMismatchTranslations: Map<string, string>;
   }> {
     const {
       sourceLanguage,
@@ -578,6 +531,7 @@ export class TextBatchTranslationService {
         translations: batchTranslations,
         hasPartialData,
         validationMismatchTexts,
+        validationMismatchTranslations,
       } = await this.aiProxy.parseTranslationResponse(
         response,
         remainingTexts,
@@ -590,6 +544,7 @@ export class TextBatchTranslationService {
         shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response) || hasPartialData,
         hasPartialData,
         validationMismatchTexts,
+        validationMismatchTranslations,
       };
     } catch (error) {
       const translationsToCache = new Map<string, string>();

@@ -105,6 +105,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set([sourceText]),
+      validationMismatchTranslations: new Map([[sourceText, '번역번역번역']]),
     });
     (
       service as unknown as {
@@ -133,10 +134,11 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(1);
-    expect(cacheManagerService.setTranslation).toHaveBeenCalledWith(
+    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(3);
+    expect(cacheManagerService.setTranslation).toHaveBeenNthCalledWith(
+      1,
       sourceText,
-      sourceText,
+      '번역번역번역',
       false,
       'test-model',
       buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
@@ -159,6 +161,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set([sourceText]),
+      validationMismatchTranslations: new Map([[sourceText, '첫 줄 둘째 줄']]),
     });
     (
       service as unknown as {
@@ -183,10 +186,11 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(1);
-    expect(cacheManagerService.setTranslation).toHaveBeenCalledWith(
+    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(3);
+    expect(cacheManagerService.setTranslation).toHaveBeenNthCalledWith(
+      1,
       sourceText,
-      sourceText,
+      '첫 줄 둘째 줄',
       false,
       'test-model',
       buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
@@ -212,6 +216,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
         shouldReduceBatchSize: false,
         hasPartialData: false,
         validationMismatchTexts: new Set([sourceText]),
+        validationMismatchTranslations: new Map([[sourceText, '안녕하세요 세계']]),
       })
       .mockResolvedValueOnce({
         batchTranslations: new Map<string, TranslationResult>([
@@ -221,6 +226,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
         shouldReduceBatchSize: false,
         hasPartialData: false,
         validationMismatchTexts: new Set<string>(),
+        validationMismatchTranslations: new Map<string, string>(),
       });
     (
       service as unknown as {
@@ -268,6 +274,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -328,6 +335,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -474,6 +482,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -551,6 +560,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -612,6 +622,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -666,6 +677,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
