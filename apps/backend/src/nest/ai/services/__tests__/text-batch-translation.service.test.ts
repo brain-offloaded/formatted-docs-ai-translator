@@ -563,22 +563,71 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
     });
 
     expect(result.texts).toEqual([uncachedTranslation, trailingCachedTranslation]);
-    expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledTimes(2);
+    expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledTimes(1);
     expect(exampleManagerService.appendCurrentExample).toHaveBeenNthCalledWith(
       1,
       'req-trailing-cache-hit',
       SourceLanguage.ENGLISH,
       TargetLanguage.KOREAN,
-      [uncachedSource],
-      [uncachedTranslation]
+      [uncachedSource, trailingCachedSource],
+      [uncachedTranslation, trailingCachedTranslation]
     );
-    expect(exampleManagerService.appendCurrentExample).toHaveBeenNthCalledWith(
-      2,
-      'req-trailing-cache-hit',
+  });
+
+  it('같은 배치 안의 캐시 히트와 신규 번역도 입력 순서대로 example manager에 누적한다', async () => {
+    const firstUncachedSource = 'a';
+    const firstUncachedTranslation = 'A';
+    const cachedSource = 'b';
+    const cachedTranslation = 'B';
+    const secondUncachedSource = 'c';
+    const secondUncachedTranslation = 'C';
+    const { service, cacheManagerService, tokenService, exampleManagerService } = createService();
+
+    cacheManagerService.getTranslations.mockResolvedValue(
+      new Map<string, string | null>([
+        [firstUncachedSource, null],
+        [cachedSource, cachedTranslation],
+        [secondUncachedSource, null],
+      ])
+    );
+    tokenService.getBatchGroups.mockResolvedValue([[firstUncachedSource, secondUncachedSource]]);
+
+    const translateUncachedTexts = jest.fn().mockResolvedValue({
+      batchTranslations: new Map<string, TranslationResult>([
+        [firstUncachedSource, { text: firstUncachedTranslation, indices: [0] }],
+        [secondUncachedSource, { text: secondUncachedTranslation, indices: [2] }],
+      ]),
+      response: buildResponse(),
+      shouldReduceBatchSize: false,
+      hasPartialData: false,
+      validationMismatchTexts: new Set<string>(),
+    });
+    (
+      service as unknown as {
+        translateUncachedTexts: typeof translateUncachedTexts;
+      }
+    ).translateUncachedTexts = translateUncachedTexts;
+
+    const result = await service.translateText({
+      requestId: 'req-interleaved-cache-hit',
+      sourceTexts: [firstUncachedSource, cachedSource, secondUncachedSource],
+      promptPresetContent: '',
+      aiSettings: buildAiSettings(),
+      cacheTag: 'default',
+    });
+
+    expect(result.texts).toEqual([
+      firstUncachedTranslation,
+      cachedTranslation,
+      secondUncachedTranslation,
+    ]);
+    expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledTimes(1);
+    expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledWith(
+      'req-interleaved-cache-hit',
       SourceLanguage.ENGLISH,
       TargetLanguage.KOREAN,
-      [trailingCachedSource],
-      [trailingCachedTranslation]
+      [firstUncachedSource, cachedSource, secondUncachedSource],
+      [firstUncachedTranslation, cachedTranslation, secondUncachedTranslation]
     );
   });
 });
