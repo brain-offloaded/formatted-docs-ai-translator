@@ -4,7 +4,35 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "../../dist/**"]
+      "outputs": []
+    },
+    "@apps/common#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "@apps/backend#build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        "../../dist/main.js",
+        "../../dist/main.js.map",
+        "../../dist/main.d.ts",
+        "../../dist/main.d.ts.map",
+        "../../dist/env.js",
+        "../../dist/env.js.map",
+        "../../dist/env.d.ts",
+        "../../dist/env.d.ts.map",
+        "../../dist/nest/**",
+        "../../dist/tsconfig.backend.tsbuildinfo"
+      ]
+    },
+    "@apps/frontend#build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        "../../dist/preload.js",
+        "../../dist/renderer.js",
+        "../../dist/apps/frontend/**",
+        "../../dist/tsconfig.frontend.tsbuildinfo"
+      ]
     },
     "watch": {
       "cache": false,
