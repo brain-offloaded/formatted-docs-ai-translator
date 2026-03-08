@@ -47,8 +47,9 @@ const buildResponse = (): AiChatResponse => ({
 const createService = () => {
   const cacheManagerService = {
     getTranslations: jest.fn(),
+    setTranslation: jest.fn(),
     setTranslations: jest.fn(),
-  } satisfies Pick<ICacheManagerService, 'getTranslations' | 'setTranslations'>;
+  } satisfies Pick<ICacheManagerService, 'getTranslations' | 'setTranslation' | 'setTranslations'>;
 
   const tokenService = {
     getBatchGroups: jest.fn(),
@@ -132,14 +133,16 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(1);
-    expect(cacheManagerService.setTranslations).toHaveBeenCalledWith(
-      new Map([[sourceText, sourceText]]),
+    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(1);
+    expect(cacheManagerService.setTranslation).toHaveBeenCalledWith(
+      sourceText,
+      sourceText,
       false,
       'test-model',
       buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
       'placeholder_mismatch'
     );
+    expect(cacheManagerService.setTranslations).not.toHaveBeenCalled();
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
   });
 
@@ -180,14 +183,16 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(1);
-    expect(cacheManagerService.setTranslations).toHaveBeenCalledWith(
-      new Map([[sourceText, sourceText]]),
+    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(1);
+    expect(cacheManagerService.setTranslation).toHaveBeenCalledWith(
+      sourceText,
+      sourceText,
       false,
       'test-model',
       buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
       'placeholder_mismatch'
     );
+    expect(cacheManagerService.setTranslations).not.toHaveBeenCalled();
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
   });
 
