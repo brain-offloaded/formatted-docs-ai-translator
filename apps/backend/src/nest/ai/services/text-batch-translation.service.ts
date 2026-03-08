@@ -30,6 +30,7 @@ import { containsLegacyTranslatedTextKey } from '@/nest/translation/prompt/utils
 export class TextBatchTranslationService {
   private readonly MAX_ATTEMPT_COUNT = 3;
   private readonly STABLE_BATCH_RECOVERY_THRESHOLD = 2;
+  private readonly MAX_EXAMPLE_APPEND_CHAR_COUNT = 2000;
 
   constructor(
     @Inject(ICacheManagerService)
@@ -81,6 +82,18 @@ export class TextBatchTranslationService {
         normalizedCacheTag,
         placeholderPreservation
       );
+      const pendingIndices = this.collectPendingIndices(remainingTexts);
+      const appendableIndices = this.collectAppendableIndices(sourceTexts, pendingIndices);
+      let exampleCursor = this.appendResolvedExamples({
+        requestId: param.requestId,
+        sourceTexts,
+        translations: texts,
+        sourceLanguage,
+        targetLanguage,
+        appendableIndices,
+        pendingIndices,
+        cursor: 0,
+      });
 
       if (remainingTexts.size === 0) {
         onProgress?.({ completed: totalTexts, total: totalTexts });
@@ -158,6 +171,7 @@ export class TextBatchTranslationService {
                   indices.forEach((index) => {
                     intermediateTexts[index] = text;
                   });
+                  this.removePendingIndices(pendingIndices, indices);
                   batchRemainingTexts.delete(text);
                   currentRemainingTexts.delete(text);
                   validationMismatchCounts.delete(text);
@@ -216,14 +230,16 @@ export class TextBatchTranslationService {
 
             if (madeProgress) {
               intermediateTexts = await this.updateTranslationsAndCache({
-                requestId: param.requestId,
                 newTranslations: new Map([...batchTranslations]),
                 translations: intermediateTexts,
-                sourceLanguage,
-                targetLanguage,
                 modelName,
                 cacheTag: normalizedCacheTag,
               });
+
+              for (const { indices } of batchTranslations.values()) {
+                this.removePendingIndices(pendingIndices, indices);
+                this.addAppendableIndices(appendableIndices, indices);
+              }
 
               // 진행률 보고: 완료된 텍스트 수 = 전체 - 남은 텍스트 수
               const completed = totalTexts - currentRemainingTexts.size;
@@ -254,6 +270,17 @@ export class TextBatchTranslationService {
                 currentRemainingTexts.set(text, indices);
               }
             }
+
+            exampleCursor = this.appendResolvedExamples({
+              requestId: param.requestId,
+              sourceTexts,
+              translations: intermediateTexts,
+              sourceLanguage,
+              targetLanguage,
+              appendableIndices,
+              pendingIndices,
+              cursor: exampleCursor,
+            });
 
             if (shouldReduceBatchSize) {
               maxBatchTextCount = this.reduceBatchSizeLimit(maxBatchTextCount, batchTexts.length);
@@ -319,8 +346,20 @@ export class TextBatchTranslationService {
         indices.forEach((index) => {
           intermediateTexts[index] = originalText;
         });
+        this.removePendingIndices(pendingIndices, indices);
         newTranslations.set(originalText, { text: originalText, indices });
       }
+
+      this.appendResolvedExamples({
+        requestId: param.requestId,
+        sourceTexts,
+        translations: intermediateTexts,
+        sourceLanguage,
+        targetLanguage,
+        appendableIndices,
+        pendingIndices,
+        cursor: exampleCursor,
+      });
 
       if (strictFailureReasonsByText.size > 0) {
         this.logger.warn('엄격 검증 실패를 포함해 번역을 종료합니다.', {
@@ -565,6 +604,113 @@ export class TextBatchTranslationService {
     return { texts, remainingTexts };
   }
 
+  private collectPendingIndices(remainingTexts: Map<string, number[]>): Set<number> {
+    const pendingIndices = new Set<number>();
+
+    for (const indices of remainingTexts.values()) {
+      for (const index of indices) {
+        pendingIndices.add(index);
+      }
+    }
+
+    return pendingIndices;
+  }
+
+  private collectAppendableIndices(
+    sourceTexts: string[],
+    pendingIndices: Set<number>
+  ): Set<number> {
+    const appendableIndices = new Set<number>();
+
+    sourceTexts.forEach((text, index) => {
+      if (!pendingIndices.has(index) && text.trim() !== '') {
+        appendableIndices.add(index);
+      }
+    });
+
+    return appendableIndices;
+  }
+
+  private removePendingIndices(pendingIndices: Set<number>, indices: number[]): void {
+    for (const index of indices) {
+      pendingIndices.delete(index);
+    }
+  }
+
+  private addAppendableIndices(appendableIndices: Set<number>, indices: number[]): void {
+    for (const index of indices) {
+      appendableIndices.add(index);
+    }
+  }
+
+  private appendResolvedExamples({
+    requestId,
+    sourceTexts,
+    translations,
+    sourceLanguage,
+    targetLanguage,
+    appendableIndices,
+    pendingIndices,
+    cursor,
+  }: {
+    requestId: string;
+    sourceTexts: string[];
+    translations: string[];
+    sourceLanguage: SourceLanguage;
+    targetLanguage: TargetLanguage;
+    appendableIndices: Set<number>;
+    pendingIndices: Set<number>;
+    cursor: number;
+  }): number {
+    let sources: string[] = [];
+    let results: string[] = [];
+    let bufferedSourceCharCount = 0;
+    let nextCursor = cursor;
+
+    const flush = () => {
+      if (sources.length === 0) {
+        return;
+      }
+
+      this.exampleManagerService.appendCurrentExample(
+        requestId,
+        sourceLanguage,
+        targetLanguage,
+        sources,
+        results
+      );
+
+      sources = [];
+      results = [];
+      bufferedSourceCharCount = 0;
+    };
+
+    while (nextCursor < sourceTexts.length && !pendingIndices.has(nextCursor)) {
+      const sourceText = sourceTexts[nextCursor];
+      const translatedText = translations[nextCursor];
+
+      if (appendableIndices.has(nextCursor) && sourceText.trim() !== '') {
+        if (
+          sources.length > 0 &&
+          bufferedSourceCharCount + sourceText.length > this.MAX_EXAMPLE_APPEND_CHAR_COUNT
+        ) {
+          flush();
+        }
+
+        sources.push(sourceText);
+        results.push(translatedText);
+        bufferedSourceCharCount += sourceText.length;
+        appendableIndices.delete(nextCursor);
+      }
+
+      nextCursor++;
+    }
+
+    flush();
+
+    return nextCursor;
+  }
+
   private getTranslationFromCachedResult(
     originalText: string,
     cachedResults: Map<string, string | null>,
@@ -606,25 +752,17 @@ export class TextBatchTranslationService {
   }
 
   private async updateTranslationsAndCache({
-    requestId,
     newTranslations,
     translations,
-    sourceLanguage,
-    targetLanguage,
     modelName,
     cacheTag,
   }: {
-    requestId: string;
     newTranslations: Map<string, TranslationResult>;
     translations: string[];
-    sourceLanguage: SourceLanguage;
-    targetLanguage: TargetLanguage;
     modelName: string;
     cacheTag: string;
   }): Promise<string[]> {
     const translationsToCache = new Map<string, string>();
-    const sourceLines: string[] = [];
-    const resultLines: string[] = [];
     const copiedTranslations = deepClone(translations);
 
     for (const [originalText, { text: translatedText, indices }] of newTranslations) {
@@ -633,22 +771,9 @@ export class TextBatchTranslationService {
       indices.forEach((index) => {
         copiedTranslations[index] = translatedText;
       });
-
-      sourceLines.push(originalText);
-      resultLines.push(translatedText);
     }
 
     await this.cacheManagerService.setTranslations(translationsToCache, true, modelName, cacheTag);
-
-    if (sourceLines.length > 0) {
-      this.exampleManagerService.appendCurrentExample(
-        requestId,
-        sourceLanguage,
-        targetLanguage,
-        sourceLines,
-        resultLines
-      );
-    }
 
     return copiedTranslations;
   }
