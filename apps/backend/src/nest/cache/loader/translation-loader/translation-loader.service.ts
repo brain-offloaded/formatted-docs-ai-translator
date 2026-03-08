@@ -340,25 +340,12 @@ export class TranslationLoaderService {
         transactionContext,
         async (client, schedule) => {
           const cacheTag = await this.ensureCacheTag(cacheTagName, client);
-          const translation = await client.translation.upsert({
-            where: {
-              source_cacheTagId: {
-                source,
-                cacheTagId: cacheTag.id,
-              },
-            },
-            update: {
-              target,
-              success,
-              lastAccessedAt: new Date(),
-            },
-            create: {
-              source,
-              target,
-              success,
-              cacheTagId: cacheTag.id,
-            },
-            include: { cacheTag: true },
+          const translation = await this.upsertOrReuseTranslation({
+            client,
+            source,
+            target,
+            success,
+            cacheTagId: cacheTag.id,
           });
 
           await client.translationHistory.create({
@@ -402,25 +389,12 @@ export class TranslationLoaderService {
           const cacheTag = await this.ensureCacheTag(cacheTagName, client);
 
           for (const [source, target] of translations.entries()) {
-            const translation = await client.translation.upsert({
-              where: {
-                source_cacheTagId: {
-                  source,
-                  cacheTagId: cacheTag.id,
-                },
-              },
-              update: {
-                target,
-                success,
-                lastAccessedAt: new Date(),
-              },
-              create: {
-                source,
-                target,
-                success,
-                cacheTagId: cacheTag.id,
-              },
-              include: { cacheTag: true },
+            const translation = await this.upsertOrReuseTranslation({
+              client,
+              source,
+              target,
+              success,
+              cacheTagId: cacheTag.id,
             });
 
             await client.translationHistory.create({
@@ -591,6 +565,56 @@ export class TranslationLoaderService {
       where: { name: normalizedName },
       update: {},
       create: { name: normalizedName },
+    });
+  }
+
+  private async upsertOrReuseTranslation({
+    client,
+    source,
+    target,
+    success,
+    cacheTagId,
+  }: {
+    client: Prisma.TransactionClient;
+    source: string;
+    target: string;
+    success: boolean;
+    cacheTagId: number;
+  }) {
+    const existingTranslation = await client.translation.findUnique({
+      where: {
+        source_cacheTagId: {
+          source,
+          cacheTagId,
+        },
+      },
+      include: { cacheTag: true },
+    });
+
+    // 기존 성공 캐시는 유지하고, strict mismatch 실패는 이력만 추가합니다.
+    if (existingTranslation && existingTranslation.success && !success) {
+      return existingTranslation;
+    }
+
+    return client.translation.upsert({
+      where: {
+        source_cacheTagId: {
+          source,
+          cacheTagId,
+        },
+      },
+      update: {
+        target,
+        success,
+        lastAccessedAt: new Date(),
+      },
+      create: {
+        source,
+        target,
+        success,
+        cacheTagId,
+      },
+      include: { cacheTag: true },
     });
   }
 
