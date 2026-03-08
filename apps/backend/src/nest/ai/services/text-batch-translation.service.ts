@@ -570,7 +570,11 @@ export class TextBatchTranslationService {
   }> {
     const texts = new Array<string>(sourceTexts.length);
     const remainingTexts = new Map<string, number[]>();
-    const cacheHitExamples: Array<{ index: number; sourceText: string; translatedText: string }> = [];
+    const cacheHitExamples: Array<{
+      index: number;
+      sourceText: string;
+      translatedText: string;
+    }> = [];
     const cachedResults = await this.cacheManagerService.getTranslations(sourceTexts, cacheTag);
 
     sourceTexts.forEach((text, index) => {
@@ -638,10 +642,7 @@ export class TextBatchTranslationService {
 
     while (nextCursor < cacheHitExamples.length) {
       const cacheHit = cacheHitExamples[nextCursor];
-      if (
-        beforeIndexExclusive !== undefined &&
-        cacheHit.index >= beforeIndexExclusive
-      ) {
+      if (beforeIndexExclusive !== undefined && cacheHit.index >= beforeIndexExclusive) {
         break;
       }
 
