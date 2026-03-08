@@ -50,6 +50,7 @@ export class AiProxyService {
     translations: Map<string, TranslationResult>;
     hasPartialData: boolean;
     validationMismatchTexts: Set<string>;
+    validationMismatchTranslations: Map<string, string>;
   }> {
     return this.responseParser.parseTranslationResponse(
       response,

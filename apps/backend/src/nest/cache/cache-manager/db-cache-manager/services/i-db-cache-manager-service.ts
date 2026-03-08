@@ -30,14 +30,16 @@ export interface IDbCacheManagerService {
     translation: string,
     success?: boolean,
     modelName?: string,
-    cacheTag?: string
+    cacheTag?: string,
+    error?: string
   ): Promise<void>;
   getTranslations(texts: string[], cacheTag: string): Promise<Map<string, string | null>>;
   setTranslations(
     translations: Map<string, string>,
     success?: boolean,
     modelName?: string,
-    cacheTag?: string
+    cacheTag?: string,
+    error?: string
   ): Promise<void>;
 
   // 이력 관련 메서드

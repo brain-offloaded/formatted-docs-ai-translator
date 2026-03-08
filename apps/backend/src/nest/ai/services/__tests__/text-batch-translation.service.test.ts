@@ -1,5 +1,6 @@
 import { TextBatchTranslationService } from '../text-batch-translation.service';
 import { SourceLanguage, TargetLanguage } from '@apps/common/dist/language';
+import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
 import {
   ModelProvider,
   TranslatorAiSettings,
@@ -46,8 +47,9 @@ const buildResponse = (): AiChatResponse => ({
 const createService = () => {
   const cacheManagerService = {
     getTranslations: jest.fn(),
+    setTranslation: jest.fn(),
     setTranslations: jest.fn(),
-  } satisfies Pick<ICacheManagerService, 'getTranslations' | 'setTranslations'>;
+  } satisfies Pick<ICacheManagerService, 'getTranslations' | 'setTranslation' | 'setTranslations'>;
 
   const tokenService = {
     getBatchGroups: jest.fn(),
@@ -90,6 +92,60 @@ const createService = () => {
 };
 
 describe('TextBatchTranslationService 검증 불일치 재시도', () => {
+  it('transtranstrans 플레이스홀더 불일치는 실패 캐시로 남긴다', async () => {
+    const sourceText = 'transtranstrans';
+    const { service, cacheManagerService, tokenService, exampleManagerService } = createService();
+
+    cacheManagerService.getTranslations.mockResolvedValue(new Map([[sourceText, null]]));
+    tokenService.getBatchGroups.mockResolvedValue([[sourceText]]);
+
+    const translateUncachedTexts = jest.fn().mockResolvedValue({
+      batchTranslations: new Map<string, TranslationResult>(),
+      response: buildResponse(),
+      shouldReduceBatchSize: false,
+      hasPartialData: false,
+      validationMismatchTexts: new Set([sourceText]),
+      validationMismatchTranslations: new Map([[sourceText, '번역번역번역']]),
+    });
+    (
+      service as unknown as {
+        translateUncachedTexts: typeof translateUncachedTexts;
+      }
+    ).translateUncachedTexts = translateUncachedTexts;
+
+    const result = await service.translateText({
+      requestId: 'req-transtranstrans',
+      sourceTexts: [sourceText],
+      promptPresetContent: '',
+      aiSettings: buildAiSettings(),
+      cacheTag: 'default',
+      placeholderPreservation: {
+        enabled: true,
+        rules: [{ pattern: 'transtranstrans', flags: '' }],
+      },
+    });
+
+    expect(result.texts).toEqual([sourceText]);
+    expect(result.strictMetaByIndex).toEqual([
+      {
+        strictFailed: true,
+        strictFailureReasons: ['placeholder_mismatch'],
+        strictFailureCount: 1,
+      },
+    ]);
+    expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(3);
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
+      1,
+      new Map([[sourceText, '번역번역번역']]),
+      false,
+      'test-model',
+      buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
+      'placeholder_mismatch'
+    );
+    expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
+  });
+
   it('검증 불일치가 반복되면 원문을 유지한다', async () => {
     const sourceText = '첫 줄\n둘째 줄';
     const { service, cacheManagerService, tokenService, exampleManagerService } = createService();
@@ -103,6 +159,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set([sourceText]),
+      validationMismatchTranslations: new Map([[sourceText, '첫 줄 둘째 줄']]),
     });
     (
       service as unknown as {
@@ -127,7 +184,15 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslations).not.toHaveBeenCalled();
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(3);
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
+      1,
+      new Map([[sourceText, '첫 줄 둘째 줄']]),
+      false,
+      'test-model',
+      buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
+      'placeholder_mismatch'
+    );
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
   });
 
@@ -147,6 +212,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
         shouldReduceBatchSize: false,
         hasPartialData: false,
         validationMismatchTexts: new Set([sourceText]),
+        validationMismatchTranslations: new Map([[sourceText, '안녕하세요 세계']]),
       })
       .mockResolvedValueOnce({
         batchTranslations: new Map<string, TranslationResult>([
@@ -156,6 +222,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
         shouldReduceBatchSize: false,
         hasPartialData: false,
         validationMismatchTexts: new Set<string>(),
+        validationMismatchTranslations: new Map<string, string>(),
       });
     (
       service as unknown as {
@@ -180,7 +247,22 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(2);
-    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(1);
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(2);
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
+      1,
+      new Map([[sourceText, '안녕하세요 세계']]),
+      false,
+      'test-model',
+      buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
+      'placeholder_mismatch'
+    );
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
+      2,
+      new Map([[sourceText, translatedText]]),
+      true,
+      'test-model',
+      buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN)
+    );
     expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledTimes(1);
   });
 
@@ -203,6 +285,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -263,6 +346,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -409,6 +493,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -486,6 +571,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -547,6 +633,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {
@@ -601,6 +688,7 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       shouldReduceBatchSize: false,
       hasPartialData: false,
       validationMismatchTexts: new Set<string>(),
+      validationMismatchTranslations: new Map<string, string>(),
     });
     (
       service as unknown as {

@@ -144,6 +144,7 @@ export class TextBatchTranslationService {
               shouldReduceBatchSize,
               hasPartialData,
               validationMismatchTexts,
+              validationMismatchTranslations,
             } = await this.translateUncachedTexts({
               requestId: param.requestId,
               remainingTexts: batchRemainingTexts,
@@ -157,6 +158,11 @@ export class TextBatchTranslationService {
             const hasValidationMismatch = validationMismatchTexts.size > 0;
             const giveUpTexts = new Set<string>();
             if (hasValidationMismatch) {
+              await this.persistValidationMismatchTranslations({
+                mismatchTranslations: validationMismatchTranslations,
+                modelName,
+                cacheTag: normalizedCacheTag,
+              });
               for (const text of validationMismatchTexts) {
                 this.markStrictFailure(strictFailureReasonsByText, text, 'placeholder_mismatch');
                 const nextCount = (validationMismatchCounts.get(text) ?? 0) + 1;
@@ -428,6 +434,33 @@ export class TextBatchTranslationService {
     });
   }
 
+  private async persistValidationMismatchTranslations({
+    mismatchTranslations,
+    modelName,
+    cacheTag,
+  }: {
+    mismatchTranslations: Map<string, string>;
+    modelName: string;
+    cacheTag: string;
+  }): Promise<void> {
+    if (mismatchTranslations.size === 0) {
+      return;
+    }
+
+    await this.cacheManagerService.setTranslations(
+      mismatchTranslations,
+      false,
+      modelName,
+      cacheTag,
+      'placeholder_mismatch'
+    );
+
+    this.logger.debug('플레이스홀더 불일치 실패를 캐시에 기록했습니다.', {
+      count: mismatchTranslations.size,
+      cacheTag,
+    });
+  }
+
   private async translateUncachedTexts({
     requestId,
     remainingTexts,
@@ -450,6 +483,7 @@ export class TextBatchTranslationService {
     shouldReduceBatchSize: boolean;
     hasPartialData: boolean;
     validationMismatchTexts: Set<string>;
+    validationMismatchTranslations: Map<string, string>;
   }> {
     const {
       sourceLanguage,
@@ -494,6 +528,7 @@ export class TextBatchTranslationService {
         translations: batchTranslations,
         hasPartialData,
         validationMismatchTexts,
+        validationMismatchTranslations,
       } = await this.aiProxy.parseTranslationResponse(
         response,
         remainingTexts,
@@ -506,6 +541,7 @@ export class TextBatchTranslationService {
         shouldReduceBatchSize: this.aiProxy.isFinishedByMaxTokens(response) || hasPartialData,
         hasPartialData,
         validationMismatchTexts,
+        validationMismatchTranslations,
       };
     } catch (error) {
       const translationsToCache = new Map<string, string>();

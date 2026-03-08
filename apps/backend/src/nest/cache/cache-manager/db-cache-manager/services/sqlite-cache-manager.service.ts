@@ -43,10 +43,18 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
     translation: string,
     success: boolean = true,
     modelName: string = 'unknown',
-    cacheTag: string = DEFAULT_CACHE_TAG
+    cacheTag: string = DEFAULT_CACHE_TAG,
+    error?: string
   ): Promise<void> {
     try {
-      await this.translationLoader.saveTranslation(text, translation, success, modelName, cacheTag);
+      await this.translationLoader.saveTranslation(
+        text,
+        translation,
+        success,
+        modelName,
+        cacheTag,
+        error ?? null
+      );
     } catch (error) {
       this.logger.error('번역 캐시 저장 중 오류:', { error });
     }
@@ -59,7 +67,8 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
         history.target,
         history.success,
         history.model,
-        history.cacheTag || DEFAULT_CACHE_TAG
+        history.cacheTag || DEFAULT_CACHE_TAG,
+        history.error || null
       );
     } catch (error) {
       this.logger.error('번역 이력 저장 중 오류:', { error });
@@ -101,10 +110,17 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
     translations: Map<string, string>,
     success: boolean = true,
     modelName: string = 'unknown',
-    cacheTag: string = DEFAULT_CACHE_TAG
+    cacheTag: string = DEFAULT_CACHE_TAG,
+    error?: string
   ): Promise<void> {
     try {
-      await this.translationLoader.saveManyTranslations(translations, success, modelName, cacheTag);
+      await this.translationLoader.saveManyTranslations(
+        translations,
+        success,
+        modelName,
+        cacheTag,
+        error ?? null
+      );
     } catch (error) {
       this.logger.error('번역 캐시 일괄 저장 중 오류:', { error, size: translations.size });
     }

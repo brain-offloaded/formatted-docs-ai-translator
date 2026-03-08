@@ -63,6 +63,7 @@ export class TranslationResponseParser {
     translations: Map<string, TranslationResult>;
     hasPartialData: boolean;
     validationMismatchTexts: Set<string>;
+    validationMismatchTranslations: Map<string, string>;
   } {
     const responseText = this.getResponseText(response);
     const { matches, hasPartialData } = this.parseSegmentMatches(responseText);
@@ -73,6 +74,7 @@ export class TranslationResponseParser {
     let expectedIds: number[] = [];
     let unexpectedIdCount: number | undefined;
     const validationMismatchTexts = new Set<string>();
+    const validationMismatchTranslations = new Map<string, string>();
 
     if (useStrictIdMatching && expectedIdToText) {
       expectedIds = Array.from(expectedIdToText.keys());
@@ -82,6 +84,7 @@ export class TranslationResponseParser {
         expectedIdToText,
         remainingTexts,
         validationMismatchTexts,
+        validationMismatchTranslations,
         placeholderPreservation
       );
       translations = strictResult.translations;
@@ -95,6 +98,7 @@ export class TranslationResponseParser {
         remainingTextArray,
         remainingTexts,
         validationMismatchTexts,
+        validationMismatchTranslations,
         placeholderPreservation
       );
       translations = fallbackResult.translations;
@@ -117,7 +121,12 @@ export class TranslationResponseParser {
       unexpectedIdCount,
     });
 
-    return { translations, hasPartialData, validationMismatchTexts };
+    return {
+      translations,
+      hasPartialData,
+      validationMismatchTexts,
+      validationMismatchTranslations,
+    };
   }
 
   private getResponseText(response: AiChatResponse): string {
@@ -358,6 +367,7 @@ export class TranslationResponseParser {
     remainingTextArray: string[],
     remainingTexts: Map<string, number[]>,
     validationMismatchTexts: Set<string>,
+    validationMismatchTranslations: Map<string, string>,
     placeholderPreservation?: PlaceholderPreservationSettings
   ): { translations: Map<string, TranslationResult>; excludeFrom: number; offset: number } {
     const offset = this.calculateOffset(matches);
@@ -376,6 +386,7 @@ export class TranslationResponseParser {
       remainingTextArray,
       remainingTexts,
       validationMismatchTexts,
+      validationMismatchTranslations,
       placeholderPreservation
     );
     return { translations, excludeFrom, offset };
@@ -387,6 +398,7 @@ export class TranslationResponseParser {
     expectedIdToText: Map<number, string>,
     remainingTexts: Map<string, number[]>,
     validationMismatchTexts: Set<string>,
+    validationMismatchTranslations: Map<string, string>,
     placeholderPreservation?: PlaceholderPreservationSettings
   ): {
     translations: Map<string, TranslationResult>;
@@ -430,6 +442,7 @@ export class TranslationResponseParser {
         });
         if (mismatchDetail) {
           validationMismatchTexts.add(originalText);
+          validationMismatchTranslations.set(originalText, translatedText);
           this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
             id,
             originalText,
@@ -465,6 +478,7 @@ export class TranslationResponseParser {
     remainingTextArray: string[],
     remainingTexts: Map<string, number[]>,
     validationMismatchTexts: Set<string>,
+    validationMismatchTranslations: Map<string, string>,
     placeholderPreservation?: PlaceholderPreservationSettings
   ): Map<string, TranslationResult> {
     const translations = new Map<string, TranslationResult>();
@@ -489,6 +503,7 @@ export class TranslationResponseParser {
         });
         if (mismatchDetail) {
           validationMismatchTexts.add(originalText);
+          validationMismatchTranslations.set(originalText, translatedText);
           this.logger.warn('플레이스홀더 보존 불일치로 번역 제외', {
             id,
             normalizedId,
