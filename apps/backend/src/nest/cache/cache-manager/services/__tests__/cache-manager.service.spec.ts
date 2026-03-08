@@ -1,5 +1,6 @@
 import { CacheManagerService } from '../cache-manager.service';
 import { buildMemoryCacheKey } from '../../utils/cache-key';
+import { DEFAULT_CACHE_TAG } from '@apps/common/dist/constants/cache';
 import type { IMemoryCacheManagerService } from '../../memory-cache-manager/services/i-memory-cache-manager-service';
 import type { IDbCacheManagerService } from '../../db-cache-manager/services/i-db-cache-manager-service';
 import type { CacheCommandBus } from '@/nest/cache/commands/command-bus.service';
@@ -215,6 +216,31 @@ describe('CacheManagerService - cache tag operations', () => {
       false,
       'test-model',
       'default_en-to-ko',
+      'placeholder_mismatch'
+    );
+  });
+
+  it('기본 태그의 실패한 다중 번역 저장은 plain 메모리 키를 무효화한다', async () => {
+    const { service, memoryCacheManagerService, dbCacheManagerService } = createService();
+    const failedTranslations = new Map([
+      ['first', 'first-failed'],
+      ['second', 'second-failed'],
+    ]);
+
+    await service.setTranslations(
+      failedTranslations,
+      false,
+      'test-model',
+      undefined,
+      'placeholder_mismatch'
+    );
+
+    expect(memoryCacheManagerService.invalidateMany).toHaveBeenCalledWith(['first', 'second']);
+    expect(dbCacheManagerService.setTranslations).toHaveBeenCalledWith(
+      failedTranslations,
+      false,
+      'test-model',
+      DEFAULT_CACHE_TAG,
       'placeholder_mismatch'
     );
   });

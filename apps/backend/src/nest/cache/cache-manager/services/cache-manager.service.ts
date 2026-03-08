@@ -35,6 +35,10 @@ export class CacheManagerService implements ICacheManagerService {
     private readonly logger: LoggerService
   ) {}
 
+  private getMemoryCacheKey(source: string, cacheTag?: string | null): string {
+    return cacheTag ? buildMemoryCacheKey(source, cacheTag) : source;
+  }
+
   /**
    * 메모리 캐시의 특정 항목을 무효화합니다.
    * @param text 무효화할 원본 텍스트
@@ -164,7 +168,7 @@ export class CacheManagerService implements ICacheManagerService {
   public async getTranslation(text: string, cacheTag?: string): Promise<string | null> {
     if (!CACHE_ENABLED) return null;
     const normalizedTag = cacheTag === undefined ? null : normalizeCacheTag(cacheTag);
-    const memoryKey = normalizedTag ? buildMemoryCacheKey(text, normalizedTag) : text;
+    const memoryKey = this.getMemoryCacheKey(text, normalizedTag);
     // 먼저 메모리 캐시에서 검색
     let translation = await this.memoryCacheManagerService.getTranslation(memoryKey);
 
@@ -192,7 +196,7 @@ export class CacheManagerService implements ICacheManagerService {
   ): Promise<void> {
     const normalizedTag = cacheTag === undefined ? null : normalizeCacheTag(cacheTag);
     const dbTag = normalizedTag ?? DEFAULT_CACHE_TAG;
-    const memoryKey = normalizedTag ? buildMemoryCacheKey(text, normalizedTag) : text;
+    const memoryKey = this.getMemoryCacheKey(text, normalizedTag);
     // 성공한 결과만 메모리 캐시에 유지하고, 실패 결과는 DB/이력에만 남깁니다.
     const memoryOperation = success
       ? this.memoryCacheManagerService.setTranslation(memoryKey, translation)
@@ -275,20 +279,19 @@ export class CacheManagerService implements ICacheManagerService {
   ): Promise<void> {
     const normalizedTag = cacheTag === undefined ? null : normalizeCacheTag(cacheTag);
     const dbTag = normalizedTag ?? DEFAULT_CACHE_TAG;
-    const memoryEntries = Array.from(translations.keys()).map((source) => ({
-      source,
-      cacheTag: dbTag,
-    }));
+    const memoryKeys = Array.from(translations.keys()).map((source) =>
+      this.getMemoryCacheKey(source, normalizedTag)
+    );
     const memoryOperation = success
       ? this.memoryCacheManagerService.setTranslations(
           new Map(
             Array.from(translations.entries()).map(([source, value]) => [
-              normalizedTag ? buildMemoryCacheKey(source, normalizedTag) : source,
+              this.getMemoryCacheKey(source, normalizedTag),
               value,
             ])
           )
         )
-      : this.invalidateMemoryCacheMany(memoryEntries);
+      : this.memoryCacheManagerService.invalidateMany(memoryKeys);
 
     await Promise.all([
       memoryOperation,

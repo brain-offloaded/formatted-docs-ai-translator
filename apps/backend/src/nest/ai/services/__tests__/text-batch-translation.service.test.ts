@@ -134,17 +134,15 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslation).toHaveBeenNthCalledWith(
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(3);
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
       1,
-      sourceText,
-      '번역번역번역',
+      new Map([[sourceText, '번역번역번역']]),
       false,
       'test-model',
       buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
       'placeholder_mismatch'
     );
-    expect(cacheManagerService.setTranslations).not.toHaveBeenCalled();
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
   });
 
@@ -186,17 +184,15 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslation).toHaveBeenCalledTimes(3);
-    expect(cacheManagerService.setTranslation).toHaveBeenNthCalledWith(
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(3);
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
       1,
-      sourceText,
-      '첫 줄 둘째 줄',
+      new Map([[sourceText, '첫 줄 둘째 줄']]),
       false,
       'test-model',
       buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
       'placeholder_mismatch'
     );
-    expect(cacheManagerService.setTranslations).not.toHaveBeenCalled();
     expect(exampleManagerService.appendCurrentExample).not.toHaveBeenCalled();
   });
 
@@ -251,7 +247,22 @@ describe('TextBatchTranslationService 검증 불일치 재시도', () => {
       },
     ]);
     expect(translateUncachedTexts).toHaveBeenCalledTimes(2);
-    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(1);
+    expect(cacheManagerService.setTranslations).toHaveBeenCalledTimes(2);
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
+      1,
+      new Map([[sourceText, '안녕하세요 세계']]),
+      false,
+      'test-model',
+      buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN),
+      'placeholder_mismatch'
+    );
+    expect(cacheManagerService.setTranslations).toHaveBeenNthCalledWith(
+      2,
+      new Map([[sourceText, translatedText]]),
+      true,
+      'test-model',
+      buildLanguageScopedCacheTag('default', SourceLanguage.ENGLISH, TargetLanguage.KOREAN)
+    );
     expect(exampleManagerService.appendCurrentExample).toHaveBeenCalledTimes(1);
   });
 

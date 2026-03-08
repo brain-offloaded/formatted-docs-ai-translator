@@ -447,16 +447,13 @@ export class TextBatchTranslationService {
       return;
     }
 
-    for (const [sourceText, translatedText] of mismatchTranslations.entries()) {
-      await this.cacheManagerService.setTranslation(
-        sourceText,
-        translatedText,
-        false,
-        modelName,
-        cacheTag,
-        'placeholder_mismatch'
-      );
-    }
+    await this.cacheManagerService.setTranslations(
+      mismatchTranslations,
+      false,
+      modelName,
+      cacheTag,
+      'placeholder_mismatch'
+    );
 
     this.logger.debug('플레이스홀더 불일치 실패를 캐시에 기록했습니다.', {
       count: mismatchTranslations.size,

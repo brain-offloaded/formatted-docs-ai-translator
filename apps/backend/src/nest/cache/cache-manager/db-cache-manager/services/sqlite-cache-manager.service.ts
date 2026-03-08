@@ -53,7 +53,7 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
         success,
         modelName,
         cacheTag,
-        error
+        error ?? null
       );
     } catch (error) {
       this.logger.error('번역 캐시 저장 중 오류:', { error });
@@ -119,7 +119,7 @@ export class SqliteCacheManagerService implements IDbCacheManagerService {
         success,
         modelName,
         cacheTag,
-        error
+        error ?? null
       );
     } catch (error) {
       this.logger.error('번역 캐시 일괄 저장 중 오류:', { error, size: translations.size });
