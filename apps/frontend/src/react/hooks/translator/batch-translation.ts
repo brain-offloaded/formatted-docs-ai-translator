@@ -106,6 +106,8 @@ export const batchTranslateParsedResults = async <
     translatedByFile[fileIndex][unitIndex] = {
       ...translatedByFile[fileIndex][unitIndex],
       target: translatedUnit.target,
+      strictFailed: translatedUnit.strictFailed,
+      strictFailureReasons: translatedUnit.strictFailureReasons,
     };
   });
 
