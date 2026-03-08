@@ -23,6 +23,7 @@ describe('deriveFileTranslationOutcome', () => {
     expect(result.success).toBe(1);
     expect(result.fail).toBe(1);
     expect(result.isFatalError).toBe(true);
+    expect(result.errorMessage).toBe('strict 실패로 전체 작업을 실패 처리했습니다.');
     expect(result.items).toEqual([
       {
         name: 'ok.txt',
@@ -55,6 +56,7 @@ describe('deriveFileTranslationOutcome', () => {
     });
 
     expect(result.hasStrictFailure).toBe(true);
+    expect(result.errorMessage).toBe('strict 실패로 전체 작업을 실패 처리했습니다.');
     expect(result.items).toEqual([
       {
         name: 'strict.txt',
@@ -87,6 +89,7 @@ describe('deriveFileTranslationOutcome', () => {
     });
 
     expect(result.hasStrictFailure).toBe(false);
+    expect(result.errorMessage).toBeUndefined();
     expect(result.success).toBe(1);
     expect(result.fail).toBe(1);
     expect(result.items).toEqual([

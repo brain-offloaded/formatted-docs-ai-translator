@@ -57,6 +57,7 @@ export const deriveFileTranslationOutcome = ({
     success,
     fail,
     isFatalError,
+    errorMessage: hasStrictFailure ? strictFailureAbortMessage : undefined,
     items,
   };
 };

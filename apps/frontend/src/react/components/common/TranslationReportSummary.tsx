@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Card, CardContent, Chip, Grid, Typography } from '@mui/material';
+import { Alert, Box, Card, CardContent, Chip, Grid, Typography } from '@mui/material';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import StorageIcon from '@mui/icons-material/Storage';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -12,6 +12,7 @@ type TranslationReport = NonNullable<TranslationResultState['report']>;
 
 interface TranslationReportSummaryProps {
   report: TranslationReport;
+  isError?: boolean;
   /**
    * 헤더 우측에 표시할 액션 버튼 영역
    */
@@ -24,6 +25,7 @@ interface TranslationReportSummaryProps {
 
 const TranslationReportSummary: React.FC<TranslationReportSummaryProps> = ({
   report,
+  isError = false,
   headerActions,
   renderFailureAction,
 }) => {
@@ -55,15 +57,21 @@ const TranslationReportSummary: React.FC<TranslationReportSummaryProps> = ({
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 600, mr: 2 }}>
-                {t('translationReport.completed')}
+                {isError ? t('translationReport.fail') : t('translationReport.completed')}
               </Typography>
               <Chip
                 label={t('translationReport.successRate', { rate: report.successRate })}
-                color={report.successRate >= 80 ? 'success' : 'warning'}
+                color={isError ? 'error' : report.successRate >= 80 ? 'success' : 'warning'}
                 variant="filled"
                 size="small"
               />
             </Box>
+
+            {isError && report.errorMessage && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {report.errorMessage}
+              </Alert>
+            )}
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
               <Grid item xs={12} sm={6} md={3}>

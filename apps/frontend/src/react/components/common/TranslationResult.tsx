@@ -26,6 +26,7 @@ interface TranslationResultProps {
   onDownload?: () => void;
   downloadDisabled?: boolean;
   report?: TranslationReport;
+  isError?: boolean;
 }
 
 const TranslationResult: React.FC<TranslationResultProps> = ({
@@ -33,6 +34,7 @@ const TranslationResult: React.FC<TranslationResultProps> = ({
   onDownload,
   downloadDisabled = false,
   report,
+  isError = false,
 }) => {
   const { showSnackbar, fileState } = useTranslation();
   const { t } = useI18n();
@@ -100,7 +102,9 @@ const TranslationResult: React.FC<TranslationResultProps> = ({
       </>
     );
 
-    return <TranslationReportSummary report={report} headerActions={headerActions} />;
+    return (
+      <TranslationReportSummary report={report} headerActions={headerActions} isError={isError} />
+    );
   }
 
   return (
