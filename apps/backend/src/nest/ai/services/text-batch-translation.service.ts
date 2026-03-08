@@ -323,7 +323,7 @@ export class TextBatchTranslationService {
       }
 
       if (strictFailureReasonsByText.size > 0) {
-        this.logger.debug('엄격 검증 실패를 포함해 번역을 종료합니다.', {
+        this.logger.warn('엄격 검증 실패를 포함해 번역을 종료합니다.', {
           strictFailureTextCount: strictFailureReasonsByText.size,
         });
       } else {
