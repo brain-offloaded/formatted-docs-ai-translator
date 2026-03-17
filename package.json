@@ -170,7 +170,7 @@
     "@nestjs/common": "^11.0.12",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.12",
-    "@nestjs/platform-fastify": "^11.1.10",
+    "@nestjs/platform-fastify": "^11.1.16",
     "@nestjs/swagger": "^11.2.1",
     "@prisma/client": "^6.19.0",
     "better-sqlite3": "^12.2.0",
