@@ -36,7 +36,7 @@ const baseResolve = {
 
 const outputPath = path.resolve(__dirname, '../../dist');
 
-const createConfig = ({ name, target, entry, resolve: extraResolve = {} }) => ({
+const createConfig = ({ name, target, entry, resolve: extraResolve = {}, output: extraOutput = {} }) => ({
   name,
   mode,
   target,
@@ -52,6 +52,7 @@ const createConfig = ({ name, target, entry, resolve: extraResolve = {} }) => ({
   output: {
     filename: `${name}.js`,
     path: outputPath,
+    ...extraOutput,
   },
 });
 
@@ -59,6 +60,9 @@ const rendererConfig = createConfig({
   name: 'renderer',
   target: 'web',
   entry: './src/renderer.tsx',
+  output: {
+    chunkFilename: 'apps/frontend/chunks/[name].[contenthash].js',
+  },
   resolve: {
     mainFields: ['browser', 'module', 'main'],
     conditionNames: ['browser', 'import', 'module', 'default'],

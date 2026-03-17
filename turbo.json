@@ -4,7 +4,25 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "../../dist/**"]
+      "outputs": ["dist/**"]
+    },
+    "@apps/backend#build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        "../../dist/main.*",
+        "../../dist/env.*",
+        "../../dist/nest/**",
+        "../../dist/tsconfig.backend.tsbuildinfo"
+      ]
+    },
+    "@apps/frontend#build": {
+      "dependsOn": ["^build"],
+      "outputs": [
+        "../../dist/preload.*",
+        "../../dist/renderer.*",
+        "../../dist/apps/frontend/**",
+        "../../dist/tsconfig.frontend.tsbuildinfo"
+      ]
     },
     "watch": {
       "cache": false,
