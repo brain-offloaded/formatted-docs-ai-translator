@@ -35,6 +35,21 @@ You are free to use this code however you like. I won't mind even if you remove 
 자세한 개발자 문서는 다음을 참고하세요.
 - **[한글](./docs/ko/index.md)**
 
+### Codex 유지보수 워크플로
+
+이 저장소는 Codex를 단순 코드 생성이 아니라 OSS 유지보수 보조 흐름에 맞춰 사용합니다.
+
+- 저장소 규칙은 `AGENTS.md`에 둡니다.
+- 프로젝트 로컬 Codex 실행 기본값은 `.codex/config.toml`에 둡니다.
+- 반복 가능한 유지보수 절차는 `.agents/skills/oss-maintainer-codex`에 둡니다.
+
+주요 사용 사례는 다음과 같습니다.
+
+- PR 설명과 검증 절차 정리
+- 개발자 문서와 Codex 운영 규칙 동기화
+- 릴리스 전 `yarn lint` / `yarn test` / `yarn build` 검증
+- Electron, Prisma, 번역 캐시를 건드리는 변경의 범위 축소
+
 ### 로컬 실행
 
 -   `yarn dev`: 전체 워크스페이스를 빌드한 뒤 Electron 앱을 실행합니다.
