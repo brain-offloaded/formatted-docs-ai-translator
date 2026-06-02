@@ -6,6 +6,7 @@ import { IpcChannel } from '@apps/common/dist/ipc/ipc-channel';
 import { errorToString } from '@/nest/utils/error-stringify';
 import { InvokeFunctionRequest, InvokeFunctionResponse } from '@apps/common/dist/types/electron';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import { OpenAdvancedViewerResponseDto } from '@apps/common/dist/ipc/dto/response/open-advanced-viewer-response.dto';
 import { AdvancedViewerLoadZipResponseDto } from '@apps/common/dist/ipc/dto/response/advanced-viewer-load-zip-response.dto';
 import { AdvancedViewerLoadZipRequestDto } from '@apps/common/dist/ipc/dto/request/advanced-viewer-load-zip-request.dto';
@@ -60,6 +61,23 @@ export class CommonIpcHandler extends IpcHandler {
       return { success: true, message: '외부 URL 열기 성공' };
     } catch (error) {
       this.logger.error('외부 URL 열기 실패:', { url, error: errorToString(error) });
+      return { success: false, message: errorToString(error) };
+    }
+  }
+
+  @HandleIpc(IpcChannel.ReadTextFile)
+  async readTextFile(
+    _event: Electron.IpcMainInvokeEvent,
+    { path: filePath }: InvokeFunctionRequest<IpcChannel.ReadTextFile>
+  ): Promise<InvokeFunctionResponse<IpcChannel.ReadTextFile>> {
+    try {
+      const content = await fs.readFile(filePath, 'utf8');
+      return { success: true, content };
+    } catch (error) {
+      this.logger.error('텍스트 파일 읽기 실패:', {
+        filePath,
+        error: errorToString(error),
+      });
       return { success: false, message: errorToString(error) };
     }
   }
@@ -151,7 +169,6 @@ export class CommonIpcHandler extends IpcHandler {
       let buffer: Buffer | undefined;
       // 1) 경로가 오면 디스크에서 직접 읽기 (최소 IPC 페이로드)
       if (zipPath) {
-        const fs = await import('fs/promises');
         buffer = await fs.readFile(zipPath);
         if (!name) name = path.basename(zipPath);
       } else if (zipBuffer) {
