@@ -61,6 +61,20 @@ export type TranslationStore = TranslationStoreState & TranslationStoreActions;
 const applySetStateAction = <T>(current: T, updater: SetStateAction<T>): T =>
   typeof updater === 'function' ? (updater as (prev: T) => T)(current) : updater;
 
+const shallowEqualObject = <T extends object>(left: T, right: T): boolean => {
+  if (left === right) {
+    return true;
+  }
+
+  const leftKeys = Object.keys(left) as Array<keyof T>;
+  const rightKeys = Object.keys(right) as Array<keyof T>;
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  return leftKeys.every((key) => left[key] === right[key]);
+};
+
 export const createTranslationStore = (
   initialState?: Partial<TranslationStoreState>
 ): StoreApi<TranslationStore> =>
@@ -84,9 +98,16 @@ export const createTranslationStore = (
       })),
     resetResultState: () => set({ resultState: createInitialResultState() }),
     setUIState: (updater) =>
-      set((state) => ({
-        uiState: applySetStateAction(state.uiState, updater),
-      })),
+      set((state) => {
+        const nextUIState = applySetStateAction(state.uiState, updater);
+        if (shallowEqualObject(state.uiState, nextUIState)) {
+          return state;
+        }
+
+        return {
+          uiState: nextUIState,
+        };
+      }),
     resetUIState: () => set({ uiState: createInitialUIState() }),
     setIsConfigValid: (isValid) => set({ isConfigValid: isValid }),
   }));
