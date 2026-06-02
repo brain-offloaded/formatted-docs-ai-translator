@@ -5,6 +5,7 @@ import { TranslatorFactory } from '../../factories/TranslatorFactory';
 export const JsonTranslator = TranslatorFactory.createTranslator(TranslationType.Json);
 export const TextTranslator = TranslatorFactory.createTranslator(TranslationType.Text);
 export const CsvTranslator = TranslatorFactory.createTranslator(TranslationType.Csv);
+export const ExcelTranslator = TranslatorFactory.createTranslator(TranslationType.Excel);
 
 // 기본 번역기 타입 export
 export { BaseTranslator, BaseTranslatorOptions } from './BaseTranslator';

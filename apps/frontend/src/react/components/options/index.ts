@@ -8,6 +8,7 @@ import { ParseOptionsFactory } from '../../factories/ParseOptionsFactory';
 export const JsonParseOption = ParseOptionsFactory.createParseOptions(TranslationType.Json);
 export const TextParseOption = ParseOptionsFactory.createParseOptions(TranslationType.Text);
 export const CsvParseOption = ParseOptionsFactory.createParseOptions(TranslationType.Csv);
+export const ExcelParseOption = ParseOptionsFactory.createParseOptions(TranslationType.Excel);
 
 // 기본 옵션 export
 export { BaseParseOptions } from './BaseParseOptions';
