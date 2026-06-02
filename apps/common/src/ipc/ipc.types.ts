@@ -12,6 +12,14 @@ export interface OpenExternalUrlRequest {
 
 export interface OpenExternalUrlResponse extends BaseIpcResponse {}
 
+export interface ReadTextFileRequest {
+  path: string;
+}
+
+export interface ReadTextFileResponse extends BaseIpcResponse {
+  content?: string;
+}
+
 export interface OpenAdvancedViewerRequest {}
 
 export interface OpenAdvancedViewerResponse extends BaseIpcResponse {
@@ -38,6 +46,10 @@ export type IpcRequestResponseMap = {
   [IpcChannel.OpenExternalUrl]: {
     Request: OpenExternalUrlRequest;
     Response: OpenExternalUrlResponse;
+  };
+  [IpcChannel.ReadTextFile]: {
+    Request: ReadTextFileRequest;
+    Response: ReadTextFileResponse;
   };
   [IpcChannel.OpenAdvancedImageViewer]: {
     Request: OpenAdvancedViewerRequest;
