@@ -2,7 +2,7 @@
 
 An AI-powered translation tool for formatted documents.
 
-Korean documentation is available under [docs/ko](./docs/ko/index.md).
+Korean readers can use [README.ko.md](./README.ko.md) and [docs/ko](./docs/ko/index.md).
 
 ## License
 

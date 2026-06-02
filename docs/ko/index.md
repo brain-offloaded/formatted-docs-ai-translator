@@ -2,6 +2,8 @@
 
 이 문서는 Formatted Docs AI Translator의 아키텍처, 개발 프로세스, 그리고 기여 방법을 안내합니다.
 
+영문 문서는 [docs/en/index.md](../en/index.md)에서 확인할 수 있습니다.
+
 ## 시작하기
 
 -   **[릴리스 프로세스](./how-to-release.md)**: 새 버전의 소프트웨어를 릴리스하는 방법을 설명합니다.
