@@ -1,0 +1,4 @@
+interface:
+  display_name: "OSS Maintainer Codex"
+  short_description: "이 저장소의 Codex 유지보수 워크플로와 검증 기준"
+  default_prompt: "이 저장소에서 Codex를 OSS 유지보수 워크플로에 맞게 사용하라. PR/이슈 정리, Codex 문서 갱신, 릴리스 전 검증, 유지보수 규칙 반영을 끝까지 수행하라."
