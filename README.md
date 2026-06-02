@@ -1,6 +1,8 @@
 # Formatted Docs AI Translator
 
-AI를 이용한 문서 번역 도구입니다.
+An AI-powered translation tool for formatted documents.
+
+Korean documentation is available under [docs/ko](./docs/ko/index.md).
 
 ## License
 
@@ -8,56 +10,51 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-### A Note from the Author (작성자의 말)
+### A Note from the Author
 
-#### 1. A Small Wish (소박한 바람)
+#### 1. A Small Wish
 If you find this tool useful, crediting the author or sharing a link would be greatly appreciated! This is **absolutely not mandatory**, just a personal wish. I am grateful enough that you are using this tool even without any credit.
 
-이 도구가 도움이 되셨다면, 주변에 알려주시거나 출처를 남겨주시면 정말 감사하겠습니다! 물론 이는 **절대 필수가 아니며**, 저의 개인적인 바람일 뿐입니다. 출처를 표기하지 않으시더라도 써주시는 것만으로도 감사합니다.
-
-#### 2. Complete Freedom (완전한 자유)
+#### 2. Complete Freedom
 Technically, this project is under the MIT License for minimal legal protection. However, honestly speaking, **I do not intend to enforce the license terms strictly.**
 You are free to use this code however you like. I won't mind even if you remove my name or claim you made this tool yourself.
 **The only thing I ask is:** Please do not claim ownership and then accuse *me* (the original author) of copyright infringement. As long as you don't do that, feel free to do whatever you want!
 
-형식적으로는 최소한의 방어를 위해 MIT 라이선스를 적용해 두었습니다. 하지만 솔직히 말씀드리면, **라이선스 조항을 어기더라도 저는 어지간해서는 문제 삼을 생각이 없습니다.**
-제 이름을 지우거나, 심지어 본인이 만들었다고 하셔도 괜찮습니다. 자유롭게 사용하세요.
-**단, 딱 한 가지 부탁만 드립니다.** 본인이 만들었다고 주장하면서 **오히려 원작자인 저에게 저작권 위반을 주장하는 경우**만 아니라면, 어떤 방식으로 사용하든 환영합니다.
+## Key Features
 
-## 주요 기능
+- Support for multiple file formats: text, JSON, CSV, SRT subtitles, images, and more
+- Batch translation for multiple files
+- User-controlled translation settings and workflows
 
--   다양한 파일 형식 지원: 텍스트, JSON, CSV, SRT(자막), 이미지 등
--   일괄 번역: 여러 파일을 동시에 번역
--   사용자 정의: 번역 설정을 사용자가 직접 제어
+## Development
 
-## 개발
+Developer documentation:
+- **[English](./docs/en/index.md)**
+- **[Korean](./docs/ko/index.md)**
 
-자세한 개발자 문서는 다음을 참고하세요.
-- **[한글](./docs/ko/index.md)**
+### Codex Maintainer Workflow
 
-### Codex 유지보수 워크플로
+This repository uses Codex as part of its OSS maintainer workflow, not just as a generic code generator.
 
-이 저장소는 Codex를 단순 코드 생성이 아니라 OSS 유지보수 보조 흐름에 맞춰 사용합니다.
+- Repository rules live in `AGENTS.md`.
+- Project-local Codex defaults live in `.codex/config.toml`.
+- Repeatable maintainer workflows live in `.agents/skills/oss-maintainer-codex`.
 
-- 저장소 규칙은 `AGENTS.md`에 둡니다.
-- 프로젝트 로컬 Codex 실행 기본값은 `.codex/config.toml`에 둡니다.
-- 반복 가능한 유지보수 절차는 `.agents/skills/oss-maintainer-codex`에 둡니다.
+Typical uses include:
 
-주요 사용 사례는 다음과 같습니다.
+- Drafting PR summaries and verification steps
+- Keeping developer docs and Codex operating rules in sync
+- Running `yarn lint` / `yarn test` / `yarn build` before releases or merges
+- Narrowing risky changes around Electron, Prisma, and translation cache behavior
 
-- PR 설명과 검증 절차 정리
-- 개발자 문서와 Codex 운영 규칙 동기화
-- 릴리스 전 `yarn lint` / `yarn test` / `yarn build` 검증
-- Electron, Prisma, 번역 캐시를 건드리는 변경의 범위 축소
+### Local Development
 
-### 로컬 실행
+- `yarn dev`: Builds the full workspace and launches the Electron app.
+- `yarn dev:watch`: Watches for changes during development.
 
--   `yarn dev`: 전체 워크스페이스를 빌드한 뒤 Electron 앱을 실행합니다.
--   `yarn dev:watch`: 변경 사항을 감지하며 개발하려면 이 스크립트를 사용하세요.
+### Database (Prisma)
 
-### 데이터베이스 (Prisma)
-
--   Prisma 스키마는 `prisma/schema.prisma`에 정의되어 있습니다.
--   DB 스키마 변경 시: `yarn exec prisma db pull`
--   Prisma Client 타입 재생성: `yarn exec prisma generate`
--   Prisma Studio 실행: `yarn prisma:studio`
+- Prisma schema: `prisma/schema.prisma`
+- Pull schema changes: `yarn exec prisma db pull`
+- Regenerate Prisma Client: `yarn exec prisma generate`
+- Open Prisma Studio: `yarn prisma:studio`
