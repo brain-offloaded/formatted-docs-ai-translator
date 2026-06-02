@@ -5368,9 +5368,9 @@ __metadata:
   linkType: hard
 
 "defu@npm:^6.1.4":
-  version: 6.1.4
-  resolution: "defu@npm:6.1.4"
-  checksum: 10c0/2d6cc366262dc0cb8096e429368e44052fdf43ed48e53ad84cc7c9407f890301aa5fcb80d0995abaaf842b3949f154d060be4160f7a46cb2bc2f7726c81526f5
+  version: 6.1.6
+  resolution: "defu@npm:6.1.6"
+  checksum: 10c0/6755a914d4d1b40346d582cadf3af0c4efb1b89c462631f4c8a20c933da88d5da674344dd0856426d611d5fc0c65a3ffa82388519127b06f1a688dc103ddf5ba
   languageName: node
   linkType: hard
 
@@ -13535,9 +13535,9 @@ __metadata:
   linkType: hard
 
 "yaml@npm:^1.10.0":
-  version: 1.10.2
-  resolution: "yaml@npm:1.10.2"
-  checksum: 10c0/5c28b9eb7adc46544f28d9a8d20c5b3cb1215a886609a2fd41f51628d8aaa5878ccd628b755dbcd29f6bb4921bd04ffbc6dcc370689bb96e594e2f9813d2605f
+  version: 1.10.3
+  resolution: "yaml@npm:1.10.3"
+  checksum: 10c0/c309ff85a0a569a981d71ab9cf0fef68672a16b9cdf40639d1c3b30034f6cd16ee428602bd6d64ecf006f8c8bee499023cac236538f79898aa99fb5db529a2ed
   languageName: node
   linkType: hard
 
