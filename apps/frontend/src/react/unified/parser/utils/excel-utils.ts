@@ -16,25 +16,50 @@ const getMergedMasterAddress = (cell: ExcelJS.Cell): string | null => {
   return master.address;
 };
 
-const splitSelectionTokens = (raw?: string): string[] =>
-  (raw ?? '')
-    .split(/[,\n]/)
-    .map((token) => token.trim())
-    .filter((token) => token.length > 0);
+const MAX_XLSX_ROW_NUMBER = 1048576;
 
 const normalizeComparableText = (value: string): string => value.trim().toLocaleLowerCase();
 
-const parsePositiveInteger = (value: string | number | undefined): number | null => {
-  if (value === undefined || value === '') {
-    return null;
+const splitSelectionTokens = (raw?: string): string[] => {
+  const source = raw ?? '';
+  const tokens: string[] = [];
+  let current = '';
+  let inQuotedSheetName = false;
+
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index];
+    const nextChar = source[index + 1];
+
+    if (char === "'" && nextChar === "'") {
+      current += "''";
+      index++;
+      continue;
+    }
+
+    if (char === "'") {
+      inQuotedSheetName = !inQuotedSheetName;
+      current += char;
+      continue;
+    }
+
+    if (!inQuotedSheetName && (char === ',' || char === '\n')) {
+      const token = current.trim();
+      if (token) {
+        tokens.push(token);
+      }
+      current = '';
+      continue;
+    }
+
+    current += char;
   }
 
-  const parsed = typeof value === 'number' ? value : Number.parseInt(value.trim(), 10);
-  if (!Number.isFinite(parsed) || parsed < 1) {
-    return null;
+  const token = current.trim();
+  if (token) {
+    tokens.push(token);
   }
 
-  return Math.floor(parsed);
+  return tokens;
 };
 
 const columnLettersToIndex = (letters: string): number | null => {
@@ -51,113 +76,205 @@ const columnLettersToIndex = (letters: string): number | null => {
   return result > MAX_XLSX_COLUMN_NUMBER ? null : result;
 };
 
-const parseColumnEndpoint = (token: string): number | null => {
-  const trimmed = token.trim();
-  const numeric = parsePositiveInteger(trimmed);
-  if (numeric !== null && /^\d+$/.test(trimmed)) {
-    return numeric;
+const unquoteSheetName = (raw: string): string => {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
+    return trimmed.slice(1, -1).replace(/''/g, "'");
   }
 
-  return columnLettersToIndex(trimmed);
+  return trimmed;
 };
 
-const addColumnRange = (result: Set<number>, start: number, end: number): void => {
-  const min = Math.min(start, end);
-  const max = Math.max(start, end);
-  for (let index = min; index <= max; index++) {
-    result.add(index);
-  }
-};
+const splitSheetReference = (token: string): { sheetName?: string; rangeReference: string } => {
+  let inQuotedSheetName = false;
 
-const parseColumnToken = (token: string): number[] | null => {
-  const normalized = token.replace(/\s+/g, '');
-  const rangeMatch = /^([^:-]+)[:-]([^:-]+)$/.exec(normalized);
-  if (rangeMatch) {
-    const start = parseColumnEndpoint(rangeMatch[1]);
-    const end = parseColumnEndpoint(rangeMatch[2]);
-    if (start === null || end === null) {
-      return null;
-    }
+  for (let index = 0; index < token.length; index++) {
+    const char = token[index];
+    const nextChar = token[index + 1];
 
-    const result = new Set<number>();
-    addColumnRange(result, start, end);
-    return Array.from(result);
-  }
-
-  const single = parseColumnEndpoint(normalized);
-  return single === null ? null : [single];
-};
-
-const findHeaderColumnIndexes = (headerCells: string[], token: string): number[] => {
-  const normalizedToken = normalizeComparableText(token);
-  return headerCells
-    .map((header, index) => ({ header, columnNumber: index + 1 }))
-    .filter(({ header }) => normalizeComparableText(header) === normalizedToken)
-    .map(({ columnNumber }) => columnNumber);
-};
-
-export const resolveExcelColumnSelection = (
-  raw: string | undefined,
-  headerCells: string[]
-): Set<number> | null => {
-  const tokens = splitSelectionTokens(raw);
-  if (tokens.length === 0) {
-    return raw?.trim() ? new Set() : null;
-  }
-
-  const result = new Set<number>();
-  for (const token of tokens) {
-    const parsedColumns = parseColumnToken(token);
-    if (parsedColumns) {
-      parsedColumns.forEach((columnNumber) => result.add(columnNumber));
+    if (char === "'" && nextChar === "'") {
+      index++;
       continue;
     }
 
-    findHeaderColumnIndexes(headerCells, token).forEach((columnNumber) => result.add(columnNumber));
-  }
-
-  return result;
-};
-
-export const shouldIncludeWorksheet = (
-  worksheet: ExcelJS.Worksheet,
-  worksheetIndex: number,
-  includedSheets?: string,
-  excludedSheets?: string
-): boolean => {
-  const includedTokens = splitSelectionTokens(includedSheets);
-  const excludedTokens = splitSelectionTokens(excludedSheets);
-
-  const matchesToken = (token: string): boolean => {
-    const numeric = parsePositiveInteger(token);
-    if (numeric !== null && /^\d+$/.test(token.trim())) {
-      return numeric === worksheetIndex;
+    if (char === "'") {
+      inQuotedSheetName = !inQuotedSheetName;
+      continue;
     }
 
-    return normalizeComparableText(worksheet.name) === normalizeComparableText(token);
-  };
+    if (!inQuotedSheetName && char === '!') {
+      return {
+        sheetName: unquoteSheetName(token.slice(0, index)),
+        rangeReference: token.slice(index + 1).trim(),
+      };
+    }
+  }
 
-  const isIncluded =
-    includedTokens.length === 0 || includedTokens.some((token) => matchesToken(token));
-  const isExcluded = excludedTokens.some((token) => matchesToken(token));
-
-  return isIncluded && !isExcluded;
+  return { rangeReference: token.trim() };
 };
 
-export const resolveExcelRowWindow = (options: {
-  headerRowNumber?: string | number;
-  startRowNumber?: string | number;
-  skipFirstLine?: boolean;
-}): { headerRowNumber: number | null; startRowNumber: number } => {
-  const explicitHeaderRow = parsePositiveInteger(options.headerRowNumber);
-  const legacyHeaderRow = options.skipFirstLine ? 1 : null;
-  const headerRowNumber = explicitHeaderRow ?? legacyHeaderRow;
-  const explicitStartRow = parsePositiveInteger(options.startRowNumber);
+const parseCellAddress = (raw: string): { rowNumber: number; columnNumber: number } | null => {
+  const match = /^\$?([A-Za-z]{1,3})\$?(\d+)$/.exec(raw.trim());
+  if (!match) {
+    return null;
+  }
 
-  return {
-    headerRowNumber,
-    startRowNumber: explicitStartRow ?? (headerRowNumber ? headerRowNumber + 1 : 1),
-  };
+  const columnNumber = columnLettersToIndex(match[1]);
+  const rowNumber = Number.parseInt(match[2], 10);
+  if (
+    columnNumber === null ||
+    !Number.isFinite(rowNumber) ||
+    rowNumber < 1 ||
+    rowNumber > MAX_XLSX_ROW_NUMBER
+  ) {
+    return null;
+  }
+
+  return { rowNumber, columnNumber };
+};
+
+const parseRowNumber = (raw: string): number | null => {
+  if (!/^\d+$/.test(raw.trim())) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(raw.trim(), 10);
+  return parsed >= 1 && parsed <= MAX_XLSX_ROW_NUMBER ? parsed : null;
+};
+
+interface ExcelRangeBounds {
+  startRow: number;
+  endRow: number;
+  startColumn: number;
+  endColumn: number;
+}
+
+const normalizeRangeBounds = (bounds: ExcelRangeBounds): ExcelRangeBounds => ({
+  startRow: Math.min(bounds.startRow, bounds.endRow),
+  endRow: Math.max(bounds.startRow, bounds.endRow),
+  startColumn: Math.min(bounds.startColumn, bounds.endColumn),
+  endColumn: Math.max(bounds.startColumn, bounds.endColumn),
+});
+
+const parseRangeBounds = (raw: string): ExcelRangeBounds | null => {
+  const normalized = raw.replace(/\s+/g, '');
+  if (!normalized) {
+    return null;
+  }
+
+  const wholeColumnMatch = /^\$?([A-Za-z]{1,3})(?::\$?([A-Za-z]{1,3}))?$/.exec(normalized);
+  if (wholeColumnMatch) {
+    const startColumn = columnLettersToIndex(wholeColumnMatch[1]);
+    const endColumn = columnLettersToIndex(wholeColumnMatch[2] ?? wholeColumnMatch[1]);
+    if (startColumn === null || endColumn === null) {
+      return null;
+    }
+
+    return normalizeRangeBounds({
+      startRow: 1,
+      endRow: MAX_XLSX_ROW_NUMBER,
+      startColumn,
+      endColumn,
+    });
+  }
+
+  const wholeRowMatch = /^(\d+)(?::(\d+))$/.exec(normalized);
+  if (wholeRowMatch) {
+    const startRow = parseRowNumber(wholeRowMatch[1]);
+    const endRow = parseRowNumber(wholeRowMatch[2]);
+    if (startRow === null || endRow === null) {
+      return null;
+    }
+
+    return normalizeRangeBounds({
+      startRow,
+      endRow,
+      startColumn: 1,
+      endColumn: MAX_XLSX_COLUMN_NUMBER,
+    });
+  }
+
+  const cellRangeMatch = /^(\$?[A-Za-z]{1,3}\$?\d+)(?::(\$?[A-Za-z]{1,3}\$?\d+))?$/.exec(
+    normalized
+  );
+  if (cellRangeMatch) {
+    const startCell = parseCellAddress(cellRangeMatch[1]);
+    const endCell = parseCellAddress(cellRangeMatch[2] ?? cellRangeMatch[1]);
+    if (!startCell || !endCell) {
+      return null;
+    }
+
+    return normalizeRangeBounds({
+      startRow: startCell.rowNumber,
+      endRow: endCell.rowNumber,
+      startColumn: startCell.columnNumber,
+      endColumn: endCell.columnNumber,
+    });
+  }
+
+  return null;
+};
+
+const isCellInBounds = (cell: ExcelJS.Cell, bounds: ExcelRangeBounds): boolean => {
+  const rowNumber = Number(cell.row);
+  const columnNumber = Number(cell.col);
+
+  return (
+    rowNumber >= bounds.startRow &&
+    rowNumber <= bounds.endRow &&
+    columnNumber >= bounds.startColumn &&
+    columnNumber <= bounds.endColumn
+  );
+};
+
+const isSheetNameMatch = (worksheet: ExcelJS.Worksheet, token: string): boolean =>
+  normalizeComparableText(worksheet.name) === normalizeComparableText(unquoteSheetName(token));
+
+const matchesExcelSelectionToken = (
+  worksheet: ExcelJS.Worksheet,
+  cell: ExcelJS.Cell,
+  token: string
+) => {
+  const { sheetName, rangeReference } = splitSheetReference(token);
+  if (sheetName !== undefined) {
+    if (!isSheetNameMatch(worksheet, sheetName)) {
+      return false;
+    }
+
+    const bounds = parseRangeBounds(rangeReference);
+    return bounds ? isCellInBounds(cell, bounds) : true;
+  }
+
+  if (isSheetNameMatch(worksheet, rangeReference)) {
+    return true;
+  }
+
+  const bounds = parseRangeBounds(rangeReference);
+  return bounds ? isCellInBounds(cell, bounds) : false;
+};
+
+export const shouldTranslateExcelCell = ({
+  worksheet,
+  cell,
+  targetRanges,
+  excludedRanges,
+}: {
+  worksheet: ExcelJS.Worksheet;
+  cell: ExcelJS.Cell;
+  targetRanges?: string;
+  excludedRanges?: string;
+}): boolean => {
+  const targetTokens = splitSelectionTokens(targetRanges);
+  const excludedTokens = splitSelectionTokens(excludedRanges);
+  const isIncluded =
+    targetTokens.length === 0 ||
+    targetTokens.some((token) => matchesExcelSelectionToken(worksheet, cell, token));
+
+  if (!isIncluded) {
+    return false;
+  }
+
+  return !excludedTokens.some((token) => matchesExcelSelectionToken(worksheet, cell, token));
 };
 
 export const buildWorksheetCellKey = (worksheetId: number, cellAddress: string): string =>

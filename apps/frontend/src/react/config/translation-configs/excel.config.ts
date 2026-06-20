@@ -18,41 +18,18 @@ export const excelConfig: TranslationConfigDefinition<SpreadsheetParserOptionsDt
       label: 'Excel 파싱 옵션',
       optionItems: [
         {
-          key: 'sheets',
-          label: '번역 대상 시트',
-          type: OptionType.SHORT_STRING,
-          description: '비워두면 모든 시트. 예: Sheet1, 대사, 1, 1,3',
-        },
-        {
-          key: 'excludedSheets',
-          label: '제외할 시트',
-          type: OptionType.SHORT_STRING,
-          description: '번역하지 않을 시트 이름 또는 번호. 예: 설정, 메모, 2',
-        },
-        {
-          key: 'headerRowNumber',
-          label: '헤더 행 번호',
-          type: OptionType.SHORT_STRING,
-          description: '열 이름으로 사용할 행 번호. 비워두면 헤더 없음. 예: 1, 2',
-        },
-        {
-          key: 'startRowNumber',
-          label: '번역 시작 행',
+          key: 'targetRanges',
+          label: '번역 범위',
           type: OptionType.SHORT_STRING,
           description:
-            '앞쪽 안내/메타 행을 건너뛸 때 사용합니다. 비워두면 헤더 다음 행부터 시작합니다.',
+            "비워두면 모든 문자열 셀. 예: B:B, B2:D100, Sheet1!C:C, 'Main Dialog'!B2:B300",
         },
         {
-          key: 'targetColumns',
-          label: '번역 대상 열',
+          key: 'excludedRanges',
+          label: '제외 범위',
           type: OptionType.SHORT_STRING,
-          description: '비워두면 모든 문자열 셀. 예: B, C:D, 2, 3:5, 원문, source_text',
-        },
-        {
-          key: 'excludedColumns',
-          label: '제외할 열',
-          type: OptionType.SHORT_STRING,
-          description: '번역 대상에서 제외할 열. 예: id, key, formula, A, E:G',
+          description:
+            "번역 범위보다 우선합니다. 예: A:A, Settings, Settings!A:Z, 'Do Not Translate'",
         },
         {
           key: 'skipHiddenRowsColumns',

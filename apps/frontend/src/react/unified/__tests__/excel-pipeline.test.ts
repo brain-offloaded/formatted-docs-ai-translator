@@ -84,7 +84,7 @@ describe('Excel 파이프라인', () => {
     };
     worksheet.getCell('A2').alignment = { horizontal: 'center' };
 
-    const input = buildInput(await createWorkbookFile(workbook), { skipFirstLine: true });
+    const input = buildInput(await createWorkbookFile(workbook), { targetRanges: 'A2:B2' });
     const parsed = await parser.parse(input);
     expect(parsed.map((unit) => unit.key)).toEqual(['1:A2', '1:B2']);
 
@@ -114,37 +114,33 @@ describe('Excel 파이프라인', () => {
     expect(translatedCell.alignment).toMatchObject({ horizontal: 'center' });
   });
 
-  it('시트 포함/제외와 헤더 행/시작 행을 조합해 번역 범위를 제한한다', async () => {
+  it('여러 번역 범위와 단독 시트명 제외를 조합해 번역 범위를 제한한다', async () => {
     const workbook = new ExcelJS.Workbook();
     const intro = workbook.addWorksheet('Intro');
     intro.addRow(['이 안내 시트는 제외']);
     intro.addRow(['번역되면 안 됨']);
 
     const dialog = workbook.addWorksheet('Dialog');
-    dialog.addRow(['파일 설명']);
     dialog.addRow(['key', 'source_text', 'note']);
     dialog.addRow(['a', '안녕하세요', '첫 줄']);
     dialog.addRow(['b', '다음 문장', '둘째 줄']);
 
-    const glossary = workbook.addWorksheet('Glossary');
+    const glossary = workbook.addWorksheet('Glossary Sheet');
     glossary.addRow(['key', 'source_text']);
     glossary.addRow(['term', '용어']);
 
     const input = buildInput(await createWorkbookFile(workbook), {
-      sheets: 'Dialog, Glossary',
-      excludedSheets: '3',
-      headerRowNumber: '2',
-      startRowNumber: '3',
-      targetColumns: 'source_text',
+      targetRanges: "Dialog!B2:B3, 'Glossary Sheet'!B2:B2",
+      excludedRanges: "'Glossary Sheet'",
     });
 
     const parsed = await parser.parse(input);
 
-    expect(parsed.map((unit) => unit.key)).toEqual(['2:B3', '2:B4']);
+    expect(parsed.map((unit) => unit.key)).toEqual(['2:B2', '2:B3']);
     expect(parsed.map((unit) => unit.source)).toEqual(['안녕하세요', '다음 문장']);
   });
 
-  it('Excel 열 문자/범위/번호/헤더명과 제외 열을 함께 적용한다', async () => {
+  it('Excel 열/셀/시트 범위와 제외 범위를 함께 적용한다', async () => {
     const workbook = new ExcelJS.Workbook();
     const sheet1 = workbook.addWorksheet('First');
     sheet1.addRow(['id', 'name', 'note', 'memo', 'ignore']);
@@ -155,13 +151,20 @@ describe('Excel 파이프라인', () => {
     sheet2.addRow([2, 'Bob', 'bye', 'memo too', 'keep too']);
 
     const input = buildInput(await createWorkbookFile(workbook), {
-      headerRowNumber: '1',
-      targetColumns: 'B:C, 4, memo',
-      excludedColumns: 'name, E',
+      targetRanges: 'B:C, D:D',
+      excludedRanges: 'B:B, E:E, First!D1:D1',
     });
 
     const parsed = await parser.parse(input);
-    expect(parsed.map((unit) => unit.key)).toEqual(['1:C2', '1:D2', '2:C2', '2:D2']);
+    expect(parsed.map((unit) => unit.key)).toEqual([
+      '1:C1',
+      '1:C2',
+      '1:D2',
+      '2:C1',
+      '2:D1',
+      '2:C2',
+      '2:D2',
+    ]);
 
     const translated = parsed.map((unit) => ({ ...unit, target: `${unit.source}!` }));
     const applied = await applier.apply(input, translated);
@@ -177,6 +180,8 @@ describe('Excel 파이프라인', () => {
     expect(secondSheet.getCell('C2').value).toBe('bye!');
     expect(secondSheet.getCell('D2').value).toBe('memo too!');
     expect(secondSheet.getCell('E2').value).toBe('keep too');
+    expect(firstSheet.getCell('D1').value).toBe('memo');
+    expect(secondSheet.getCell('D1').value).toBe('memo!');
   });
 
   it('수식/병합/하이퍼링크/숨김 행열을 안전하게 처리한다', async () => {
@@ -200,8 +205,7 @@ describe('Excel 파이프라인', () => {
     worksheet.getRow(3).hidden = true;
 
     const input = buildInput(await createWorkbookFile(workbook), {
-      headerRowNumber: 1,
-      targetColumns: 'A:E',
+      targetRanges: 'A2:E3',
       skipHiddenRowsColumns: true,
     });
 

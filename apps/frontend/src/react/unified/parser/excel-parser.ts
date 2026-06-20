@@ -6,9 +6,7 @@ import {
   buildWorksheetCellKey,
   extractCellDisplayText,
   loadWorkbookFromBuffer,
-  resolveExcelColumnSelection,
-  resolveExcelRowWindow,
-  shouldIncludeWorksheet,
+  shouldTranslateExcelCell,
 } from './utils/excel-utils';
 
 export class ExcelParser
@@ -20,48 +18,13 @@ export class ExcelParser
     }
 
     const workbook = await loadWorkbookFromBuffer(await input.content.arrayBuffer());
-    const {
-      sheets,
-      excludedSheets,
-      headerRowNumber: rawHeaderRowNumber,
-      startRowNumber: rawStartRowNumber,
-      skipFirstLine,
-      targetColumns,
-      excludedColumns,
-      skipHiddenRowsColumns,
-    } = input.options;
-    const { headerRowNumber, startRowNumber } = resolveExcelRowWindow({
-      headerRowNumber: rawHeaderRowNumber,
-      startRowNumber: rawStartRowNumber,
-      skipFirstLine,
-    });
+    const { targetRanges, excludedRanges, skipHiddenRowsColumns } = input.options;
     const shouldSkipHidden = skipHiddenRowsColumns !== false;
     const units: TranslationUnit[] = [];
 
-    for (let worksheetIndex = 0; worksheetIndex < workbook.worksheets.length; worksheetIndex++) {
-      const worksheet = workbook.worksheets[worksheetIndex];
-      if (!shouldIncludeWorksheet(worksheet, worksheetIndex + 1, sheets, excludedSheets)) {
-        continue;
-      }
-
-      const headerRow = headerRowNumber ? worksheet.getRow(headerRowNumber) : null;
-      const headerCellCount = headerRow
-        ? Math.max(headerRow.cellCount, worksheet.columnCount, worksheet.actualColumnCount)
-        : 0;
-      const headerCells = Array.from({ length: headerCellCount }, (_, index) => {
-        const text = headerRow ? extractCellDisplayText(headerRow.getCell(index + 1)) : null;
-        return text?.trim() ?? '';
-      });
-      const targetColumnSet = resolveExcelColumnSelection(targetColumns, headerCells);
-      const excludedColumnSet = resolveExcelColumnSelection(excludedColumns, headerCells);
-      const shouldTranslateAll = targetColumnSet === null;
-
-      worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-        if (
-          rowNumber < startRowNumber ||
-          (headerRowNumber !== null && rowNumber === headerRowNumber) ||
-          (shouldSkipHidden && row.hidden)
-        ) {
+    for (const worksheet of workbook.worksheets) {
+      worksheet.eachRow({ includeEmpty: false }, (row) => {
+        if (shouldSkipHidden && row.hidden) {
           return;
         }
 
@@ -70,11 +33,7 @@ export class ExcelParser
             return;
           }
 
-          if (!shouldTranslateAll && targetColumnSet && !targetColumnSet.has(columnNumber)) {
-            return;
-          }
-
-          if (excludedColumnSet?.has(columnNumber)) {
+          if (!shouldTranslateExcelCell({ worksheet, cell, targetRanges, excludedRanges })) {
             return;
           }
 
