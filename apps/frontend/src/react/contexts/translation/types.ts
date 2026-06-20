@@ -6,6 +6,7 @@ export enum TranslationType {
   Text = 'text',
   Json = 'json',
   Csv = 'csv',
+  Excel = 'excel',
   Subtitle = 'subtitle',
   Image = 'image',
 }

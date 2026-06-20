@@ -11,6 +11,8 @@ import { TextArrayTranslator } from '../unified/translator/text-array-translator
 import { ImageTranslator } from '../unified/translator/image-translator';
 import { CsvParser } from '../unified/parser/csv-parser';
 import { CsvApplier } from '../unified/applier/csv-applier';
+import { ExcelParser } from '../unified/parser/excel-parser';
+import { ExcelApplier } from '../unified/applier/excel-applier';
 import { TranslationType } from '../contexts/TranslationContext';
 
 export const translationStrategyFactory = {
@@ -46,6 +48,12 @@ export const translationStrategyFactory = {
         return {
           parser: new CsvParser(),
           applier: new CsvApplier(),
+          translator: new TextArrayTranslator(),
+        };
+      case TranslationType.Excel:
+        return {
+          parser: new ExcelParser(),
+          applier: new ExcelApplier(),
           translator: new TextArrayTranslator(),
         };
       default:

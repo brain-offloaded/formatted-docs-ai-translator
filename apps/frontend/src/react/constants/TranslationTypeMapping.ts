@@ -48,6 +48,8 @@ export const getTranslationTypeLabel = (type: TranslationType): string => {
       return 'Text';
     case TranslationType.Csv:
       return 'CSV';
+    case TranslationType.Excel:
+      return 'Excel';
     case TranslationType.Subtitle:
       return 'Subtitle';
     case TranslationType.Image:
