@@ -23,7 +23,7 @@
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
     "@mui/system": "^6.4.8",
-    "electron": "35.7.5",
+    "electron": "39.8.10",
     "fitty": "^2.4.2",
     "i18next": "^25.6.0",
     "jszip": "^3.10.1",
