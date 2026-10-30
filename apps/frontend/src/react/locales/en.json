@@ -80,7 +80,7 @@
     "customHeadersJson": "Additional HTTP headers (JSON)",
     "customHeadersJsonHelp": "Enter header names and values as a JSON object. Authorization is managed by the API key.",
     "customBodyJson": "Request body overrides (JSON)",
-    "customBodyJsonHelp": "Fields here override the default request body. Specify JSON Schema and thinking options directly here.",
+    "customBodyJsonHelp": "Applies a JSON Merge Patch to the default body: null removes a field, objects merge recursively, and arrays replace. Example: {\"max_tokens\":null,\"max_completion_tokens\":4096}",
     "advancedSettings": "Advanced Settings",
     "currentSettings": "Current Settings Information",
     "aiModel": "AI Model:",

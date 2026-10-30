@@ -15,6 +15,28 @@ import {
   TranslatorAiSettings,
 } from '@/nest/translator/common/dto/translator-settings.dto';
 
+const isJsonObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const mergeJsonPatch = (
+  target: Record<string, unknown>,
+  patch: Record<string, unknown>
+): Record<string, unknown> => {
+  const result = { ...target };
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) {
+      delete result[key];
+    } else if (isJsonObject(value)) {
+      result[key] = mergeJsonPatch(isJsonObject(result[key]) ? result[key] : {}, value);
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+};
+
 @Injectable()
 export class OpenAiCompatibleProviderService {
   constructor(private readonly logger: LoggerService) {}
@@ -114,17 +136,17 @@ export class OpenAiCompatibleProviderService {
         ([name]) => name.toLowerCase() !== 'authorization'
       )
     );
+    const defaultBody = {
+      model: request.model || modelName,
+      messages: request.messages.map((m) => this.toOpenAiMessage(m)),
+      temperature: request.temperature,
+      max_tokens: request.maxTokens,
+      top_p: request.topP,
+    };
     const outgoingRequest = {
       url: `${baseURL.replace(/\/$/, '')}/chat/completions`,
       method: 'POST',
-      body: {
-        model: request.model || modelName,
-        messages: request.messages.map((m) => this.toOpenAiMessage(m)),
-        temperature: request.temperature,
-        max_tokens: request.maxTokens,
-        top_p: request.topP,
-        ...(aiSettings.customBody ?? {}),
-      },
+      body: mergeJsonPatch(defaultBody, aiSettings.customBody ?? {}),
       headers: {
         Authorization: 'Bearer [REDACTED]',
         'Content-Type': 'application/json',
@@ -132,9 +154,10 @@ export class OpenAiCompatibleProviderService {
       },
     };
     try {
-      const response = await client.chat.completions.create(outgoingRequest.body, {
-        headers: customHeaders,
-      });
+      const response = await client.chat.completions.create(
+        outgoingRequest.body as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+        { headers: customHeaders }
+      );
       return this.fromOpenAiResponse(response);
     } catch (err: unknown) {
       const e = err as {

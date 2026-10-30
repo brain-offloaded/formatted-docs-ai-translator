@@ -80,7 +80,7 @@
     "customHeadersJson": "추가 HTTP 헤더 (JSON)",
     "customHeadersJsonHelp": "헤더 이름과 값을 JSON 객체로 입력합니다. Authorization은 API 키로 관리합니다.",
     "customBodyJson": "요청 본문 덮어쓰기 (JSON)",
-    "customBodyJsonHelp": "입력한 필드는 기본 요청 본문 값을 덮어씁니다. JSON Schema와 thinking 옵션도 여기서 직접 지정하세요.",
+    "customBodyJsonHelp": "JSON Merge Patch로 기본 본문을 수정합니다. null은 필드를 제거하고, 객체는 재귀 병합하며 배열은 통째로 바꿉니다. 예: {\"max_tokens\":null,\"max_completion_tokens\":4096}",
     "advancedSettings": "고급 설정",
     "currentSettings": "현재 설정 정보",
     "aiModel": "AI 모델:",
