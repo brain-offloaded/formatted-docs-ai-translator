@@ -159,7 +159,12 @@ const normalizeRangeBounds = (bounds: ExcelRangeBounds): ExcelRangeBounds => ({
 const parseRangeBounds = (raw: string): ExcelRangeBounds | null => {
   const normalized = raw.replace(/\s+/g, '');
   if (!normalized) {
-    return null;
+    return {
+      startColumn: -1,
+      startRow: -1,
+      endColumn: MAX_XLSX_COLUMN_NUMBER,
+      endRow: MAX_XLSX_ROW_NUMBER,
+    };
   }
 
   const wholeColumnMatch = /^\$?([A-Za-z]{1,3})(?::\$?([A-Za-z]{1,3}))?$/.exec(normalized);
@@ -242,7 +247,7 @@ const matchesExcelSelectionToken = (
     }
 
     const bounds = parseRangeBounds(rangeReference);
-    return bounds ? isCellInBounds(cell, bounds) : true;
+    return bounds ? isCellInBounds(cell, bounds) : false;
   }
 
   if (isSheetNameMatch(worksheet, rangeReference)) {
