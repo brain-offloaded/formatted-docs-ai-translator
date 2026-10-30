@@ -8,6 +8,26 @@ const toDtoSourceLanguage = (language: SourceLanguage): TranslatorAiSettingsDto.
 const toDtoTargetLanguage = (language: TargetLanguage): TranslatorAiSettingsDto.targetLanguage =>
   language as unknown as TranslatorAiSettingsDto.targetLanguage;
 
+const parseCustomJsonObject = (value: string): Record<string, unknown> => {
+  const quotedTemplateValues = value.replace(
+    /(^|[:,]|\[)\s*(\$MAX_TOKEN|\$JSON_SCHEMA|\$API_KEY|\$MODEL_NAME|\$MODEL)(?=\s*[,}\]])/gm,
+    '$1"$2"'
+  );
+  const parsed: unknown = JSON.parse(quotedTemplateValues);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Custom request settings must be a JSON object.');
+  }
+  return parsed as Record<string, unknown>;
+};
+
+const parseCustomHeaders = (value: string): Record<string, string> => {
+  const parsed = parseCustomJsonObject(value);
+  if (Object.values(parsed).some((headerValue) => typeof headerValue !== 'string')) {
+    throw new Error('Custom HTTP header values must be strings.');
+  }
+  return parsed as Record<string, string>;
+};
+
 export const buildTranslatorAiSettings = (config: AiTranslatorConfig): TranslatorAiSettingsDto => {
   const normalizedThinkingLevel = config.thinkingLevel?.trim();
   return {
@@ -32,8 +52,8 @@ export const buildTranslatorAiSettings = (config: AiTranslatorConfig): Translato
       : {}),
     ...(config.modelProvider === TranslatorAiSettingsDto.modelProvider.OPENAI_COMPATIBLE
       ? {
-          customHeaders: config.customHeaders ? JSON.parse(config.customHeaders) : {},
-          customBody: config.customBody ? JSON.parse(config.customBody) : {},
+          customHeaders: config.customHeaders ? parseCustomHeaders(config.customHeaders) : {},
+          customBody: config.customBody ? parseCustomJsonObject(config.customBody) : {},
         }
       : {}),
   };

@@ -37,6 +37,98 @@ const mergeJsonPatch = (
   return result;
 };
 
+const inferJsonSchemaName = (schema: Record<string, unknown>): string => {
+  if (typeof schema.title === 'string' && schema.title.trim()) return schema.title;
+  if (typeof schema.$id === 'string' && schema.$id.trim()) return schema.$id;
+  const properties = schema.properties;
+  if (isJsonObject(properties)) {
+    if ('segments' in properties) return 'text_translation';
+    if ('ocr_result' in properties || 'translated_result' in properties) {
+      return 'image_ocr_translation';
+    }
+  }
+  return 'structured_response';
+};
+
+const toOpenAiResponseFormat = (
+  responseFormat: AiChatRequest['responseFormat']
+): Record<string, unknown> => {
+  const schema = responseFormat?.jsonSchema;
+  if (!isJsonObject(schema)) {
+    throw new Error('$JSON_SCHEMA was used, but this request has no JSON schema.');
+  }
+
+  const jsonSchema =
+    typeof schema.name === 'string' && schema.name && isJsonObject(schema.schema)
+      ? schema
+      : {
+          name: inferJsonSchemaName(schema),
+          strict: true,
+          schema,
+        };
+
+  return { type: 'json_schema', json_schema: jsonSchema };
+};
+
+const expandBodyTemplates = (
+  value: unknown,
+  context: {
+    apiKey: string;
+    model: string;
+    maxToken?: number;
+    jsonSchema?: Record<string, unknown>;
+  }
+): unknown => {
+  if (value === '$API_KEY') return context.apiKey;
+  if (value === '$MODEL' || value === '$MODEL_NAME') return context.model;
+  if (value === '$MAX_TOKEN') {
+    if (typeof context.maxToken !== 'number' || !Number.isFinite(context.maxToken)) {
+      throw new Error('$MAX_TOKEN was used, but this request has no output token limit.');
+    }
+    return context.maxToken;
+  }
+  if (value === '$JSON_SCHEMA') {
+    if (!context.jsonSchema) {
+      throw new Error('$JSON_SCHEMA was used, but this request has no JSON schema.');
+    }
+    return context.jsonSchema;
+  }
+  if (typeof value === 'string') {
+    return value.replace(/\$(API_KEY|MODEL_NAME|MODEL|MAX_TOKEN)/g, (_, name: string) => {
+      if (name === 'API_KEY') return context.apiKey;
+      if (name === 'MODEL' || name === 'MODEL_NAME') return context.model;
+      return String(context.maxToken ?? '');
+    });
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => expandBodyTemplates(item, context));
+  }
+  if (isJsonObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, expandBodyTemplates(child, context)])
+    );
+  }
+  return value;
+};
+
+const redactSecret = (value: unknown, secret: string): unknown => {
+  if (typeof value === 'string') {
+    return secret ? value.split(secret).join('[REDACTED]') : value;
+  }
+  if (Array.isArray(value)) return value.map((item) => redactSecret(item, secret));
+  if (isJsonObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, redactSecret(child, secret)])
+    );
+  }
+  return value;
+};
+
+const expandHeaderTemplate = (value: string, apiKey: string, model: string): string =>
+  value.replace(/\$(API_KEY|MODEL_NAME|MODEL)/g, (_, name: string) =>
+    name === 'API_KEY' ? apiKey : model
+  );
+
 @Injectable()
 export class OpenAiCompatibleProviderService {
   constructor(private readonly logger: LoggerService) {}
@@ -131,27 +223,41 @@ export class OpenAiCompatibleProviderService {
       throw new AiProxyError('OpenAI-compatible Base URL is required.');
     }
     const client = this.getOpenAIClient(baseURL, apiKey);
+    const model = request.model || modelName;
     const customHeaders = Object.fromEntries(
-      Object.entries(aiSettings.customHeaders ?? {}).filter(
-        ([name]) => name.toLowerCase() !== 'authorization'
-      )
+      Object.entries(aiSettings.customHeaders ?? {})
+        .filter(([name]) => name.toLowerCase() !== 'authorization')
+        .map(([name, value]) => [name, expandHeaderTemplate(value, apiKey, model)])
     );
     const defaultBody = {
-      model: request.model || modelName,
+      model,
       messages: request.messages.map((m) => this.toOpenAiMessage(m)),
       temperature: request.temperature,
       max_tokens: request.maxTokens,
       top_p: request.topP,
     };
+    const customBody = expandBodyTemplates(aiSettings.customBody ?? {}, {
+      apiKey,
+      model,
+      maxToken: request.maxTokens,
+      jsonSchema: request.responseFormat
+        ? toOpenAiResponseFormat(request.responseFormat)
+        : undefined,
+    }) as Record<string, unknown>;
     const outgoingRequest = {
       url: `${baseURL.replace(/\/$/, '')}/chat/completions`,
       method: 'POST',
-      body: mergeJsonPatch(defaultBody, aiSettings.customBody ?? {}),
+      body: mergeJsonPatch(defaultBody, customBody),
       headers: {
         Authorization: 'Bearer [REDACTED]',
         'Content-Type': 'application/json',
         ...customHeaders,
       },
+    };
+    const loggedRequest = {
+      ...outgoingRequest,
+      body: redactSecret(outgoingRequest.body, apiKey),
+      headers: redactSecret(outgoingRequest.headers, apiKey),
     };
     try {
       const response = await client.chat.completions.create(
@@ -178,11 +284,11 @@ export class OpenAiCompatibleProviderService {
           : cause?.headers;
       this.logger.error('AI provider HTTP 요청 실패', {
         provider,
-        request: outgoingRequest,
+        request: loggedRequest,
         response: {
           status,
-          headers: responseHeaders,
-          body: cause?.error ?? e?.response?.data ?? e?.message,
+          headers: redactSecret(responseHeaders, apiKey),
+          body: redactSecret(cause?.error ?? e?.response?.data ?? e?.message, apiKey),
         },
       });
       throw new AiProxyError(e?.message || 'AI proxy request failed', {
