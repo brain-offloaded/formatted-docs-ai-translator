@@ -4,6 +4,7 @@ import { BaseParseOptionsDto } from '@/react/unified/domain/options/base-parse-o
 import { JsonParserOptionsDto } from '@/react/unified/domain/options/json-parser-options.dto';
 import { PlainTextParserOptionsDto } from '@/react/unified/domain/options/plain-text-parser-options.dto';
 import { CsvParserOptionsDto } from '@/react/unified/domain/options/csv-parser-options.dto';
+import { SpreadsheetParserOptionsDto } from '@/react/unified/domain/options/spreadsheet-parser-options.dto';
 import { SubtitleParserOptionsDto } from '@/react/unified/domain/options/subtitle-parser-options.dto';
 import { OptionItem } from '../components/options/DynamicOptions';
 import { BaseTranslatorProps } from '../components/translators/BaseTranslator';
@@ -42,6 +43,7 @@ export interface TranslationTypeToOptionsMap {
   [TranslationType.Json]: JsonParserOptionsDto;
   [TranslationType.Text]: PlainTextParserOptionsDto;
   [TranslationType.Csv]: CsvParserOptionsDto;
+  [TranslationType.Excel]: SpreadsheetParserOptionsDto;
   [TranslationType.Subtitle]: SubtitleParserOptionsDto;
 }
 
