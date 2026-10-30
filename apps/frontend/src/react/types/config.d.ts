@@ -16,6 +16,8 @@ export interface ProviderSlotConfig {
   thinkingLevel: string;
   thinkingBudget: number;
   setThinkingBudget: boolean;
+  customHeaders?: string;
+  customBody?: string;
 }
 
 // Provider 별 개별로 저장될 설정 묶음
@@ -27,6 +29,8 @@ export interface ProviderSpecificConfig {
   thinkingLevel: string;
   thinkingBudget: number;
   setThinkingBudget: boolean;
+  customHeaders?: string;
+  customBody?: string;
   slots?: ProviderSlotConfig[];
   activeSlotId?: string;
 }
@@ -57,6 +61,8 @@ export interface AiTranslatorConfig {
   thinkingLevel: string; // "생각" 강도 설정 (현재 provider용)
   thinkingBudget: number; // "생각" 과정에 사용될 예산 (토큰 수) (현재 provider용)
   setThinkingBudget: boolean; // "생각" 예산 설정 여부 (현재 provider용)
+  customHeaders?: string;
+  customBody?: string;
   placeholderPreservationEnabled: boolean;
   placeholderPreservationRules: PlaceholderPreservationRuleConfig[];
   // Provider 별 분리 저장 영역

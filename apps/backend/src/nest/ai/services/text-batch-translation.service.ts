@@ -12,7 +12,10 @@ import { AiPromptConverterService } from './ai-prompt-converter.service';
 import { textTranslationJsonSchema } from '@/nest/ai/schema/text-translation.schema';
 import { AiProxyService } from './ai-proxy.service';
 import { buildLanguageScopedCacheTag } from '@apps/common/dist/utils/cache-tag';
-import { TranslatorAiSettings } from '@/nest/translator/common/dto/translator-settings.dto';
+import {
+  ModelProvider,
+  TranslatorAiSettings,
+} from '@/nest/translator/common/dto/translator-settings.dto';
 import { TranslationResult } from '@/nest/ai/types/translation-result.interface';
 import { AiChatResponse, AiMessage, AiProxyError } from '../dto/common-ai.dto';
 import type {
@@ -62,7 +65,9 @@ export class TextBatchTranslationService {
       );
     }
     const thinkingLevel = aiSettings.thinkingLevel?.trim();
-    const effectiveUseThinking = !!thinkingLevel || useThinking;
+    const effectiveUseThinking =
+      aiSettings.modelProvider !== ModelProvider.OPENAI_COMPATIBLE &&
+      (!!thinkingLevel || !!useThinking);
     const normalizedCacheTag = buildLanguageScopedCacheTag(
       cacheTag,
       sourceLanguage,
@@ -590,6 +595,7 @@ export class TextBatchTranslationService {
   }
 
   private buildThinkingConfig(aiSettings: TranslatorAiSettings) {
+    if (aiSettings.modelProvider === ModelProvider.OPENAI_COMPATIBLE) return undefined;
     const thinkingLevel = aiSettings.thinkingLevel?.trim();
     if (thinkingLevel) {
       return {

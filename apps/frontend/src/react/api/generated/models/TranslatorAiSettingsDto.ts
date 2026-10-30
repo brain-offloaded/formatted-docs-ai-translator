@@ -31,7 +31,7 @@ export type TranslatorAiSettingsDto = {
     /**
      * 모델의 생각(Reasoning) 모드를 사용할지 여부
      */
-    useThinking: boolean;
+    useThinking?: boolean;
     /**
      * 모델의 생각(Reasoning) 강도
      */
@@ -39,11 +39,15 @@ export type TranslatorAiSettingsDto = {
     /**
      * 커스텀 생각 예산을 구성할지 여부
      */
-    setThinkingBudget: boolean;
+    setThinkingBudget?: boolean;
     /**
      * 생각 모드 활성화 시 사용하는 토큰 예산
      */
     thinkingBudget?: number;
+    /** Additional headers for OpenAI-compatible APIs, supplied as JSON. */
+    customHeaders?: Record<string, string>;
+    /** Additional request body fields for OpenAI-compatible APIs, supplied as JSON. */
+    customBody?: Record<string, unknown>;
 };
 export namespace TranslatorAiSettingsDto {
     /**

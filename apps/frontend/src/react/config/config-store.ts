@@ -80,6 +80,8 @@ const createSlot = ({
   thinkingLevel,
   thinkingBudget,
   setThinkingBudget,
+  customHeaders,
+  customBody,
 }: {
   id?: string;
   name?: string;
@@ -90,6 +92,8 @@ const createSlot = ({
   thinkingLevel: string;
   thinkingBudget: number;
   setThinkingBudget: boolean;
+  customHeaders?: string;
+  customBody?: string;
 }): ProviderSlotConfig => {
   return {
     id: id ?? createSlotId(),
@@ -101,6 +105,8 @@ const createSlot = ({
     thinkingLevel,
     thinkingBudget,
     setThinkingBudget,
+    customHeaders: customHeaders ?? '',
+    customBody: customBody ?? '',
   };
 };
 
@@ -119,6 +125,8 @@ const normalizeOpenAiCompatibleSettings = (
       thinkingLevel: config.thinkingLevel ?? '',
       thinkingBudget: config.thinkingBudget ?? 2000,
       setThinkingBudget: config.setThinkingBudget ?? false,
+      customHeaders: config.customHeaders ?? '',
+      customBody: config.customBody ?? '',
     });
     const normalized: ProviderSpecificConfig = {
       ...config,
@@ -129,6 +137,8 @@ const normalizeOpenAiCompatibleSettings = (
       thinkingLevel: slot.thinkingLevel,
       thinkingBudget: slot.thinkingBudget,
       setThinkingBudget: slot.setThinkingBudget,
+      customHeaders: slot.customHeaders,
+      customBody: slot.customBody,
       slots: [slot],
       activeSlotId: slot.id,
     };
@@ -151,6 +161,8 @@ const normalizeOpenAiCompatibleSettings = (
     thinkingLevel: typeof slot.thinkingLevel === 'string' ? slot.thinkingLevel : '',
     thinkingBudget: typeof slot.thinkingBudget === 'number' ? slot.thinkingBudget : 2000,
     setThinkingBudget: !!slot.setThinkingBudget,
+    customHeaders: slot.customHeaders ?? '',
+    customBody: slot.customBody ?? '',
   }));
 
   const normalizedActiveSlot =
@@ -165,6 +177,8 @@ const normalizeOpenAiCompatibleSettings = (
     thinkingLevel: normalizedActiveSlot.thinkingLevel,
     thinkingBudget: normalizedActiveSlot.thinkingBudget,
     setThinkingBudget: normalizedActiveSlot.setThinkingBudget,
+    customHeaders: normalizedActiveSlot.customHeaders,
+    customBody: normalizedActiveSlot.customBody,
     slots: normalizedSlots,
     activeSlotId: normalizedActiveSlot.id,
   };
@@ -316,6 +330,8 @@ const normalizeProviderSettings = (config: unknown): ProviderSpecificConfig => {
     thinkingLevel: typeof candidate?.thinkingLevel === 'string' ? candidate.thinkingLevel : '',
     thinkingBudget: typeof candidate?.thinkingBudget === 'number' ? candidate.thinkingBudget : 2000,
     setThinkingBudget: !!candidate?.setThinkingBudget,
+    customHeaders: typeof candidate?.customHeaders === 'string' ? candidate.customHeaders : '',
+    customBody: typeof candidate?.customBody === 'string' ? candidate.customBody : '',
     slots: Array.isArray(candidate?.slots) ? candidate?.slots : undefined,
     activeSlotId: typeof candidate?.activeSlotId === 'string' ? candidate.activeSlotId : undefined,
   };
@@ -362,6 +378,8 @@ const normalizeRehydratedConfig = (persistedState: unknown): AiTranslatorConfig 
     thinkingLevel: activeProviderSettings.thinkingLevel,
     thinkingBudget: activeProviderSettings.thinkingBudget,
     setThinkingBudget: activeProviderSettings.setThinkingBudget,
+    customHeaders: activeProviderSettings.customHeaders ?? '',
+    customBody: activeProviderSettings.customBody ?? '',
     placeholderPreservationEnabled:
       typeof persisted.placeholderPreservationEnabled === 'boolean'
         ? persisted.placeholderPreservationEnabled
@@ -408,6 +426,8 @@ export const useConfigStore = create<ConfigState>()(
               thinkingLevel: normalizedProviderSettings.thinkingLevel,
               thinkingBudget: normalizedProviderSettings.thinkingBudget,
               setThinkingBudget: normalizedProviderSettings.setThinkingBudget,
+              customHeaders: normalizedProviderSettings.customHeaders ?? '',
+              customBody: normalizedProviderSettings.customBody ?? '',
               providerSettings: {
                 ...state.providerSettings,
                 [p]: normalizedProviderSettings,
@@ -455,6 +475,8 @@ export const useConfigStore = create<ConfigState>()(
               update.setThinkingBudget !== undefined
                 ? update.setThinkingBudget
                 : currentProviderSettings.setThinkingBudget,
+            customHeaders: update.customHeaders ?? currentProviderSettings.customHeaders ?? '',
+            customBody: update.customBody ?? currentProviderSettings.customBody ?? '',
           };
 
           if (currentProvider === openAiProvider) {
@@ -481,6 +503,8 @@ export const useConfigStore = create<ConfigState>()(
                           thinkingLevel: providerPatched.thinkingLevel,
                           thinkingBudget: providerPatched.thinkingBudget,
                           setThinkingBudget: providerPatched.setThinkingBudget,
+                          customHeaders: providerPatched.customHeaders,
+                          customBody: providerPatched.customBody,
                         }
                       : slot
                   )
@@ -495,6 +519,8 @@ export const useConfigStore = create<ConfigState>()(
                       thinkingLevel: providerPatched.thinkingLevel,
                       thinkingBudget: providerPatched.thinkingBudget,
                       setThinkingBudget: providerPatched.setThinkingBudget,
+                      customHeaders: providerPatched.customHeaders,
+                      customBody: providerPatched.customBody,
                     }),
                   ];
 
@@ -543,6 +569,8 @@ export const useConfigStore = create<ConfigState>()(
             thinkingLevel: nextActive.thinkingLevel,
             thinkingBudget: nextActive.thinkingBudget,
             setThinkingBudget: nextActive.setThinkingBudget,
+            customHeaders: nextActive.customHeaders ?? '',
+            customBody: nextActive.customBody ?? '',
           };
 
           const shouldSyncTopLevel = state.modelProvider === openAiProvider;
@@ -557,6 +585,8 @@ export const useConfigStore = create<ConfigState>()(
                   thinkingLevel: nextActive.thinkingLevel,
                   thinkingBudget: nextActive.thinkingBudget,
                   setThinkingBudget: nextActive.setThinkingBudget,
+                  customHeaders: nextActive.customHeaders ?? '',
+                  customBody: nextActive.customBody ?? '',
                 }
               : {}),
             providerSettings: {
@@ -599,6 +629,8 @@ export const useConfigStore = create<ConfigState>()(
             thinkingLevel: activeSlot.thinkingLevel,
             thinkingBudget: activeSlot.thinkingBudget,
             setThinkingBudget: activeSlot.setThinkingBudget,
+            customHeaders: activeSlot.customHeaders ?? '',
+            customBody: activeSlot.customBody ?? '',
           });
 
           const nextSlots = [...slots, newSlot];
@@ -613,6 +645,8 @@ export const useConfigStore = create<ConfigState>()(
             thinkingLevel: newSlot.thinkingLevel,
             thinkingBudget: newSlot.thinkingBudget,
             setThinkingBudget: newSlot.setThinkingBudget,
+            customHeaders: newSlot.customHeaders ?? '',
+            customBody: newSlot.customBody ?? '',
           };
 
           const shouldSyncTopLevel = state.modelProvider === openAiProvider;
@@ -627,6 +661,8 @@ export const useConfigStore = create<ConfigState>()(
                   thinkingLevel: newSlot.thinkingLevel,
                   thinkingBudget: newSlot.thinkingBudget,
                   setThinkingBudget: newSlot.setThinkingBudget,
+                  customHeaders: newSlot.customHeaders ?? '',
+                  customBody: newSlot.customBody ?? '',
                 }
               : {}),
             providerSettings: {
@@ -670,6 +706,8 @@ export const useConfigStore = create<ConfigState>()(
             thinkingLevel: nextActive.thinkingLevel,
             thinkingBudget: nextActive.thinkingBudget,
             setThinkingBudget: nextActive.setThinkingBudget,
+            customHeaders: nextActive.customHeaders ?? '',
+            customBody: nextActive.customBody ?? '',
           };
 
           const shouldSyncTopLevel = state.modelProvider === openAiProvider;
@@ -684,6 +722,8 @@ export const useConfigStore = create<ConfigState>()(
                   thinkingLevel: nextActive.thinkingLevel,
                   thinkingBudget: nextActive.thinkingBudget,
                   setThinkingBudget: nextActive.setThinkingBudget,
+                  customHeaders: nextActive.customHeaders ?? '',
+                  customBody: nextActive.customBody ?? '',
                 }
               : {}),
             providerSettings: {

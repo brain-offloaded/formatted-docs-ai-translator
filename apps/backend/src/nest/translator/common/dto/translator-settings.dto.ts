@@ -1,10 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Min,
@@ -105,38 +106,52 @@ export class TranslatorAiSettingsDto {
   @Type(() => TranslatorModelConfigDto)
   customModelConfig: TranslatorModelConfigDto;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: '모델의 생각(Reasoning) 모드를 사용할지 여부',
     example: false,
   })
+  @ValidateIf((dto) => dto.modelProvider !== ModelProvider.OPENAI_COMPATIBLE)
   @IsBoolean()
-  useThinking: boolean;
+  useThinking?: boolean;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: '모델의 생각(Reasoning) 강도',
     example: 'low',
     required: false,
   })
+  @ValidateIf((dto) => dto.modelProvider !== ModelProvider.OPENAI_COMPATIBLE)
   @IsOptional()
   @IsString()
   thinkingLevel?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: '커스텀 생각 예산을 구성할지 여부',
     example: false,
   })
+  @ValidateIf((dto) => dto.modelProvider !== ModelProvider.OPENAI_COMPATIBLE)
   @IsBoolean()
-  setThinkingBudget: boolean;
+  setThinkingBudget?: boolean;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: '생각 모드 활성화 시 사용하는 토큰 예산',
     example: 1024,
     required: false,
   })
+  @ValidateIf((dto) => dto.modelProvider !== ModelProvider.OPENAI_COMPATIBLE)
   @IsOptional()
   @IsNumber()
   @Min(0)
   thinkingBudget?: number;
+
+  @ApiPropertyOptional({ description: 'OpenAI-compatible 요청에 추가할 HTTP 헤더' })
+  @IsOptional()
+  @IsObject()
+  customHeaders?: Record<string, string>;
+
+  @ApiPropertyOptional({ description: 'OpenAI-compatible 요청 본문에 덮어쓸 JSON 필드' })
+  @IsOptional()
+  @IsObject()
+  customBody?: Record<string, unknown>;
 }
 
 export type TranslatorAiSettings = TranslatorAiSettingsDto;

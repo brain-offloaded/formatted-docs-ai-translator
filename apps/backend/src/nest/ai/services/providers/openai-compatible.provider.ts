@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
-import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import {
   AiChatRequest,
   AiChatResponse,
@@ -8,7 +7,6 @@ import {
   AiMessageContent,
   AiMessagePart,
   AiProxyError,
-  AiResponseFormat,
 } from '../../dto/common-ai.dto';
 import { getProviderUrl } from '@/nest/ai/services/providers/provider-url';
 import { LoggerService } from '@/nest/logger/logger.service';
@@ -93,56 +91,6 @@ export class OpenAiCompatibleProviderService {
     };
   }
 
-  private toOpenAiResponseFormat(
-    aiResponseFormat: AiResponseFormat
-  ): ResponseFormatJSONSchema | undefined {
-    if (aiResponseFormat?.type !== 'json_schema') return undefined;
-    const rawSchema = aiResponseFormat.jsonSchema as unknown;
-    if (this.isOpenAiJsonSchema(rawSchema)) {
-      return { type: 'json_schema', json_schema: rawSchema };
-    }
-    return {
-      type: 'json_schema',
-      json_schema: {
-        name: this.inferResponseFormatName(rawSchema),
-        schema: rawSchema as Record<string, unknown>,
-      },
-    };
-  }
-
-  private isOpenAiJsonSchema(schema: unknown): schema is ResponseFormatJSONSchema.JSONSchema {
-    if (!schema || typeof schema !== 'object') return false;
-    const candidate = schema as Record<string, unknown>;
-    const name = candidate?.name;
-    const hasName = typeof name === 'string' && name.length > 0;
-    const hasSchema = typeof candidate?.schema === 'object' && candidate.schema !== null;
-    const hasMetadata =
-      typeof candidate?.description === 'string' || typeof candidate?.strict === 'boolean';
-    return hasName && (hasSchema || hasMetadata);
-  }
-
-  private inferResponseFormatName(schema: unknown): string {
-    if (!schema || typeof schema !== 'object') return 'structured_response';
-    const candidate = schema as { title?: unknown; $id?: unknown; properties?: unknown };
-
-    if (typeof candidate.title === 'string' && candidate.title.trim()) {
-      return candidate.title;
-    }
-
-    if (typeof candidate.$id === 'string' && candidate.$id.trim()) {
-      return candidate.$id;
-    }
-
-    const properties = candidate.properties;
-    if (properties && typeof properties === 'object') {
-      if ('segments' in properties) return 'text_translation';
-      if ('ocr_result' in properties || 'translated_result' in properties) {
-        return 'image_ocr_translation';
-      }
-    }
-    return 'structured_response';
-  }
-
   async chat({
     aiSettings,
     request,
@@ -161,21 +109,32 @@ export class OpenAiCompatibleProviderService {
       throw new AiProxyError('OpenAI-compatible Base URL is required.');
     }
     const client = this.getOpenAIClient(baseURL, apiKey);
+    const customHeaders = Object.fromEntries(
+      Object.entries(aiSettings.customHeaders ?? {}).filter(
+        ([name]) => name.toLowerCase() !== 'authorization'
+      )
+    );
     const outgoingRequest = {
       url: `${baseURL.replace(/\/$/, '')}/chat/completions`,
       method: 'POST',
-      headers: { Authorization: 'Bearer [REDACTED]', 'Content-Type': 'application/json' },
       body: {
         model: request.model || modelName,
         messages: request.messages.map((m) => this.toOpenAiMessage(m)),
         temperature: request.temperature,
         max_tokens: request.maxTokens,
         top_p: request.topP,
-        response_format: this.toOpenAiResponseFormat(request.responseFormat),
+        ...(aiSettings.customBody ?? {}),
+      },
+      headers: {
+        Authorization: 'Bearer [REDACTED]',
+        'Content-Type': 'application/json',
+        ...customHeaders,
       },
     };
     try {
-      const response = await client.chat.completions.create(outgoingRequest.body);
+      const response = await client.chat.completions.create(outgoingRequest.body, {
+        headers: customHeaders,
+      });
       return this.fromOpenAiResponse(response);
     } catch (err: unknown) {
       const e = err as {

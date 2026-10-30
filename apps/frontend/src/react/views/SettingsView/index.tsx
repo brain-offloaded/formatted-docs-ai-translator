@@ -361,7 +361,7 @@ const SettingsView: React.FC = () => {
               required
             />
           </Grid>
-          <Grid item xs={12}>
+          {!isOpenAiCompatible && <Grid item xs={12}>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Typography variant="subtitle1" gutterBottom fontWeight="medium">
                 {t('settings.thinking')}
@@ -477,7 +477,37 @@ const SettingsView: React.FC = () => {
                 </Collapse>
               </Box>
             </Paper>
-          </Grid>
+          </Grid>}
+          {isOpenAiCompatible && (
+            <Grid item xs={12}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" gutterBottom fontWeight="medium">
+                  {t('settings.advancedRequestOverrides')}
+                </Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  label={t('settings.customHeadersJson')}
+                  value={config.customHeaders ?? ''}
+                  onChange={(event) => updateConfig({ customHeaders: event.target.value })}
+                  placeholder={'{\n  "X-Title": "My app"\n}'}
+                  helperText={t('settings.customHeadersJsonHelp')}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={6}
+                  label={t('settings.customBodyJson')}
+                  value={config.customBody ?? ''}
+                  onChange={(event) => updateConfig({ customBody: event.target.value })}
+                  placeholder={'{\n  "reasoning": { "effort": "high" },\n  "response_format": { ... }\n}'}
+                  helperText={t('settings.customBodyJsonHelp')}
+                />
+              </Paper>
+            </Grid>
+          )}
         </Grid>
         <Collapse in={expanded} timeout="auto">
           <Box sx={{ mt: 3 }}>

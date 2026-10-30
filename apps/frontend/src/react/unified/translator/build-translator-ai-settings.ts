@@ -22,9 +22,19 @@ export const buildTranslatorAiSettings = (config: AiTranslatorConfig): Translato
       maxOutputTokenCount: config.customModelConfig.maxOutputTokenCount,
       maxConcurrentRequests: Math.max(1, config.customModelConfig.maxConcurrentRequests ?? 1),
     },
-    useThinking: config.useThinking,
-    setThinkingBudget: config.setThinkingBudget,
-    thinkingBudget: config.thinkingBudget,
-    ...(normalizedThinkingLevel ? { thinkingLevel: normalizedThinkingLevel } : {}),
+    ...(config.modelProvider !== TranslatorAiSettingsDto.modelProvider.OPENAI_COMPATIBLE
+      ? {
+          useThinking: config.useThinking,
+          setThinkingBudget: config.setThinkingBudget,
+          thinkingBudget: config.thinkingBudget,
+          ...(normalizedThinkingLevel ? { thinkingLevel: normalizedThinkingLevel } : {}),
+        }
+      : {}),
+    ...(config.modelProvider === TranslatorAiSettingsDto.modelProvider.OPENAI_COMPATIBLE
+      ? {
+          customHeaders: config.customHeaders ? JSON.parse(config.customHeaders) : {},
+          customBody: config.customBody ? JSON.parse(config.customBody) : {},
+        }
+      : {}),
   };
 };
