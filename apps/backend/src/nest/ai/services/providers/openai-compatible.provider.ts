@@ -161,15 +161,21 @@ export class OpenAiCompatibleProviderService {
       throw new AiProxyError('OpenAI-compatible Base URL is required.');
     }
     const client = this.getOpenAIClient(baseURL, apiKey);
-    try {
-      const response = await client.chat.completions.create({
+    const outgoingRequest = {
+      url: `${baseURL.replace(/\/$/, '')}/chat/completions`,
+      method: 'POST',
+      headers: { Authorization: 'Bearer [REDACTED]', 'Content-Type': 'application/json' },
+      body: {
         model: request.model || modelName,
         messages: request.messages.map((m) => this.toOpenAiMessage(m)),
         temperature: request.temperature,
         max_tokens: request.maxTokens,
         top_p: request.topP,
         response_format: this.toOpenAiResponseFormat(request.responseFormat),
-      });
+      },
+    };
+    try {
+      const response = await client.chat.completions.create(outgoingRequest.body);
       return this.fromOpenAiResponse(response);
     } catch (err: unknown) {
       const e = err as {
@@ -180,6 +186,23 @@ export class OpenAiCompatibleProviderService {
       };
       const status = e?.status ?? e?.response?.status;
       const code = e?.code ?? e?.response?.data?.error?.code;
+      const cause = err as {
+        headers?: Headers | Record<string, string>;
+        error?: unknown;
+      };
+      const responseHeaders =
+        cause?.headers instanceof Headers
+          ? Object.fromEntries(cause.headers.entries())
+          : cause?.headers;
+      this.logger.error('AI provider HTTP 요청 실패', {
+        provider,
+        request: outgoingRequest,
+        response: {
+          status,
+          headers: responseHeaders,
+          body: cause?.error ?? e?.response?.data ?? e?.message,
+        },
+      });
       throw new AiProxyError(e?.message || 'AI proxy request failed', {
         status,
         code,
