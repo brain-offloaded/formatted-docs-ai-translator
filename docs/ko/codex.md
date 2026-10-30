@@ -38,7 +38,8 @@ network_access = false
 
 - 기본 검증 순서는 `yarn lint` → `yarn test` → `yarn build`
 - `yarn dev`, `yarn dev:watch`, Electron 직접 실행은 GUI 확인이 필요한 작업에서만 사용
-- 로컬 실행 기준 Node는 `package.json`의 `volta.node`인 `22.14.0`
+- 로컬 실행 기준 Node는 `mise.toml`의 `22.14.0`; Yarn은 `package.json`의 `packageManager` 선언을 사용합니다.
+- mise를 처음 쓰는 환경에서는 저장소에서 `mise trust` 후 `mise install`을 실행합니다.
 - `translation-cache.db`는 데이터 흐름 작업이 아닌 이상 생성, 삭제, 초기화하지 않음
 - Prisma 스키마 관련 작업 뒤에는 `yarn exec prisma db pull`, `yarn exec prisma generate` 여부를 명시적으로 판단
 

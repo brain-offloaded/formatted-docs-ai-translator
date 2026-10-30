@@ -37,7 +37,8 @@ These rules live in `AGENTS.md`.
 
 - Preferred verification order is `yarn lint` -> `yarn test` -> `yarn build`
 - `yarn dev`, `yarn dev:watch`, and direct Electron runs are reserved for tasks that explicitly need GUI verification
-- The local execution baseline is `volta.node` in `package.json`, currently `22.14.0`
+- The local Node.js baseline is `22.14.0` in `mise.toml`; Yarn follows the `packageManager` declaration in `package.json`.
+- On first use, trust the repository with `mise trust`, then run `mise install`.
 - `translation-cache.db` should not be created, deleted, or reset unless the task explicitly requires data-flow work
 - Prisma schema work should make an explicit decision about `yarn exec prisma db pull` and `yarn exec prisma generate`
 
