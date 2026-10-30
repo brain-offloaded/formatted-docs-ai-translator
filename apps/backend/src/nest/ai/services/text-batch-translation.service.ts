@@ -126,6 +126,7 @@ export class TextBatchTranslationService {
         const batchGroups = await this.tokenService.getBatchGroups({
           texts: remainingTextArray,
           maxOutputTokenCount,
+          maxInputCharacterCount: customModelConfig.maxInputCharacterCount,
           useThinking: effectiveUseThinking,
         });
 

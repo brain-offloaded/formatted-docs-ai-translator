@@ -335,6 +335,24 @@ const SettingsView: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
+              id="max-input-characters"
+              label={t('settings.maxInputCharacters')}
+              variant="outlined"
+              type="number"
+              value={config.customModelConfig.maxInputCharacterCount || ''}
+              onChange={(e) =>
+                updateCustomModelConfig({
+                  maxInputCharacterCount: e.target.value === '' ? 0 : parseInt(e.target.value, 10),
+                })
+              }
+              InputProps={{ inputProps: { min: 0 } }}
+              InputLabelProps={{ shrink: true }}
+              helperText={t('settings.maxInputCharactersHelpText')}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
               id="max-concurrent-requests"
               label={labelWithTooltip(
                 t('settings.maxConcurrentRequests'),
@@ -587,6 +605,21 @@ const SettingsView: React.FC = () => {
                     </Typography>
                     <CopyButton
                       targetValue={String(config.customModelConfig.maxOutputTokenCount ?? '')}
+                      size="small"
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('settings.maxInputCharacters')}
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <Typography variant="body1" fontWeight="medium">
+                      {config.customModelConfig.maxInputCharacterCount ||
+                        t('settings.automaticValue')}
+                    </Typography>
+                    <CopyButton
+                      targetValue={String(config.customModelConfig.maxInputCharacterCount ?? 0)}
                       size="small"
                     />
                   </Box>

@@ -12,54 +12,60 @@ export class AiTokenService {
     useThinking,
     texts,
     maxOutputTokenCount,
+    maxInputCharacterCount,
   }: {
     useThinking: boolean;
     texts: string[];
     maxOutputTokenCount: number;
+    maxInputCharacterCount?: number;
   }): Promise<string[][]> {
-    const maxInputTokens = calculateDefaultMaxInputTokenCount({
-      useThinking,
-      maxOutputTokenCount,
-    });
+    const manualCharacterLimit =
+      typeof maxInputCharacterCount === 'number' && maxInputCharacterCount > 0
+        ? Math.floor(maxInputCharacterCount)
+        : undefined;
+    const maxBatchSize =
+      manualCharacterLimit ??
+      calculateDefaultMaxInputTokenCount({
+        useThinking,
+        maxOutputTokenCount,
+      });
 
-    // 모든 텍스트에 대한 토큰 수를 미리 계산
-    const textWithTokens = await Promise.all(
+    // Measure text once using either the manual character cap or the automatic token estimate.
+    const textWithSizes = await Promise.all(
       texts.map(async (text) => ({
         text,
-        tokenCount: await this.getEstimatedTokenCount(text),
+        measuredSize: manualCharacterLimit
+          ? Array.from(text).length
+          : await this.getEstimatedTokenCount(text),
       }))
     );
 
-    // 전체 토큰 수 계산
-    const totalTokenCount = textWithTokens.reduce((sum, item) => sum + item.tokenCount, 0);
+    const totalInputSize = textWithSizes.reduce((sum, item) => sum + item.measuredSize, 0);
 
-    // 전체 토큰 수가 최대 입력 토큰 수 이하면 그대로 반환
-    if (totalTokenCount <= maxInputTokens) {
+    if (totalInputSize <= maxBatchSize) {
       return [texts];
     }
 
-    // 배치 그룹으로 분할
     const batchGroups: string[][] = [];
     let currentGroup: string[] = [];
-    let currentTokenCount = 0;
+    let currentInputSize = 0;
 
-    for (const { text, tokenCount } of textWithTokens) {
-      if (currentTokenCount + tokenCount > maxInputTokens) {
+    for (const { text, measuredSize } of textWithSizes) {
+      if (currentInputSize + measuredSize > maxBatchSize) {
         if (currentGroup.length > 0) {
           batchGroups.push(currentGroup);
           currentGroup = [];
-          currentTokenCount = 0;
+          currentInputSize = 0;
         }
 
-        // 단일 텍스트가 최대 토큰 수보다 큰 경우 처리
-        if (tokenCount > maxInputTokens) {
+        if (measuredSize > maxBatchSize) {
           batchGroups.push([text]);
           continue;
         }
       }
 
       currentGroup.push(text);
-      currentTokenCount += tokenCount;
+      currentInputSize += measuredSize;
     }
 
     // 마지막 그룹 추가

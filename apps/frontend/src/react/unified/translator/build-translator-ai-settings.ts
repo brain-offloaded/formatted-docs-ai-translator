@@ -40,6 +40,7 @@ export const buildTranslatorAiSettings = (config: AiTranslatorConfig): Translato
       modelName: config.customModelConfig.modelName,
       requestsPerMinute: config.customModelConfig.requestsPerMinute,
       maxOutputTokenCount: config.customModelConfig.maxOutputTokenCount,
+      maxInputCharacterCount: config.customModelConfig.maxInputCharacterCount ?? 0,
       maxConcurrentRequests: Math.max(1, config.customModelConfig.maxConcurrentRequests ?? 1),
     },
     ...(config.modelProvider !== TranslatorAiSettingsDto.modelProvider.OPENAI_COMPATIBLE

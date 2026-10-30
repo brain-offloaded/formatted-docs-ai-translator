@@ -46,6 +46,15 @@ export class TranslatorModelConfigDto {
   @Min(0)
   maxOutputTokenCount: number;
 
+  @ApiPropertyOptional({
+    description: '요청당 입력할 최대 글자 수. 0이면 자동 계산합니다.',
+    example: 8000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxInputCharacterCount?: number;
+
   @ApiProperty({
     description: '동시에 처리할 최대 요청 수',
     example: 1,

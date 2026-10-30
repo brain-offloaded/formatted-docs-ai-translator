@@ -15,9 +15,10 @@ export type TranslatorModelConfigDto = {
      * 출력 토큰의 최대 개수
      */
     maxOutputTokenCount: number;
+    /** 요청당 입력할 최대 글자 수. 0이면 자동 계산합니다. */
+    maxInputCharacterCount?: number;
     /**
      * 동시에 처리할 최대 요청 수
      */
     maxConcurrentRequests: number;
 };
-

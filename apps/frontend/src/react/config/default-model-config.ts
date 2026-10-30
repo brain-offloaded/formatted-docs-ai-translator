@@ -29,12 +29,14 @@ export const getDefaultModelConfig = (options?: {
   modelName?: string;
   requestsPerMinute?: number;
   maxOutputTokenCount?: number;
+  maxInputCharacterCount?: number;
   maxConcurrentRequests?: number;
 }): TranslatorModelConfigDto => {
   return {
     modelName: (typeof options?.modelName === 'string' ? options.modelName : '') as AiModelName,
     requestsPerMinute: normalizeNonNegativeInteger(options?.requestsPerMinute, 0),
     maxOutputTokenCount: normalizeNonNegativeInteger(options?.maxOutputTokenCount, 0),
+    maxInputCharacterCount: normalizeNonNegativeInteger(options?.maxInputCharacterCount, 0),
     maxConcurrentRequests: normalizeMinOneInteger(options?.maxConcurrentRequests, 1),
   };
 };
