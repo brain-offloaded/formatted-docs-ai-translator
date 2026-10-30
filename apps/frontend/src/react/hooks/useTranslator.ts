@@ -41,6 +41,8 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
   const thinkingLevel = useConfigStore((state) => state.thinkingLevel);
   const thinkingBudget = useConfigStore((state) => state.thinkingBudget);
   const setThinkingBudget = useConfigStore((state) => state.setThinkingBudget);
+  const customHeaders = useConfigStore((state) => state.customHeaders);
+  const customBody = useConfigStore((state) => state.customBody);
   const providerSettings = useConfigStore((state) => state.providerSettings);
   const cacheTag = useConfigStore((state) => state.cacheTag);
   const beginnerModeEnabled = useConfigStore((state) => state.beginnerModeEnabled);
@@ -67,6 +69,8 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       thinkingLevel,
       thinkingBudget,
       setThinkingBudget,
+      customHeaders,
+      customBody,
       providerSettings,
       placeholderPreservationEnabled,
       placeholderPreservationRules,
@@ -84,6 +88,8 @@ export const useTranslator = <T extends BaseParseOptionsDto>({
       thinkingLevel,
       thinkingBudget,
       setThinkingBudget,
+      customHeaders,
+      customBody,
       providerSettings,
       cacheTag,
       beginnerModeEnabled,
